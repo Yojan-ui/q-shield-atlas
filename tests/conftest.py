@@ -30,3 +30,24 @@ def opt_client():
     from qpiai_opt.opt_solvers import Client
 
     return Client(api_key=os.environ["QPIAI_OPT_API_KEY"])
+
+
+def _lab_servers():
+    import psutil
+
+    found = []
+    for p in psutil.process_iter(["pid", "cmdline"]):
+        cmd = p.info["cmdline"] or []
+        if any(c.endswith("openssl") for c in cmd[:1]) and "s_server" in cmd:
+            found.append((p.info["pid"], " ".join(cmd[:4])))
+    return found
+
+
+@pytest.fixture(scope="session", autouse=True)
+def no_orphaned_openssl_processes():
+    """Fail the session if any `openssl s_server` survives the tests."""
+    before = {pid for pid, _ in _lab_servers()}
+    yield
+    leftover = [p for p in _lab_servers() if p[0] not in before]
+    if leftover:
+        pytest.fail(f"orphaned openssl s_server processes: {leftover}")

@@ -1,12 +1,54 @@
 {
-  "label": "Local lab TLS 1.3 services (openssl s_server on 127.0.0.1). Configuration, not measurements.",
+  "label": "Local lab TLS services (openssl s_server on 127.0.0.1). Configuration and policy, not measurements.",
+  "modes": {
+    "legacy":     {"groups": "X25519",                "tls": "1.2+", "note": "classical key exchange only"},
+    "transition": {"groups": "X25519MLKEM768:X25519", "tls": "1.2+", "note": "hybrid preferred, classical still allowed"},
+    "strict":     {"groups": "X25519MLKEM768",        "tls": "1.3",  "note": "hybrid only; TLS 1.3 only because with TLS 1.2 allowed a 1.2 client falls back to classical FFDHE"}
+  },
   "services": {
-    "legacy": {"groups": "X25519", "cert_key": "rsa:2048"},
-    "hybrid": {"groups": "X25519MLKEM768", "cert_key": "rsa:2048"}
+    "legacy": {"mode": "legacy", "cert_key": "rsa:2048"},
+    "hybrid": {"mode": "strict", "cert_key": "rsa:2048"}
+  },
+  "clients": {
+    "pq-capable":     {"groups": "X25519MLKEM768:X25519", "tls": "auto"},
+    "classical-only": {"groups": "X25519",                "tls": "auto"},
+    "tls1.2-only":    {"groups": "X25519",                "tls": "1.2"}
+  },
+  "compat_policy": {
+    "note": "Expected outcome per (mode, client). Code enforces two extra rules: a PQ-capable client in a mode that offers a PQ group must get it, and any classical session is flagged HNDL-exposed, never PASS.",
+    "legacy": {
+      "pq-capable":     {"expect": "connect", "group": "X25519"},
+      "classical-only": {"expect": "connect", "group": "X25519"},
+      "tls1.2-only":    {"expect": "connect", "group": "X25519"}
+    },
+    "transition": {
+      "pq-capable":     {"expect": "connect", "group": "X25519MLKEM768"},
+      "classical-only": {"expect": "connect", "group": "X25519"},
+      "tls1.2-only":    {"expect": "connect", "group": "X25519"}
+    },
+    "strict": {
+      "pq-capable":     {"expect": "connect", "group": "X25519MLKEM768"},
+      "classical-only": {"expect": "refused"},
+      "tls1.2-only":    {"expect": "refused"}
+    }
   },
   "client_groups": "X25519MLKEM768:X25519",
   "classical_only_client_groups": "X25519:prime256v1",
   "pq_group_allowlist": ["X25519MLKEM768", "SecP256r1MLKEM768", "SecP384r1MLKEM1024", "MLKEM512", "MLKEM768", "MLKEM1024"],
+  "health_check_client": "classical-only",
+  "waves": {
+    "initial_mode": "legacy",
+    "target_mode": "transition",
+    "max_processes": 4,
+    "lab_services_by_kind": {
+      "tls_gateway": "edge",
+      "cdn_edge": "edge",
+      "service_mtls": "app",
+      "message_bus": "app",
+      "database_tls": "data"
+    },
+    "note": "Kinds with no TLS lab stand-in (root_ca, hsm, vpn, batch_sftp) are reported not_verified_in_lab."
+  },
   "timeouts_s": {"keygen": 30, "startup": 10, "handshake": 15, "shutdown": 5},
   "hndl_label": "HNDL-exposed: recorded traffic relies on classical key exchange"
 }

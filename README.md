@@ -4,9 +4,9 @@ PQC track, problem statement PQC-01. Find vulnerable RSA/ECC in a system, schedu
 optimally with QpiAI Opt, verify every wave, prove it with signed evidence, and show it in a 3D
 exposure tower (2D fallback).
 
-**Status:** build steps 1-3 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
-evidence) plus the first gate (`gates/pq_handshake.py`). Later modules (remaining gates, ledger,
-qaoa, viz) are not built yet; their sections in `results.json` are `null`.
+**Status:** build steps 1-4 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
+evidence, `gates/` with compatibility, rollback and the wave runner). Later modules (ledger, qaoa,
+viz) are not built yet; their sections in `results.json` are `null`.
 
 **Scope decision:** this project performs no key recovery, factoring or decryption. Quantum
 exposure is shown with real TLS 1.3 handshake evidence: sessions that rely on classical key
@@ -20,6 +20,7 @@ conda activate pqc            # Python 3.12; the base env lacks qpiai-opt
 source .env.sh                # exports QPIAI_OPT_API_KEY (and QCLOUD_API_KEY); git-ignored
 python -m detect --probe web-gw=HOST:PORT   # -> out/detect.json, out/inventory.json (probe optional)
 python -m capture             # lab TLS 1.3 handshakes -> out/capture.json, out/gates.json, out/handshake_evidence.json
+python -m gates               # compat matrix, wave runner, one forced rollback -> out/gates.json, out/wave_status.json
 python -m schedule --inventory out/inventory.json  # local solves -> out/schedule.json, logs in runs/<run_id>/
 python -m schedule --platform # opt-in: 2 paid QpiAI platform jobs (main plan only), see below
 python -m contracts.assemble  # -> out/results.json, validated against contracts/results.schema.json
@@ -66,7 +67,7 @@ ML-KEM skip with that reason instead of passing.
   self-signed RSA-2048 certificate in a temp dir, bound to 127.0.0.1 on a free port:
   **legacy** (`-groups X25519`, classical) and **hybrid** (`-groups X25519MLKEM768`).
   Processes are terminated (then killed if needed) on exit, including on errors.
-- `capture/handshake.py` connects with `openssl s_client -groups <list> -brief` and records the
+- `capture/handshake.py` connects with `openssl s_client -groups <list> -brief -msg` and records the
   negotiated group, cipher, protocol and certificate key family (from the TLS signature type), plus
   the raw transcript (saved under `runs/<run_id>/`) and its SHA-256. Each service is probed by a
   modern client (`X25519MLKEM768:X25519`) and by a classical-only client (`X25519:prime256v1`).
@@ -80,9 +81,37 @@ ML-KEM skip with that reason instead of passing.
   no traffic is decrypted and no decryption is claimed.
 
 Limits: both lab certificates are RSA-2048, so authentication is still classical even on the hybrid
-service (HNDL concerns confidentiality, which the key exchange protects). `-brief` output has no
-per-session data, so identical handshakes give identical transcript hashes; endpoint and timestamp
-distinguish sessions.
+service (HNDL concerns confidentiality, which the key exchange protects). `-msg` adds the hex of every
+handshake message (including the ClientHello/ServerHello randoms), so each session's transcript hash
+is unique. Key material is never logged: no `-keylogfile`, and `SSLKEYLOGFILE` is stripped from the
+subprocess environment (tested).
+
+## Deployment modes, compatibility, rollback and waves (`gates/`)
+
+Modes (`config/lab.json`): **legacy** = X25519, TLS 1.2+; **transition** = X25519MLKEM768:X25519,
+TLS 1.2+ (hybrid preferred, classical still allowed); **strict** = X25519MLKEM768, **TLS 1.3 only**.
+Strict must be TLS 1.3-only: measured with OpenSSL 3.6.5, a strict-groups server that still allowed
+TLS 1.2 let a TLS 1.2 client in on classical finite-field DH (`Peer Temp Key: DH, 2048 bits`),
+because ML-KEM groups exist only in TLS 1.3.
+
+- `gates/compat.py`: matrix of modes x clients (pq-capable, classical-only, TLS1.2-only). Expected
+  outcomes come from the `compat_policy` table in config. Code adds two rules on top: a pq-capable
+  client in a mode offering a PQ group must get one (no silent downgrade), and any classical
+  connection is `HNDL-exposed`, never `PASS`. Cells: PASS | HNDL-exposed | FAIL; any FAIL fails the gate.
+- `gates/rollback.py`: snapshot the service config file + SHA-256, apply the mode, restart, run
+  pq_handshake + compat. On failure: restore, verify the restored file's SHA-256 equals the snapshot,
+  restart, run a classical-client health-check handshake. Status: `applied` (all gates passed),
+  `rolled_back`, or `rollback_failed` (hash mismatch, restart failure or failed health check).
+- `gates/wave_runner.py`: reads waves from `out/schedule.json`; for each wave moves the lab stand-ins
+  its assets map to (by asset kind: edge, app, data; at most 4 `s_server` processes) to the target
+  mode with rollback protection. Evidence per wave (gate results, transcript hashes, config hashes,
+  timestamps, run_id) goes to `runs/<run_id>/` and `results.json` `waves[].evidence`; the schema
+  requires evidence for any non-planned wave status.
+- Statuses: `applied` | `rolled_back` | `rollback_failed` | `not_verified_in_lab` (asset kinds with no
+  TLS stand-in: root CA, HSM, VPN, batch SFTP) | `partially_verified` (wave mixing both).
+
+Limits: one lab stand-in represents every asset of its kind, so `applied` means the stand-in
+passed the gates in that mode, not that the real system was migrated. Lab certificates stay RSA-2048.
 
 ## Scheduling model (`schedule/`)
 

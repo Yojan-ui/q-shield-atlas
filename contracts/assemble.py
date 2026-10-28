@@ -20,6 +20,15 @@ def assemble(out_dir: Path = OUT) -> dict:
     for name in LATER_SECTIONS:
         path = out_dir / f"{name}.json"
         results[name] = json.loads(path.read_text()) if path.exists() else None
+    waves_path = out_dir / "wave_status.json"
+    if waves_path.exists():  # wave runner verdicts replace the planned statuses
+        run = json.loads(waves_path.read_text())
+        by_week = {w["week"]: w for w in run["waves"]}
+        if sorted(by_week) != sorted(w["week"] for w in results["waves"]):
+            raise ValueError("wave_status.json does not match the scheduled waves; rerun python -m gates")
+        results["waves"] = [{**w, **{k: by_week[w["week"]][k] for k in ("status", "asset_status", "evidence")}} for w in results["waves"]]
+        for a in results["assets"]:
+            a["status"] = run["asset_status"].get(a["id"], "planned")
     ledger = out_dir / "ledger_root.txt"
     results["ledger_root"] = ledger.read_text().strip() if ledger.exists() else None
     validate("results", results)

@@ -1,9 +1,13 @@
-"""Record TLS handshake evidence with `openssl s_client -brief`.
+"""Record TLS handshake evidence with `openssl s_client -brief -msg`.
 
 Only handshake metadata is kept (group, cipher, protocol, certificate key family) plus the raw
-s_client transcript and its SHA-256. No application data, no keys, no decryption.
+s_client transcript and its SHA-256. `-msg` adds the hex of each handshake message (including the
+ClientHello/ServerHello randoms), so every session's transcript and hash are unique. Key material
+is never logged or derived: no -keylogfile, and SSLKEYLOGFILE is removed from the environment.
+No application data, no decryption.
 """
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -45,19 +49,28 @@ def parse_brief(text: str) -> dict:
     }
 
 
-def handshake(host: str, port: int, groups: str, timeout: float = 15.0) -> tuple[dict, str]:
+TLS_FLAGS = {None: [], "auto": [], "1.2": ["-tls1_2"], "1.3": ["-tls1_3"]}
+
+
+def clean_env() -> dict:
+    return {k: v for k, v in os.environ.items() if k != "SSLKEYLOGFILE"}
+
+
+def handshake(host: str, port: int, groups: str, timeout: float = 15.0, tls: str | None = None) -> tuple[dict, str]:
     """Return (parsed fields, raw transcript). Never raises on a refused handshake."""
-    cmd = [openssl_binary(), "s_client", "-connect", f"{host}:{port}", "-groups", groups, "-brief"]
+    cmd = [openssl_binary(), "s_client", "-connect", f"{host}:{port}", "-groups", groups, *TLS_FLAGS[tls], "-brief", "-msg"]
+    assert not any("keylog" in c.lower() for c in cmd)
     try:
-        proc = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout)
+        proc = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout, env=clean_env())
         text = proc.stdout + proc.stderr
     except subprocess.TimeoutExpired as exc:
         text = f"TIMEOUT after {timeout}s\n{exc.stdout or ''}{exc.stderr or ''}"
     return parse_brief(text), text
 
 
-def record(service_id: str, host: str, port: int, groups: str, transcript_dir: Path | None, label: str, timeout: float = 15.0) -> dict:
-    fields, text = handshake(host, port, groups, timeout)
+def record(service_id: str, host: str, port: int, groups: str, transcript_dir: Path | None, label: str,
+           timeout: float = 15.0, tls: str | None = None) -> dict:
+    fields, text = handshake(host, port, groups, timeout, tls)
     digest = sha256_hex(text.encode())
     if transcript_dir is not None:
         transcript_dir.mkdir(parents=True, exist_ok=True)
@@ -71,4 +84,5 @@ def record(service_id: str, host: str, port: int, groups: str, transcript_dir: P
     }
     if fields["established"]:
         return {"established": True, **base, **{k: fields[k] for k in ("negotiated_group", "cipher", "protocol", "cert_alg", "signature_type")}}
+    # transcript files are keyed by label; callers pass unique labels
     return {"established": False, **base, "error": fields["error"]}

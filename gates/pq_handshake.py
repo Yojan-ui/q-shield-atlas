@@ -53,3 +53,18 @@ def evaluate(capture: dict, lab: dict) -> dict:
     pq = [evaluate_session(s, lab) for s in sessions]
     downgrade = [evaluate_downgrade(capture, sid, lab) for sid in sorted({s["service_id"] for s in sessions})]
     return {"capture_run_id": capture["run_id"], "pq_handshake": pq, "downgrade": downgrade}
+
+
+def check_live(svc, lab: dict, transcript_dir, tag: str = "") -> dict:
+    """pq_handshake gate against a running service, using the pq-capable client profile."""
+    from capture.handshake import record
+
+    client = lab["clients"]["pq-capable"]
+    rec = record(svc.service_id, svc.host, svc.port, client["groups"], transcript_dir,
+                 f"{tag}{svc.service_id}_{svc.mode}_pq_handshake", lab["timeouts_s"]["handshake"])
+    if not rec["established"]:
+        return {"gate": "pq_handshake", "service_id": svc.service_id, "result": "FAIL", "negotiated_group": None,
+                "kex_class": None, "hndl_exposed": None, "label": None,
+                "reason": f"pq-capable client could not connect ({rec.get('error')})",
+                "transcript_sha256": rec["transcript_sha256"]}
+    return evaluate_session(rec, lab)

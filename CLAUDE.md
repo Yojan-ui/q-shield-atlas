@@ -63,6 +63,9 @@ Modules communicate only through the JSON contracts in `contracts/` (validated i
 - `tests/`, `run_demo.sh`, `README.md`
 
 Lab services bind 127.0.0.1 only, on free ports, as subprocesses with timeouts and clean shutdown.
+Handshake capture uses `s_client -brief -msg`; never `-keylogfile`, never SSLKEYLOGFILE.
+Strict mode is TLS 1.3 only (TLS 1.2 would let clients fall back to classical FFDHE).
+Never report "applied"/"passed" without gate evidence; unmapped assets are not_verified_in_lab.
 
 Contracts: `capture.json` (handshake sessions: service_id, negotiated_group, cipher, protocol,
 cert_alg, transcript_sha256, timestamp; plus refused attempts), `results.json`, ledger entry
@@ -77,8 +80,8 @@ a dependency migrates no later than its dependents.
 Report exposure-years avoided vs both baselines on the same data.
 
 ## Progress
-- Steps 1 (schedule + contracts) and 2 (detect) done. Step 3 = capture/ handshake evidence +
-  gates/pq_handshake.py (start of step 4).
+- Steps 1-4 done (schedule, detect, capture handshake evidence, gates: pq_handshake, compat,
+  rollback, wave runner). Next: step 5 (ledger/).
 - Real-repo scans are read-only; clones live in git-ignored `.cache/repos/`.
 
 ## Workflow
@@ -87,5 +90,7 @@ Report exposure-years avoided vs both baselines on the same data.
 - Small verified steps. Run `pytest` after each step, then commit.
 - Definition of done: pytest green (legacy negotiates a classical group → PQ gate FAIL and
   HNDL-exposed; hybrid negotiates X25519MLKEM768 → gate PASS; classical-only client refused by
-  the hybrid service; ledger tamper detected; schedule feasible and never worse than baselines); `./run_demo.sh` regenerates
+  the hybrid service; transition gives pq clients X25519MLKEM768 and flags classical ones
+  HNDL-exposed; injected gate failure → rolled_back with config hash restored; corrupted snapshot →
+  rollback_failed; no asset "applied" without gate evidence; no orphaned s_server; ledger tamper detected; schedule feasible and never worse than baselines); `./run_demo.sh` regenerates
   `results.json` and opens the viz; README states every assumption, limit and how to rerun.

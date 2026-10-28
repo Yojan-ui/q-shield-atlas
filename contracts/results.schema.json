@@ -155,7 +155,10 @@
         "drift_count": {"type": "integer", "minimum": 0}
       }
     },
-    "status": {"enum": ["planned", "migrated", "failed", "rolled_back"]},
+    "status": {
+      "description": "planned until the wave runner has run; applied only when every gate passed on a lab stand-in.",
+      "enum": ["planned", "applied", "partially_verified", "rolled_back", "rollback_failed", "not_verified_in_lab"]
+    },
     "waves": {
       "type": "array",
       "items": {
@@ -166,8 +169,36 @@
           "week": {"type": "integer", "minimum": 1},
           "assets": {"type": "array", "items": {"type": "string"}, "minItems": 1},
           "effort_days": {"type": "number", "minimum": 0},
-          "status": {"$ref": "#/$defs/status"}
-        }
+          "status": {"$ref": "#/$defs/status"},
+          "asset_status": {"type": "object", "additionalProperties": {"$ref": "#/$defs/status"}},
+          "evidence": {
+            "type": "object",
+            "required": ["run_id", "ts", "lab_services"],
+            "properties": {
+              "run_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+              "ts": {"type": "string", "format": "date-time"},
+              "lab_services": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["lab_service", "assets", "status", "snapshot_sha256", "applied_config_sha256", "gates"],
+                  "properties": {
+                    "status": {"enum": ["applied", "rolled_back", "rollback_failed"]},
+                    "snapshot_sha256": {"$ref": "#/$defs/sha256"},
+                    "applied_config_sha256": {"$ref": "#/$defs/sha256"},
+                    "restored_config_sha256": {"$ref": "#/$defs/sha256"}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"status": {"enum": ["applied", "partially_verified", "rolled_back", "rollback_failed"]}}},
+            "then": {"required": ["asset_status", "evidence"]}
+          }
+        ]
       }
     },
     "scenario_exposure": {

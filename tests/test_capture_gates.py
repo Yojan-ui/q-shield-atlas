@@ -4,6 +4,7 @@ import copy
 import json
 import re
 import socket
+import subprocess
 from pathlib import Path
 
 import psutil
@@ -166,3 +167,32 @@ def test_parse_brief_hybrid_and_refused():
 @pytest.mark.parametrize("sig, fam", [("rsa_pss_rsae_sha256", "RSA"), ("ecdsa_secp256r1_sha256", "ECDSA"), ("ed25519", "Ed25519"), ("mldsa65", "ML-DSA")])
 def test_cert_alg_from_signature(sig, fam):
     assert cert_alg_from_signature(sig) == fam
+
+
+@needs_mlkem
+def test_transcript_hash_unique_per_session(tmp_path):
+    from capture.handshake import record
+
+    with lab_service("hybrid", "X25519MLKEM768", lab=LAB) as svc:
+        a = record("hybrid", svc.host, svc.port, "X25519MLKEM768", tmp_path, "a")
+        b = record("hybrid", svc.host, svc.port, "X25519MLKEM768", tmp_path, "b")
+    assert a["established"] and b["established"]
+    assert a["transcript_sha256"] != b["transcript_sha256"]
+    text = (tmp_path / "transcript_a.txt").read_text()
+    assert "ClientHello" in text and "ServerHello" in text  # -msg handshake records present
+
+
+def test_handshake_never_requests_key_logging(monkeypatch):
+    import capture.handshake as hs
+
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen.update(cmd=cmd, env=kw["env"])
+        raise subprocess.TimeoutExpired(cmd, 1)
+
+    monkeypatch.setenv("SSLKEYLOGFILE", "/tmp/should-not-be-used")
+    monkeypatch.setattr(hs.subprocess, "run", fake_run)
+    hs.handshake("127.0.0.1", 1, "X25519", timeout=1)
+    assert "-msg" in seen["cmd"] and not any("keylog" in c.lower() for c in seen["cmd"])
+    assert "SSLKEYLOGFILE" not in seen["env"]
