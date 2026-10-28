@@ -1,0 +1,13 @@
+# Exact pins for the packages Q-Shield Atlas imports directly (Python 3.12).
+# Full environment snapshot: requirements-lock.txt. Conda env: environment.yml.
+# QpiAI SDKs: qpiai-opt (MILP, import qpiai_opt) and qpiai-quantum (QCloud, import qpiai_quantum).
+# OpenSSL >= 3.5 with ML-KEM and ML-DSA is NOT a pip package: see config/lab.json "openssl".
+cryptography==50.0.2
+jsonschema==4.26.0
+numpy==2.5.4
+psutil==7.2.2
+pytest==9.1.1
+qpiai-opt==0.0.9
+qpiai-quantum==0.3.0
+rich==15.0.0
+scipy==1.18.1

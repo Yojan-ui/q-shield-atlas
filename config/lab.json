@@ -1,5 +1,17 @@
 {
   "label": "Local lab TLS services (openssl s_server on 127.0.0.1). Configuration and policy, not measurements.",
+  "openssl": {
+   "path": "/opt/anaconda3/envs/pqc/bin/openssl",
+   "version": "OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026)",
+   "conda_package": "openssl 3.6.5 h55eecbc_0 (conda-forge), env pqc",
+   "requires": {
+    "tls_group": "X25519MLKEM768",
+    "signature": "ML-DSA-65",
+    "min_version": "3.5"
+   },
+   "override_env": "QSHIELD_OPENSSL",
+   "note": "Machine-specific path. Lookup order: $QSHIELD_OPENSSL, this path, openssl next to the Python interpreter, PATH; the chosen binary must list X25519MLKEM768 and ML-DSA-65."
+  },
   "modes": {
     "legacy":     {"groups": "X25519",                "tls": "1.2+", "note": "classical key exchange only"},
     "transition": {"groups": "X25519MLKEM768:X25519", "tls": "1.2+", "note": "hybrid preferred, classical still allowed"},

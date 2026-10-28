@@ -5,10 +5,13 @@ X25519 / P-256) and records what the server actually negotiates plus its certifi
 The raw s_client transcript is kept (hash + optional file) as evidence.
 """
 
+import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 from cryptography import x509
@@ -22,13 +25,44 @@ PQC_GROUPS = {"X25519MLKEM768", "SecP256r1MLKEM768", "SecP384r1MLKEM1024", "MLKE
 CERT = re.compile(r"-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----", re.S)
 
 
+LAB_CONFIG = Path(__file__).resolve().parent.parent / "config" / "lab.json"
+
+
+def _supports_pqc(binary: str) -> bool:
+    try:
+        groups = subprocess.run([binary, "list", "-tls-groups"], capture_output=True, text=True, timeout=10).stdout
+        sigs = subprocess.run([binary, "list", "-signature-algorithms"], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return "X25519MLKEM768" in groups and "ML-DSA-65" in sigs
+
+
+def openssl_candidates() -> list[str]:
+    """Lookup order: $QSHIELD_OPENSSL, config/lab.json openssl.path, next to this interpreter, PATH."""
+    out = [os.environ.get("QSHIELD_OPENSSL")]
+    try:
+        out.append(json.loads(LAB_CONFIG.read_text()).get("openssl", {}).get("path"))
+    except (OSError, ValueError):
+        pass
+    out += [str(Path(sys.executable).parent / "openssl"), shutil.which("openssl")]
+    seen = []
+    for c in out:
+        if c and Path(c).exists() and c not in seen:
+            seen.append(c)
+    return seen
+
+
+@lru_cache(maxsize=1)
 def openssl_binary() -> str:
-    """Prefer the OpenSSL next to this interpreter (conda env `pqc` ships 3.6.x)."""
-    local = Path(sys.executable).parent / "openssl"
-    found = str(local) if local.exists() else shutil.which("openssl")
-    if not found:
-        raise RuntimeError("openssl CLI not found")
-    return found
+    """First candidate that lists X25519MLKEM768 and ML-DSA-65 (OpenSSL >= 3.5)."""
+    candidates = openssl_candidates()
+    for c in candidates:
+        if _supports_pqc(c):
+            return c
+    raise RuntimeError(
+        f"no OpenSSL with X25519MLKEM768 and ML-DSA-65 found (checked {candidates or 'nothing'}). "
+        "Install OpenSSL >= 3.5 (e.g. `conda install -c conda-forge openssl=3.6.5`) and set QSHIELD_OPENSSL=/path/to/openssl."
+    )
 
 
 def openssl_info(binary: str) -> dict:

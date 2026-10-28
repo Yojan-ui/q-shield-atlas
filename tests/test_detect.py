@@ -150,3 +150,18 @@ def test_cli_outputs_validate_in_results(tmp_path, opt_client):
     validate("results", results)
     assert results["detect"]["run_id"] == detect["run_id"]
     assert all(a["evidence"] for a in results["assets"])
+
+
+def test_openssl_lookup_prefers_env_then_config_and_requires_pqc(monkeypatch, tmp_path):
+    from detect import live_probe
+
+    fake = tmp_path / "openssl"
+    fake.write_text("#!/bin/sh\necho 'OpenSSL 1.0 fake'\n")
+    fake.chmod(0o755)
+    monkeypatch.setenv("QSHIELD_OPENSSL", str(fake))
+    cands = live_probe.openssl_candidates()
+    assert cands[0] == str(fake)
+    cfg = json.loads((REPO / "config" / "lab.json").read_text())["openssl"]["path"]
+    assert cands.index(cfg) == 1
+    assert not live_probe._supports_pqc(str(fake))  # a binary without ML-KEM/ML-DSA is skipped
+    assert live_probe._supports_pqc(cfg)

@@ -1,10 +1,14 @@
-"""python -m detect [--root DIR] [--probe SERVICE=HOST:PORT ...]
+"""python -m detect [--root DIR] [--probe SERVICE=HOST:PORT ...] [--lab-probe SERVICE=MODE ...]
+
+--lab-probe starts a temporary local lab TLS service in MODE (legacy | transition | strict, see
+config/lab.json), probes it as SERVICE's live endpoint, and shuts it down.
 
 -> out/detect.json (detect section of results.json) and out/inventory.json (input to schedule),
    probe transcripts in runs/<run_id>/.
 """
 
 import argparse
+import contextlib
 import json
 from pathlib import Path
 
@@ -62,11 +66,22 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", type=Path, default=DEFAULT_ROOT)
     ap.add_argument("--probe", action="append", default=[], metavar="SERVICE=HOST:PORT")
+    ap.add_argument("--lab-probe", action="append", default=[], metavar="SERVICE=MODE")
     ap.add_argument("--out-dir", type=Path, default=REPO / "out")
     ap.add_argument("--runs", type=Path, default=REPO / "runs")
     args = ap.parse_args(argv)
 
-    section, inventory = run(args.root, dict(map(parse_probe, args.probe)), args.runs)
+    probes = dict(map(parse_probe, args.probe))
+    with contextlib.ExitStack() as stack:
+        if args.lab_probe:
+            from capture.services import load_lab, managed_service
+
+            lab = load_lab()
+            for item in args.lab_probe:
+                sid, _, mode = item.partition("=")
+                svc = stack.enter_context(managed_service(f"probe-{sid}", mode, lab))
+                probes[sid] = (svc.host, svc.port)
+        section, inventory = run(args.root, probes, args.runs)
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "detect.json").write_text(json.dumps(section, indent=1))
     (args.out_dir / "inventory.json").write_text(json.dumps(inventory, indent=1))

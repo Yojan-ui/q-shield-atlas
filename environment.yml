@@ -1,0 +1,15 @@
+# `conda env export -n pqc --from-history` gave: python=3.12, cmake, ninja (channel defaults).
+# Added by hand because --from-history omits them: OpenSSL 3.6.5 from conda-forge (ML-KEM / ML-DSA,
+# installed in env pqc as openssl 3.6.5 h55eecbc_0) and the pip pins in requirements.txt.
+name: pqc
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - cmake
+  - ninja
+  - conda-forge::openssl=3.6.5
+  - pip
+  - pip:
+      - -r requirements.txt
