@@ -1,5 +1,6 @@
 """python -m atlas announce [--fast] [--json]
 python -m atlas report [--open]
+python -m atlas site [--port N] [--no-browser]   (showcase site; read-only; frontend in site/)
 
 Terminal launch screen read from out/results.json, the ledger and pytest's JUnit report.
 Without --fast the test suite is run first (QpiAI platform/QCloud submissions stay forbidden)
@@ -17,6 +18,11 @@ from .announce import REPO, collect, junit_counts, load_json, render
 
 
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["site"]:  # `python -m site` is the stdlib module, so the site backend lives here
+        from .site_server import main as site_main
+
+        return site_main(argv[1:])
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("command", choices=["announce", "report"])
     ap.add_argument("--open", action="store_true", help="report: open out/report.html in the default browser")

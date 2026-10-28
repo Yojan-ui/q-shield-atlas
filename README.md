@@ -57,6 +57,7 @@ export QPIAI_OPT_API_KEY=...        # free key from https://opt.qpiai.tech/ (or 
 ./run_demo.sh                       # regenerate everything, then open the viz; --no-open to skip the browser
 ./announce.sh --fast                # terminal launch screen from out/results.json
 ./report.sh                         # out/report.html: one offline file, signed into the ledger; opens it
+python -m atlas site                # showcase site "The Lattice" (site/), read-only, 127.0.0.1
 ```
 
 `run_demo.sh` runs a preflight first and prints a fix for each failure: Python 3.12, the pinned
@@ -96,6 +97,19 @@ Print → Save as PDF gives a clean document (print CSS expands collapsed sectio
 
 Numbers are deliberately not quoted in this README: they live in `out/results.json`, each one
 traceable to a run under `runs/` and a signed ledger entry. `./announce.sh` prints them with sources.
+
+## Showcase site (`site/`, in progress)
+
+`python -m atlas site` serves "The Lattice", a scroll-driven WebGL story built from the current
+`out/results.json` and ledger. (The brief named it `python -m site`, but that name is Python's
+standard-library `site` module, so the backend lives in `atlas/site_server.py`.) The server is
+read-only and stdlib-only: it serves `site/`, the hash-checked three.js from `viz/vendor/`, the 2D
+viz as the no-WebGL fallback, and `/api/results`, `/api/ledger` (with an in-memory, unrecorded
+verification), `/api/handshakes` and `/api/events` (SSE on file change). It binds 127.0.0.1 on a free
+port; `keys/`, `.env.sh`, `runs/`, the ledger file and source files return 404. Chapters 1–4
+(harvest, detect, schedule, handshake) are built; ledger, QAOA, close, the tamper endpoint and the
+static export are next. Every number comes from the API with a provenance tooltip; `?debug` shows fps
+and draw calls; `prefers-reduced-motion` gives a static camera.
 
 ## Assumptions and limits
 

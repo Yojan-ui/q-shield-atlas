@@ -86,6 +86,10 @@ Report exposure-years avoided vs both baselines on the same data.
   config/lab.json ("openssl"), override with QSHIELD_OPENSSL.
 - Report: python -m atlas report / ./report.sh -> out/report.html (offline, numbers from results.json
   only, signed into the ledger as report.html, then verified). Viz links to /out/report.html.
+- Site: frontend in site/ (static, no Python package: `python -m site` is the stdlib module), backend
+  `python -m atlas site` (atlas/site_server.py), read-only. While building it the outputs are frozen:
+  no run_demo/schedule/gates/qaoa/ledger ingest/report, no ledger appends, and no `ledger verify` of
+  the real ledger (it rewrites results.json); tests use temp copies only.
 - Fresh-clone rule: running the demo must never modify tracked files (keys go to git-ignored keys/).
 - viz serves only viz/ and out/results.json (never the repo: keys/ must stay unreachable). QCloud QAOA runs need the user's go-ahead (`python -m qaoa --qcloud`).
 - viz/ must render qaoa.table rows generically: metrics when status == "ok", otherwise status_text.
