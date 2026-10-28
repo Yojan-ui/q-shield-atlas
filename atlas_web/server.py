@@ -327,6 +327,9 @@ def make_handler(app: App):
                 if not f:
                     return self.send_body(404, b"not found", TYPES[".txt"])
                 return self.send_body(200, f.read_bytes(), TYPES.get(f.suffix, "application/octet-stream"))
+            if "/".join(parts) in ("viz/data.js", "viz/render2d.js"):  # the shared viz data layer and the 2D fallback
+                f = REPO / "viz" / parts[1]
+                return self.send_body(200, f.read_bytes(), TYPES[".js"])
             if parts[:1] == ["assets"]:
                 f = (STATIC / "/".join(parts[1:])).resolve()
                 if not str(f).startswith(str(STATIC.resolve()) + "/") or not f.is_file() or f.suffix not in TYPES \
@@ -351,7 +354,7 @@ def make_handler(app: App):
                 return self.send_json(200, {"user": {k: u[k] for k in ("username", "role", "expires")} if u else None,
                                             "kiosk": app.kiosk, "demo": app.demo})
             if route == ("GET", "events"):
-                ws = self.workspace(self.query.get("ws", "demo"), public_demo=True)
+                ws = self.workspace(self.query.get("ws", "demo"))
                 return self.file_events(ws)
             if method != "GET":
                 self.check_csrf(self.need("viewer"))
@@ -422,7 +425,8 @@ def make_handler(app: App):
                     return self.send_json(201, ws.public())
                 raise ApiError(405, "method_not_allowed", "method not allowed")
             ws_id, sub = rest[0], rest[1:]
-            public = method == "GET" and (sub[:1] in ([], ["results"], ["ledger"], ["report"]))
+            # public without a session: only the demo snapshot views (the landing page tells its story from them)
+            public = method == "GET" and ws_id == "demo" and sub[:1] in (["results"], ["ledger"], ["report"], ["scene"])
             ws = self.workspace(ws_id, public_demo=public)
             name = sub[0] if sub else None
             if name is None and method == "GET":
@@ -430,6 +434,14 @@ def make_handler(app: App):
             if name == "results" and method == "GET":
                 r = app.cached(("results", ws.id), file_stamp(ws.results), lambda: load_results(ws))
                 return self.send_json(200, {"workspace": ws.id, "results": r, "status_text": None if r else "not yet run"})
+            if name == "scene" and method == "GET" and len(sub) == 1:
+                from .scene import scene_bytes
+
+                body, etag = app.cached(("scene", ws.id), file_stamp(ws.results), lambda: scene_bytes(ws.id, load_results(ws)))
+                if self.headers.get("If-None-Match") == etag:
+                    self._headers(304, TYPES[".json"], 0, [("ETag", etag)])
+                    return
+                return self.send_body(200, body, TYPES[".json"], [("ETag", etag)])
             if name == "ledger" and method == "GET":
                 if sub[1:2] == ["proof"] and len(sub) == 3:
                     if not sub[2].isdigit():
@@ -652,9 +664,18 @@ def make_handler(app: App):
     return Handler
 
 
+class Server(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1], (ConnectionResetError, BrokenPipeError, TimeoutError)):
+            return  # a browser closing a keep-alive socket is not an error
+        super().handle_error(request, client_address)
+
+
 def make_server(host: str = "127.0.0.1", port: int = 0, kiosk: bool = False, demo: bool = False) -> ThreadingHTTPServer:
     app = App(kiosk=kiosk, demo=demo)
-    srv = ThreadingHTTPServer((host, port), make_handler(app))
+    srv = Server((host, port), make_handler(app))
     srv.daemon_threads = True
     srv.app = app
     return srv

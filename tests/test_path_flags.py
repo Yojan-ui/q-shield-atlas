@@ -227,3 +227,31 @@ def test_ledger_append_signs_a_workspace_payload(workspace, repo_untouched):
     assert (last["type"], last["payload_ref"]) == ("calibration.apply", "runs/calib/manifest.json")
     assert cli("-m", "ledger", "verify", *flags).stdout.startswith("OK:")
     assert cli("-m", "ledger", "append", str(payload), *flags, check=False).returncode != 0  # --type required
+
+
+def test_ledger_append_entry_is_mldsa65_signed_and_chained(workspace, repo_untouched):
+    import base64
+
+    from cryptography.hazmat.primitives.asymmetric import mldsa
+    from cryptography.hazmat.primitives.serialization import load_pem_public_key
+
+    from ledger.log import entry_hash, read_entries, signed_bytes
+
+    ws, out, runs, keys = workspace, workspace / "out", workspace / "runs", workspace / "keys"
+    flags = ["--ledger", str(out / "ledger.jsonl"), "--out-dir", str(out), "--runs", str(runs), "--root", str(ws),
+             "--keys-dir", str(keys)]
+    cli("-m", "ledger", "keygen", "--keys-dir", str(keys))
+    cli("-m", "ledger", "ingest", *flags)
+    payload = runs / "calib2" / "manifest.json"
+    payload.parent.mkdir()
+    payload.write_text(json.dumps({"change": "chain test"}))
+    cli("-m", "ledger", "append", str(payload), "--type", "calibration.apply", *flags)
+    entries = read_entries(out / "ledger.jsonl")
+    last, prev = entries[-1], entries[-2]
+    assert last["alg"] == "ML-DSA-65" and last["index"] == prev["index"] + 1
+    assert last["prev_hash"] == entry_hash(prev)  # chained to the previous entry
+    assert last["payload_hash"] == hashlib.sha256(payload.read_bytes()).hexdigest()
+    pk = load_pem_public_key((keys / "ledger_mldsa65.pub.pem").read_bytes())
+    assert isinstance(pk, mldsa.MLDSA65PublicKey)
+    pk.verify(base64.b64decode(last["sig_mldsa"]), signed_bytes(last))  # independent ML-DSA-65 implementation
+    assert cli("-m", "ledger", "verify", *flags).stdout.startswith("OK:")

@@ -1,0 +1,3568 @@
+{
+ "summary": {
+  "chrome": "Chrome/156.0.8078.73",
+  "pages": 216,
+  "pages_with_problems": 0,
+  "flow_problems": [],
+  "landing_fcp_ms_max": 56,
+  "ready_ms_max": 97,
+  "load_s_p95": 0.528
+ },
+ "results": [
+  {
+   "role": "admin",
+   "path": "/",
+   "size": "1440x900",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.846,
+   "fcp_ms": null,
+   "ready_ms": 40,
+   "api": [
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/signin",
+   "size": "1440x900",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.605,
+   "fcp_ms": 140,
+   "ready_ms": 49,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/styleguide?dev",
+   "size": "1440x900",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 72,
+   "ready_ms": 49,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/no/such/place",
+   "size": "1440x900",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.489,
+   "fcp_ms": 80,
+   "ready_ms": 30,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/pipeline",
+   "size": "1440x900",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.472,
+   "fcp_ms": 52,
+   "ready_ms": 46,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/detect",
+   "size": "1440x900",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.525,
+   "fcp_ms": 52,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Detect \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/schedule",
+   "size": "1440x900",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 56,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/handshakes",
+   "size": "1440x900",
+   "route": "handshakes",
+   "problems": [],
+   "load_s": 0.471,
+   "fcp_ms": 60,
+   "ready_ms": 36,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Handshakes \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/ledger",
+   "size": "1440x900",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.912,
+   "fcp_ms": 48,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/ledger"
+   ],
+   "title": "Ledger \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/qaoa",
+   "size": "1440x900",
+   "route": "qaoa",
+   "problems": [],
+   "load_s": 0.47,
+   "fcp_ms": 48,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "QAOA cross-check \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "1440x900",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 40,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/asset/web-gw",
+   "size": "1440x900",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.51,
+   "fcp_ms": 64,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Public web TLS gateway \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "1440x900",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.485,
+   "fcp_ms": 60,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Asset \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/pipeline",
+   "size": "1440x900",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 48,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/preflight?ws=bank",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/runs"
+   ],
+   "title": "Pipeline \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/detect",
+   "size": "1440x900",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.517,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Detect \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/schedule",
+   "size": "1440x900",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.472,
+   "fcp_ms": 64,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Schedule \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/ledger",
+   "size": "1440x900",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.485,
+   "fcp_ms": 48,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/ledger"
+   ],
+   "title": "Ledger \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/settings/users",
+   "size": "1440x900",
+   "route": "users",
+   "problems": [],
+   "load_s": 0.491,
+   "fcp_ms": 60,
+   "ready_ms": 41,
+   "api": [
+    "/api/me",
+    "/api/users",
+    "/api/workspaces"
+   ],
+   "title": "Users \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/",
+   "size": "1280x720",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 48,
+   "ready_ms": 36,
+   "api": [
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/signin",
+   "size": "1280x720",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.52,
+   "fcp_ms": 60,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/styleguide?dev",
+   "size": "1280x720",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.479,
+   "fcp_ms": 44,
+   "ready_ms": 42,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/no/such/place",
+   "size": "1280x720",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.479,
+   "fcp_ms": 44,
+   "ready_ms": 30,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/pipeline",
+   "size": "1280x720",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.526,
+   "fcp_ms": 52,
+   "ready_ms": 44,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/detect",
+   "size": "1280x720",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 48,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Detect \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/schedule",
+   "size": "1280x720",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.517,
+   "fcp_ms": 52,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/handshakes",
+   "size": "1280x720",
+   "route": "handshakes",
+   "problems": [],
+   "load_s": 0.523,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Handshakes \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/ledger",
+   "size": "1280x720",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.526,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/ledger"
+   ],
+   "title": "Ledger \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/qaoa",
+   "size": "1280x720",
+   "route": "qaoa",
+   "problems": [],
+   "load_s": 0.477,
+   "fcp_ms": 48,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "QAOA cross-check \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "1280x720",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.467,
+   "fcp_ms": 60,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/asset/web-gw",
+   "size": "1280x720",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.466,
+   "fcp_ms": 44,
+   "ready_ms": 36,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Public web TLS gateway \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "1280x720",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.479,
+   "fcp_ms": 44,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Asset \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/pipeline",
+   "size": "1280x720",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.519,
+   "fcp_ms": 52,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/preflight?ws=bank",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/runs"
+   ],
+   "title": "Pipeline \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/detect",
+   "size": "1280x720",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.523,
+   "fcp_ms": 60,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Detect \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/schedule",
+   "size": "1280x720",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.487,
+   "fcp_ms": 48,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Schedule \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/ledger",
+   "size": "1280x720",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.51,
+   "fcp_ms": 44,
+   "ready_ms": 35,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/ledger"
+   ],
+   "title": "Ledger \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/settings/users",
+   "size": "1280x720",
+   "route": "users",
+   "problems": [],
+   "load_s": 0.522,
+   "fcp_ms": 44,
+   "ready_ms": 37,
+   "api": [
+    "/api/me",
+    "/api/users",
+    "/api/workspaces"
+   ],
+   "title": "Users \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/",
+   "size": "390x844",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.477,
+   "fcp_ms": 44,
+   "ready_ms": 35,
+   "api": [
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/signin",
+   "size": "390x844",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.475,
+   "fcp_ms": 56,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/styleguide?dev",
+   "size": "390x844",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 44,
+   "ready_ms": 48,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/no/such/place",
+   "size": "390x844",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 48,
+   "ready_ms": 26,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/pipeline",
+   "size": "390x844",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.518,
+   "fcp_ms": 52,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/detect",
+   "size": "390x844",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.482,
+   "fcp_ms": 48,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Detect \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/schedule",
+   "size": "390x844",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.517,
+   "fcp_ms": 56,
+   "ready_ms": 43,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/handshakes",
+   "size": "390x844",
+   "route": "handshakes",
+   "problems": [],
+   "load_s": 0.518,
+   "fcp_ms": 44,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Handshakes \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/ledger",
+   "size": "390x844",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.477,
+   "fcp_ms": 40,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/ledger"
+   ],
+   "title": "Ledger \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/qaoa",
+   "size": "390x844",
+   "route": "qaoa",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 44,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "QAOA cross-check \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "390x844",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.526,
+   "fcp_ms": 48,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/asset/web-gw",
+   "size": "390x844",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.485,
+   "fcp_ms": 48,
+   "ready_ms": 36,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Public web TLS gateway \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "390x844",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 56,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Asset \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/pipeline",
+   "size": "390x844",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 44,
+   "ready_ms": 43,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/preflight?ws=bank",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/runs"
+   ],
+   "title": "Pipeline \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/detect",
+   "size": "390x844",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 44,
+   "ready_ms": 36,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Detect \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/schedule",
+   "size": "390x844",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.509,
+   "fcp_ms": 56,
+   "ready_ms": 36,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Schedule \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/w/bank/ledger",
+   "size": "390x844",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.486,
+   "fcp_ms": 64,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/ledger"
+   ],
+   "title": "Ledger \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "admin",
+   "path": "/settings/users",
+   "size": "390x844",
+   "route": "users",
+   "problems": [],
+   "load_s": 0.482,
+   "fcp_ms": 56,
+   "ready_ms": 39,
+   "api": [
+    "/api/me",
+    "/api/users",
+    "/api/workspaces"
+   ],
+   "title": "Users \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/",
+   "size": "1440x900",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.519,
+   "fcp_ms": 48,
+   "ready_ms": 42,
+   "api": [
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/signin",
+   "size": "1440x900",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.522,
+   "fcp_ms": 60,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/styleguide?dev",
+   "size": "1440x900",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.486,
+   "fcp_ms": 48,
+   "ready_ms": 47,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/no/such/place",
+   "size": "1440x900",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 52,
+   "ready_ms": 26,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/pipeline",
+   "size": "1440x900",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.477,
+   "fcp_ms": 68,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/detect",
+   "size": "1440x900",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.52,
+   "fcp_ms": 56,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Detect \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/schedule",
+   "size": "1440x900",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.479,
+   "fcp_ms": 60,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/handshakes",
+   "size": "1440x900",
+   "route": "handshakes",
+   "problems": [],
+   "load_s": 0.526,
+   "fcp_ms": 56,
+   "ready_ms": 44,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Handshakes \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/ledger",
+   "size": "1440x900",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 56,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/ledger"
+   ],
+   "title": "Ledger \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/qaoa",
+   "size": "1440x900",
+   "route": "qaoa",
+   "problems": [],
+   "load_s": 0.472,
+   "fcp_ms": 60,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "QAOA cross-check \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "1440x900",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.48,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/asset/web-gw",
+   "size": "1440x900",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.477,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Public web TLS gateway \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "1440x900",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.518,
+   "fcp_ms": 56,
+   "ready_ms": 43,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Asset \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/pipeline",
+   "size": "1440x900",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.492,
+   "fcp_ms": 44,
+   "ready_ms": 45,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/preflight?ws=bank",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/runs"
+   ],
+   "title": "Pipeline \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/detect",
+   "size": "1440x900",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.48,
+   "fcp_ms": 48,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Detect \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/schedule",
+   "size": "1440x900",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.514,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Schedule \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/ledger",
+   "size": "1440x900",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 60,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/ledger"
+   ],
+   "title": "Ledger \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/settings/users",
+   "size": "1440x900",
+   "route": "forbidden",
+   "problems": [],
+   "load_s": 0.472,
+   "fcp_ms": 52,
+   "ready_ms": 31,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not allowed \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/",
+   "size": "1280x720",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.524,
+   "fcp_ms": 48,
+   "ready_ms": 38,
+   "api": [
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/signin",
+   "size": "1280x720",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.488,
+   "fcp_ms": 52,
+   "ready_ms": 46,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/styleguide?dev",
+   "size": "1280x720",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 48,
+   "ready_ms": 45,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/no/such/place",
+   "size": "1280x720",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.514,
+   "fcp_ms": 52,
+   "ready_ms": 29,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/pipeline",
+   "size": "1280x720",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.465,
+   "fcp_ms": 44,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/detect",
+   "size": "1280x720",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.524,
+   "fcp_ms": 56,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Detect \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/schedule",
+   "size": "1280x720",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.47,
+   "fcp_ms": 44,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/handshakes",
+   "size": "1280x720",
+   "route": "handshakes",
+   "problems": [],
+   "load_s": 0.477,
+   "fcp_ms": 68,
+   "ready_ms": 35,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Handshakes \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/ledger",
+   "size": "1280x720",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.52,
+   "fcp_ms": 56,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/ledger"
+   ],
+   "title": "Ledger \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/qaoa",
+   "size": "1280x720",
+   "route": "qaoa",
+   "problems": [],
+   "load_s": 0.489,
+   "fcp_ms": 44,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "QAOA cross-check \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "1280x720",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 56,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/asset/web-gw",
+   "size": "1280x720",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 60,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Public web TLS gateway \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "1280x720",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.52,
+   "fcp_ms": 56,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Asset \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/pipeline",
+   "size": "1280x720",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.53,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/preflight?ws=bank",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/runs"
+   ],
+   "title": "Pipeline \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/detect",
+   "size": "1280x720",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.482,
+   "fcp_ms": 64,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Detect \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/schedule",
+   "size": "1280x720",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.475,
+   "fcp_ms": 48,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Schedule \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/ledger",
+   "size": "1280x720",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 56,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/ledger"
+   ],
+   "title": "Ledger \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/settings/users",
+   "size": "1280x720",
+   "route": "forbidden",
+   "problems": [],
+   "load_s": 0.486,
+   "fcp_ms": 56,
+   "ready_ms": 35,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not allowed \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/",
+   "size": "390x844",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.528,
+   "fcp_ms": 44,
+   "ready_ms": 37,
+   "api": [
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/signin",
+   "size": "390x844",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 48,
+   "ready_ms": 44,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/styleguide?dev",
+   "size": "390x844",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 40,
+   "ready_ms": 45,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/no/such/place",
+   "size": "390x844",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.527,
+   "fcp_ms": 60,
+   "ready_ms": 36,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/pipeline",
+   "size": "390x844",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.486,
+   "fcp_ms": 40,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/preflight",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/detect",
+   "size": "390x844",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 44,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Detect \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/schedule",
+   "size": "390x844",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.465,
+   "fcp_ms": 40,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/handshakes",
+   "size": "390x844",
+   "route": "handshakes",
+   "problems": [],
+   "load_s": 0.478,
+   "fcp_ms": 48,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Handshakes \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/ledger",
+   "size": "390x844",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 44,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/ledger"
+   ],
+   "title": "Ledger \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/qaoa",
+   "size": "390x844",
+   "route": "qaoa",
+   "problems": [],
+   "load_s": 0.521,
+   "fcp_ms": 52,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "QAOA cross-check \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "390x844",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.479,
+   "fcp_ms": 56,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/asset/web-gw",
+   "size": "390x844",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.479,
+   "fcp_ms": 44,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Public web TLS gateway \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "390x844",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.538,
+   "fcp_ms": 56,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Asset \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/pipeline",
+   "size": "390x844",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.532,
+   "fcp_ms": 44,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/preflight?ws=bank",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/runs"
+   ],
+   "title": "Pipeline \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/detect",
+   "size": "390x844",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.479,
+   "fcp_ms": 48,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Detect \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/schedule",
+   "size": "390x844",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.495,
+   "fcp_ms": 48,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Schedule \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/w/bank/ledger",
+   "size": "390x844",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.48,
+   "fcp_ms": 52,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/ledger"
+   ],
+   "title": "Ledger \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "operator",
+   "path": "/settings/users",
+   "size": "390x844",
+   "route": "forbidden",
+   "problems": [],
+   "load_s": 0.509,
+   "fcp_ms": 48,
+   "ready_ms": 26,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not allowed \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/",
+   "size": "1440x900",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.463,
+   "fcp_ms": 56,
+   "ready_ms": 40,
+   "api": [
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/signin",
+   "size": "1440x900",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.53,
+   "fcp_ms": 48,
+   "ready_ms": 45,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/styleguide?dev",
+   "size": "1440x900",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 48,
+   "ready_ms": 46,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/no/such/place",
+   "size": "1440x900",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.472,
+   "fcp_ms": 52,
+   "ready_ms": 34,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/pipeline",
+   "size": "1440x900",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.469,
+   "fcp_ms": 56,
+   "ready_ms": 36,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/detect",
+   "size": "1440x900",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Detect \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/schedule",
+   "size": "1440x900",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 60,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/handshakes",
+   "size": "1440x900",
+   "route": "handshakes",
+   "problems": [],
+   "load_s": 0.519,
+   "fcp_ms": 56,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Handshakes \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/ledger",
+   "size": "1440x900",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.498,
+   "fcp_ms": 44,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/ledger"
+   ],
+   "title": "Ledger \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/qaoa",
+   "size": "1440x900",
+   "route": "qaoa",
+   "problems": [],
+   "load_s": 0.483,
+   "fcp_ms": 56,
+   "ready_ms": 45,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "QAOA cross-check \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "1440x900",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.509,
+   "fcp_ms": 56,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/asset/web-gw",
+   "size": "1440x900",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.526,
+   "fcp_ms": 56,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Public web TLS gateway \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "1440x900",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.475,
+   "fcp_ms": 60,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Asset \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/pipeline",
+   "size": "1440x900",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.518,
+   "fcp_ms": 60,
+   "ready_ms": 41,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/runs"
+   ],
+   "title": "Pipeline \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/detect",
+   "size": "1440x900",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 52,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Detect \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/schedule",
+   "size": "1440x900",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.511,
+   "fcp_ms": 60,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Schedule \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/ledger",
+   "size": "1440x900",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 52,
+   "ready_ms": 43,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/ledger"
+   ],
+   "title": "Ledger \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/settings/users",
+   "size": "1440x900",
+   "route": "forbidden",
+   "problems": [],
+   "load_s": 0.466,
+   "fcp_ms": 56,
+   "ready_ms": 32,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not allowed \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/",
+   "size": "1280x720",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.515,
+   "fcp_ms": 56,
+   "ready_ms": 40,
+   "api": [
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/signin",
+   "size": "1280x720",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.491,
+   "fcp_ms": 60,
+   "ready_ms": 43,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/styleguide?dev",
+   "size": "1280x720",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.521,
+   "fcp_ms": 48,
+   "ready_ms": 41,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/no/such/place",
+   "size": "1280x720",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 44,
+   "ready_ms": 29,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/pipeline",
+   "size": "1280x720",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.489,
+   "fcp_ms": 52,
+   "ready_ms": 44,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/detect",
+   "size": "1280x720",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 56,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Detect \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/schedule",
+   "size": "1280x720",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.49,
+   "fcp_ms": 60,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/handshakes",
+   "size": "1280x720",
+   "route": "handshakes",
+   "problems": [],
+   "load_s": 0.525,
+   "fcp_ms": 48,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Handshakes \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/ledger",
+   "size": "1280x720",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 56,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/ledger"
+   ],
+   "title": "Ledger \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/qaoa",
+   "size": "1280x720",
+   "route": "qaoa",
+   "problems": [],
+   "load_s": 0.489,
+   "fcp_ms": 56,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "QAOA cross-check \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "1280x720",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 44,
+   "ready_ms": 36,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/asset/web-gw",
+   "size": "1280x720",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 48,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Public web TLS gateway \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "1280x720",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.515,
+   "fcp_ms": 36,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Asset \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/pipeline",
+   "size": "1280x720",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.472,
+   "fcp_ms": 48,
+   "ready_ms": 43,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/runs"
+   ],
+   "title": "Pipeline \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/detect",
+   "size": "1280x720",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.526,
+   "fcp_ms": 60,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Detect \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/schedule",
+   "size": "1280x720",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.482,
+   "fcp_ms": 60,
+   "ready_ms": 44,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Schedule \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/ledger",
+   "size": "1280x720",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.505,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/ledger"
+   ],
+   "title": "Ledger \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/settings/users",
+   "size": "1280x720",
+   "route": "forbidden",
+   "problems": [],
+   "load_s": 0.465,
+   "fcp_ms": 56,
+   "ready_ms": 30,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not allowed \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/",
+   "size": "390x844",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.516,
+   "fcp_ms": 48,
+   "ready_ms": 41,
+   "api": [
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/signin",
+   "size": "390x844",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.515,
+   "fcp_ms": 56,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/styleguide?dev",
+   "size": "390x844",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.524,
+   "fcp_ms": 60,
+   "ready_ms": 50,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/no/such/place",
+   "size": "390x844",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.535,
+   "fcp_ms": 48,
+   "ready_ms": 35,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/pipeline",
+   "size": "390x844",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.475,
+   "fcp_ms": 56,
+   "ready_ms": 42,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Pipeline \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/detect",
+   "size": "390x844",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.518,
+   "fcp_ms": 44,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Detect \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/schedule",
+   "size": "390x844",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 44,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/handshakes",
+   "size": "390x844",
+   "route": "handshakes",
+   "problems": [],
+   "load_s": 0.507,
+   "fcp_ms": 40,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "Handshakes \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/ledger",
+   "size": "390x844",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 56,
+   "ready_ms": 37,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/ledger"
+   ],
+   "title": "Ledger \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/qaoa",
+   "size": "390x844",
+   "route": "qaoa",
+   "problems": [],
+   "load_s": 0.471,
+   "fcp_ms": 52,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results"
+   ],
+   "title": "QAOA cross-check \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "390x844",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.536,
+   "fcp_ms": 48,
+   "ready_ms": 40,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Schedule \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/asset/web-gw",
+   "size": "390x844",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.527,
+   "fcp_ms": 44,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Public web TLS gateway \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "390x844",
+   "route": "asset",
+   "problems": [],
+   "load_s": 0.471,
+   "fcp_ms": 44,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=demo",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Asset \u00b7 demo \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/pipeline",
+   "size": "390x844",
+   "route": "pipeline",
+   "problems": [],
+   "load_s": 0.525,
+   "fcp_ms": 40,
+   "ready_ms": 62,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/runs"
+   ],
+   "title": "Pipeline \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/detect",
+   "size": "390x844",
+   "route": "detect",
+   "problems": [],
+   "load_s": 0.516,
+   "fcp_ms": 44,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Detect \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/schedule",
+   "size": "390x844",
+   "route": "schedule",
+   "problems": [],
+   "load_s": 0.471,
+   "fcp_ms": 52,
+   "ready_ms": 39,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/results",
+    "/api/workspaces/bank/scene"
+   ],
+   "title": "Schedule \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/w/bank/ledger",
+   "size": "390x844",
+   "route": "ledger",
+   "problems": [],
+   "load_s": 0.478,
+   "fcp_ms": 52,
+   "ready_ms": 38,
+   "api": [
+    "/api/events?ws=bank",
+    "/api/me",
+    "/api/workspaces",
+    "/api/workspaces/bank/ledger"
+   ],
+   "title": "Ledger \u00b7 bank \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "viewer",
+   "path": "/settings/users",
+   "size": "390x844",
+   "route": "forbidden",
+   "problems": [],
+   "load_s": 0.524,
+   "fcp_ms": 48,
+   "ready_ms": 30,
+   "api": [
+    "/api/me",
+    "/api/workspaces"
+   ],
+   "title": "Not allowed \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/",
+   "size": "1440x900",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.526,
+   "fcp_ms": 56,
+   "ready_ms": 35,
+   "api": [
+    "/api/me",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/signin",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.53,
+   "fcp_ms": 56,
+   "ready_ms": 27,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/styleguide?dev",
+   "size": "1440x900",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.472,
+   "fcp_ms": 48,
+   "ready_ms": 49,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/no/such/place",
+   "size": "1440x900",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 52,
+   "ready_ms": 25,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/pipeline",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.478,
+   "fcp_ms": 44,
+   "ready_ms": 32,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/detect",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.477,
+   "fcp_ms": 68,
+   "ready_ms": 33,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/schedule",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 44,
+   "ready_ms": 28,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/handshakes",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.489,
+   "fcp_ms": 44,
+   "ready_ms": 31,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/ledger",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.468,
+   "fcp_ms": 40,
+   "ready_ms": 26,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/qaoa",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.491,
+   "fcp_ms": 68,
+   "ready_ms": 32,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.511,
+   "fcp_ms": 44,
+   "ready_ms": 31,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/asset/web-gw",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 68,
+   "ready_ms": 36,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.486,
+   "fcp_ms": 60,
+   "ready_ms": 35,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/pipeline",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.475,
+   "fcp_ms": 44,
+   "ready_ms": 34,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/detect",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 60,
+   "ready_ms": 30,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/schedule",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 64,
+   "ready_ms": 33,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/ledger",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 60,
+   "ready_ms": 32,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/settings/users",
+   "size": "1440x900",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.521,
+   "fcp_ms": 40,
+   "ready_ms": 33,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/",
+   "size": "1280x720",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 48,
+   "ready_ms": 35,
+   "api": [
+    "/api/me",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/signin",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 56,
+   "ready_ms": 27,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/styleguide?dev",
+   "size": "1280x720",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.525,
+   "fcp_ms": 92,
+   "ready_ms": 97,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/no/such/place",
+   "size": "1280x720",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 52,
+   "ready_ms": 25,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/pipeline",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.489,
+   "fcp_ms": 48,
+   "ready_ms": 31,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/detect",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.528,
+   "fcp_ms": 64,
+   "ready_ms": 31,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/schedule",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.48,
+   "fcp_ms": 44,
+   "ready_ms": 28,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/handshakes",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.525,
+   "fcp_ms": 64,
+   "ready_ms": 29,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/ledger",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.523,
+   "fcp_ms": 56,
+   "ready_ms": 25,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/qaoa",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.47,
+   "fcp_ms": 64,
+   "ready_ms": 29,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.48,
+   "fcp_ms": 40,
+   "ready_ms": 29,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/asset/web-gw",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.47,
+   "fcp_ms": 64,
+   "ready_ms": 30,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.478,
+   "fcp_ms": 44,
+   "ready_ms": 33,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/pipeline",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 64,
+   "ready_ms": 26,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/detect",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 60,
+   "ready_ms": 28,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/schedule",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 64,
+   "ready_ms": 31,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/ledger",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.474,
+   "fcp_ms": 44,
+   "ready_ms": 31,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/settings/users",
+   "size": "1280x720",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.52,
+   "fcp_ms": 44,
+   "ready_ms": 33,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/",
+   "size": "390x844",
+   "route": "landing",
+   "problems": [],
+   "load_s": 0.523,
+   "fcp_ms": 48,
+   "ready_ms": 38,
+   "api": [
+    "/api/me",
+    "/api/workspaces/demo/results",
+    "/api/workspaces/demo/scene"
+   ],
+   "title": "Post-quantum migration, proven \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/signin",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.48,
+   "fcp_ms": 68,
+   "ready_ms": 28,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/styleguide?dev",
+   "size": "390x844",
+   "route": "styleguide",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 48,
+   "ready_ms": 43,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Styleguide \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/no/such/place",
+   "size": "390x844",
+   "route": "notfound",
+   "problems": [],
+   "load_s": 0.476,
+   "fcp_ms": 52,
+   "ready_ms": 28,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Not found \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/pipeline",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.486,
+   "fcp_ms": 64,
+   "ready_ms": 31,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/detect",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.523,
+   "fcp_ms": 60,
+   "ready_ms": 28,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/schedule",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.482,
+   "fcp_ms": 44,
+   "ready_ms": 32,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/handshakes",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 56,
+   "ready_ms": 29,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/ledger",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.524,
+   "fcp_ms": 56,
+   "ready_ms": 30,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/qaoa",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.526,
+   "fcp_ms": 84,
+   "ready_ms": 27,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/schedule?scenario=Z2032",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.473,
+   "fcp_ms": 40,
+   "ready_ms": 27,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/asset/web-gw",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.515,
+   "fcp_ms": 44,
+   "ready_ms": 28,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/demo/asset/no-such-asset",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 40,
+   "ready_ms": 30,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/pipeline",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.516,
+   "fcp_ms": 44,
+   "ready_ms": 29,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/detect",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.485,
+   "fcp_ms": 60,
+   "ready_ms": 29,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/schedule",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.484,
+   "fcp_ms": 56,
+   "ready_ms": 28,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/w/bank/ledger",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.518,
+   "fcp_ms": 56,
+   "ready_ms": 26,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  },
+  {
+   "role": "anon",
+   "path": "/settings/users",
+   "size": "390x844",
+   "route": "signin",
+   "problems": [],
+   "load_s": 0.481,
+   "fcp_ms": 56,
+   "ready_ms": 32,
+   "api": [
+    "/api/me"
+   ],
+   "title": "Sign in \u00b7 Q-Shield Atlas"
+  }
+ ]
+}

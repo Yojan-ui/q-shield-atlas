@@ -3,9 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Q-Shield Atlas: find quantum-vulnerable RSA/ECC, schedule the migration with QpiAI Opt, verify every wave, prove it with an ML-DSA-65 signed ledger.">
   <title>Q-Shield Atlas</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="modulepreload" href="/assets/js/main.js">
 </head>
 <body>
-  <main id="app"><h1>Q-Shield Atlas</h1><p>The interface is built in stage 3; the API is live under /api/.</p></main>
+  <a class="skip" href="#view">Skip to content</a>
+  <div id="world" class="world" aria-hidden="true"></div>
+  <div id="strip-slot"></div>
+  <main id="view" class="page" tabindex="-1"></main>
+  <div id="live" class="sr-only" aria-live="polite"></div>
+  <noscript><p class="page">Q-Shield Atlas needs JavaScript. The offline report is in out/report.html.</p></noscript>
+  <script type="module" src="/assets/js/main.js"></script>
 </body>
 </html>

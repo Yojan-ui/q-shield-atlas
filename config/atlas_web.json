@@ -18,5 +18,45 @@
     "session_hours": 8,
     "login_failures": 5,
     "login_window_s": 300
+  },
+  "presentation": {
+    "note": "Layout of THE LATTICE only (where a service sits), not data: layer by asset kind, front to back.",
+    "layers": [
+      {
+        "id": "edge",
+        "label": "edge",
+        "kinds": [
+          "cdn_edge",
+          "tls_gateway",
+          "vpn"
+        ]
+      },
+      {
+        "id": "app",
+        "label": "application",
+        "kinds": [
+          "service_mtls",
+          "message_bus",
+          "batch_sftp"
+        ]
+      },
+      {
+        "id": "data",
+        "label": "data",
+        "kinds": [
+          "database_tls"
+        ]
+      },
+      {
+        "id": "trust",
+        "label": "root of trust",
+        "kinds": [
+          "root_ca",
+          "hsm"
+        ]
+      }
+    ],
+    "layer_spacing": 4.0,
+    "cell": 2.0
   }
 }
