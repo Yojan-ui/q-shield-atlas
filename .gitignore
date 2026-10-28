@@ -1,0 +1,6 @@
+.env.sh
+*.bak
+*.backup
+*_backup_*.py
+__pycache__/
+.pytest_cache/
