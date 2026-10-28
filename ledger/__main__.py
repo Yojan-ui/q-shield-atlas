@@ -1,4 +1,7 @@
-"""python -m ledger ingest | verify | proof INDEX
+"""python -m ledger keygen | ingest | verify | proof INDEX
+
+keygen  create the ML-DSA-65 signing key in keys/ (0600) and write the public key + fingerprint;
+        refuses to overwrite an existing key
 
 ingest  append ML-DSA-65-signed run manifests to out/ledger.jsonl, write out/ledger.json and
         re-assemble out/results.json (ledger_root, entry_count, pubkey_fp anchored there)
@@ -27,13 +30,22 @@ LEDGER = REPO / "out" / "ledger.jsonl"
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("command", choices=["ingest", "verify", "proof"])
+    ap.add_argument("command", choices=["keygen", "ingest", "verify", "proof"])
     ap.add_argument("index", nargs="?", type=int)
     ap.add_argument("--ledger", type=Path, default=LEDGER)
     ap.add_argument("--public-key", type=Path, default=PUBLIC_KEY)
     ap.add_argument("--out-dir", type=Path, default=REPO / "out")
     args = ap.parse_args(argv)
     backend = detect()
+
+    if args.command == "keygen":
+        if PRIVATE_KEY.exists():
+            sys.exit(f"{PRIVATE_KEY.relative_to(REPO)} already exists; not overwriting")
+        backend.generate(PRIVATE_KEY, args.public_key)
+        fp = backend.fingerprint(args.public_key)
+        args.public_key.with_suffix(".sha256").write_text(fp + "\n")
+        print(f"ML-DSA-65 key pair created; private key {PRIVATE_KEY.relative_to(REPO)} (0600, git-ignored); pubkey_fp {fp}")
+        return 0
 
     if args.command == "ingest":
         if not PRIVATE_KEY.exists():

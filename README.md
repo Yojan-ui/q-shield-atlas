@@ -128,9 +128,10 @@ passed the gates in that mode, not that the real system was migrated. Lab certif
   `cryptography` as an independent ML-DSA-65 implementation.
 - **Keys:** `keys/ledger_mldsa65.key` (git-ignored, mode 0600, never printed). Committed: the public
   key `ledger/pubkey/ledger_mldsa65.pub.pem` and its fingerprint (SHA-256 of the DER
-  SubjectPublicKeyInfo) in `ledger_mldsa65.pub.sha256`. To sign on a new machine, generate a key
-  pair with `python -c "from ledger.backend import detect; ..."` (see `ledger/backend.py`) or copy the
-  private key out of band; verification needs only the committed public key.
+  SubjectPublicKeyInfo) in `ledger_mldsa65.pub.sha256`. To sign on a new machine, run
+  `python -m ledger keygen` (refuses to overwrite an existing key; the new public key and fingerprint
+  must then be committed) or copy the private key out of band. Verification needs only the
+  committed public key.
 - **Log** (`ledger/log.py`): append-only JSONL under an exclusive file lock. Entry =
   `{index, type, payload_hash, payload_ref, prev_hash, ts, alg, backend, pubkey_fp, sig_mldsa}`.
   Canonical JSON (sorted keys, `(",", ":")`, UTF-8); the signature covers the entry without
