@@ -80,8 +80,10 @@ a dependency migrates no later than its dependents.
 Report exposure-years avoided vs both baselines on the same data.
 
 ## Progress
-- Steps 1-4 done (schedule, detect, capture handshake evidence, gates: pq_handshake, compat,
-  rollback, wave runner). Next: step 5 (ledger/).
+- Steps 1-5 done (schedule, detect, capture handshake evidence, gates, ML-DSA-65 ledger).
+  Next: step 6 (qaoa/).
+- Ledger signing: OpenSSL CLI ML-DSA-65 only; never fall back to classical signatures. Private key
+  lives in git-ignored keys/ (0600); never print it, never commit it.
 - Real-repo scans are read-only; clones live in git-ignored `.cache/repos/`.
 
 ## Workflow

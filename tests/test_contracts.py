@@ -13,7 +13,9 @@ def test_schemas_are_valid_json_schema(name):
     load_schema(name)
 
 
-LEDGER_ENTRY = {"index": 0, "type": "schedule.run", "payload_hash": H, "prev_hash": "0" * 64, "sig_mldsa": "c2ln", "ts": "2026-10-28T12:00:00Z"}
+LEDGER_ENTRY = {"index": 0, "type": "schedule.solver_run", "payload_hash": H, "payload_ref": "runs/x/manifest.json",
+                "prev_hash": "0" * 64, "ts": "2026-10-28T12:00:00Z", "alg": "ML-DSA-65", "backend": "openssl-cli",
+                "pubkey_fp": H, "sig_mldsa": "c2ln"}
 
 
 def test_ledger_entry_valid():
@@ -27,6 +29,8 @@ def test_ledger_entry_valid():
         lambda e: e.update(payload_hash="xyz"),
         lambda e: e.update(index=-1),
         lambda e: e.update(extra=1),
+        lambda e: e.update(alg="Ed25519"),
+        lambda e: e.pop("pubkey_fp"),
     ],
 )
 def test_ledger_entry_invalid(mutate):
@@ -109,7 +113,7 @@ def _results():
              "job_id_reason": "local solve issues no job id", "status": "optimal",
              "inputs_sha256": H, "output_sha256": H}
         ],
-        "detect": None, "handshake_evidence": None, "gates": None, "qaoa": None, "ledger_root": None,
+        "detect": None, "handshake_evidence": None, "gates": None, "qaoa": None, "ledger_root": None, "ledger": None,
     }
 
 

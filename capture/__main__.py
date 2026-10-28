@@ -53,8 +53,9 @@ def handshake_evidence(capture: dict, gates: dict) -> dict:
         "openssl_version": capture["openssl_version"],
         "note": "Real TLS 1.3 handshakes with local lab services; metadata only. No decryption is performed or claimed.",
         "sessions": [
-            {k: g[k] for k in ("service_id", "negotiated_group", "kex_class", "hndl_exposed", "label", "transcript_sha256")}
-            for g in gates["pq_handshake"]
+            {**{k: g[k] for k in ("service_id", "negotiated_group", "kex_class", "hndl_exposed", "label", "transcript_sha256")},
+             "auth_alg": a["auth_alg"], "auth_class": a["auth_class"]}
+            for g, a in zip(gates["pq_handshake"], gates["pq_auth"])
         ],
     }
 
@@ -78,7 +79,7 @@ def main(argv=None):
     run_dir = args.runs / capture["run_id"]
     (run_dir / "manifest.json").write_text(json.dumps(
         {"run_id": capture["run_id"], "ts": capture["generated_at"], "capture_sha256": evidence["capture_sha256"],
-         "openssl_version": capture["openssl_version"], "gates": gates}, indent=1))
+         "openssl_version": capture["openssl_version"], "capture": capture, "gates": gates}, indent=1))
 
     print(f"capture run {capture['run_id']} ({capture['openssl_version']}) -> {capture_path}")
     for s in capture["sessions"]:
@@ -88,6 +89,8 @@ def main(argv=None):
         print(f"  refused  {a['service_id']:7} offered={a['client_groups_offered']:24} error={a['error']}")
     for g in gates["pq_handshake"]:
         print(f"  gate pq_handshake  {g['service_id']:7} {g['result']}  {g['reason']}" + (f"  [{g['label']}]" if g["label"] else ""))
+    for g in gates["pq_auth"]:
+        print(f"  gate pq_auth       {g['service_id']:7} {g['result']}  {g['reason']}")
     for g in gates["downgrade"]:
         print(f"  gate downgrade     {g['service_id']:7} {g['result']}  {g['reason']}")
 

@@ -76,9 +76,19 @@ def test_downgrade_not_run_is_reported_not_passed(capture):
     assert {g["result"] for g in evaluate(doc, LAB)["downgrade"]} == {"NOT_RUN"}
 
 
+def test_pq_auth_service_uses_mldsa_and_auth_is_reported_separately(capture, gates):
+    s = _session(capture, "pq-auth", LAB["client_groups"])
+    assert (s["negotiated_group"], s["signature_type"], s["cert_alg"]) == ("X25519MLKEM768", "mldsa65", "ML-DSA")
+    auth = {g["service_id"]: g["result"] for g in gates["pq_auth"]}
+    kex = {g["service_id"]: g["result"] for g in gates["pq_handshake"]}
+    assert auth == {"legacy": "FAIL", "hybrid": "FAIL", "pq-auth": "PASS"}
+    assert kex == {"legacy": "FAIL", "hybrid": "PASS", "pq-auth": "PASS"}  # hybrid: PQ kex, classical auth
+
+
 def test_evidence_labels_and_no_decryption_claim(capture, gates):
     ev = handshake_evidence(capture, gates)
-    assert {s["service_id"]: s["hndl_exposed"] for s in ev["sessions"]} == {"legacy": True, "hybrid": False}
+    assert {s["service_id"]: s["hndl_exposed"] for s in ev["sessions"]} == {"legacy": True, "hybrid": False, "pq-auth": False}
+    assert {s["service_id"]: s["auth_class"] for s in ev["sessions"]} == {"legacy": "classical", "hybrid": "classical", "pq-auth": "pq"}
     assert "No decryption" in ev["note"]
 
 

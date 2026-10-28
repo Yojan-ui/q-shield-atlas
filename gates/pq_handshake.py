@@ -1,6 +1,9 @@
 """Gate: post-quantum handshake (reads capture.json only).
 
 pq_handshake: PASS only if the negotiated group is on the configured PQ/hybrid allowlist.
+pq_auth:      reported separately: PASS only if the server certificate's signature algorithm is on
+              the PQ auth allowlist (ML-DSA, SLH-DSA). Classical auth is not an HNDL exposure (a
+              past session cannot be retroactively impersonated) but must change before a CRQC exists.
 downgrade:    PASS only if a classical-only client failed to complete a handshake with the service.
 Classical sessions are labelled HNDL-exposed (harvest-now-decrypt-later: recorded traffic relies
 on classical key exchange). This gate inspects handshake metadata only; it decrypts nothing.
@@ -46,13 +49,29 @@ def evaluate_downgrade(capture: dict, service_id: str, lab: dict) -> dict:
     return {"gate": "downgrade_refused", "service_id": service_id, "result": result, "reason": reason}
 
 
+def evaluate_auth(session: dict, lab: dict) -> dict:
+    alg = session["cert_alg"]
+    passed = alg in set(lab["pq_auth_allowlist"])
+    return {
+        "gate": "pq_auth",
+        "service_id": session["service_id"],
+        "result": "PASS" if passed else "FAIL",
+        "auth_alg": alg,
+        "signature_type": session.get("signature_type"),
+        "auth_class": "pq" if passed else "classical",
+        "reason": f"server authenticates with {alg} ({session.get('signature_type')})"
+        + ("" if passed else "; classical signature, replace before a CRQC exists (not an HNDL exposure)"),
+    }
+
+
 def evaluate(capture: dict, lab: dict) -> dict:
     validate("capture", capture)
     default_groups = lab["client_groups"]
     sessions = [s for s in capture["sessions"] if s.get("client_groups_offered", default_groups) == default_groups]
     pq = [evaluate_session(s, lab) for s in sessions]
+    auth = [evaluate_auth(s, lab) for s in sessions]
     downgrade = [evaluate_downgrade(capture, sid, lab) for sid in sorted({s["service_id"] for s in sessions})]
-    return {"capture_run_id": capture["run_id"], "pq_handshake": pq, "downgrade": downgrade}
+    return {"capture_run_id": capture["run_id"], "pq_handshake": pq, "pq_auth": auth, "downgrade": downgrade}
 
 
 def check_live(svc, lab: dict, transcript_dir, tag: str = "") -> dict:

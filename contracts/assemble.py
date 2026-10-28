@@ -29,8 +29,9 @@ def assemble(out_dir: Path = OUT) -> dict:
         results["waves"] = [{**w, **{k: by_week[w["week"]][k] for k in ("status", "asset_status", "evidence")}} for w in results["waves"]]
         for a in results["assets"]:
             a["status"] = run["asset_status"].get(a["id"], "planned")
-    ledger = out_dir / "ledger_root.txt"
-    results["ledger_root"] = ledger.read_text().strip() if ledger.exists() else None
+    ledger = out_dir / "ledger.json"
+    results["ledger"] = json.loads(ledger.read_text()) if ledger.exists() else None
+    results["ledger_root"] = results["ledger"]["root"] if results["ledger"] else None
     validate("results", results)
     return results
 

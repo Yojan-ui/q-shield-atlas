@@ -4,9 +4,9 @@ PQC track, problem statement PQC-01. Find vulnerable RSA/ECC in a system, schedu
 optimally with QpiAI Opt, verify every wave, prove it with signed evidence, and show it in a 3D
 exposure tower (2D fallback).
 
-**Status:** build steps 1-4 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
-evidence, `gates/` with compatibility, rollback and the wave runner). Later modules (ledger, qaoa,
-viz) are not built yet; their sections in `results.json` are `null`.
+**Status:** build steps 1-5 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
+evidence, `gates/` with compatibility, rollback and the wave runner, `ledger/`). Later modules
+(qaoa, viz) are not built yet; their sections in `results.json` are `null`.
 
 **Scope decision:** this project performs no key recovery, factoring or decryption. Quantum
 exposure is shown with real TLS 1.3 handshake evidence: sessions that rely on classical key
@@ -21,6 +21,8 @@ source .env.sh                # exports QPIAI_OPT_API_KEY (and QCLOUD_API_KEY); 
 python -m detect --probe web-gw=HOST:PORT   # -> out/detect.json, out/inventory.json (probe optional)
 python -m capture             # lab TLS 1.3 handshakes -> out/capture.json, out/gates.json, out/handshake_evidence.json
 python -m gates               # compat matrix, wave runner, one forced rollback -> out/gates.json, out/wave_status.json
+python -m ledger ingest       # sign run manifests (ML-DSA-65) -> out/ledger.jsonl, root anchored in results.json
+python -m ledger verify       # re-hash payloads, check chain, signatures and anchored root
 python -m schedule --inventory out/inventory.json  # local solves -> out/schedule.json, logs in runs/<run_id>/
 python -m schedule --platform # opt-in: 2 paid QpiAI platform jobs (main plan only), see below
 python -m contracts.assemble  # -> out/results.json, validated against contracts/results.schema.json
@@ -80,8 +82,11 @@ ML-KEM skip with that reason instead of passing.
   (`handshake_evidence`). That is a statement about the key exchange, not a demonstrated break:
   no traffic is decrypted and no decryption is claimed.
 
-Limits: both lab certificates are RSA-2048, so authentication is still classical even on the hybrid
-service (HNDL concerns confidentiality, which the key exchange protects). `-msg` adds the hex of every
+A third service, **pq-auth** (strict mode, ML-DSA-65 certificate), shows post-quantum authentication:
+the `pq_auth` gate reports the certificate signature algorithm separately from the key exchange.
+Measured: legacy and hybrid authenticate with RSA (`rsa_pss_rsae_sha256`, pq_auth FAIL); pq-auth
+authenticates with `mldsa65` (pq_auth PASS). Classical authentication is not an HNDL exposure (a past
+session cannot be retroactively impersonated) but must be replaced before a CRQC exists. `-msg` adds the hex of every
 handshake message (including the ClientHello/ServerHello randoms), so each session's transcript hash
 is unique. Key material is never logged: no `-keylogfile`, and `SSLKEYLOGFILE` is stripped from the
 subprocess environment (tested).
@@ -112,6 +117,39 @@ because ML-KEM groups exist only in TLS 1.3.
 
 Limits: one lab stand-in represents every asset of its kind, so `applied` means the stand-in
 passed the gates in that mode, not that the real system was migrated. Lab certificates stay RSA-2048.
+
+## Signed evidence ledger (`ledger/`)
+
+- **Backend:** ML-DSA-65 via the OpenSSL 3.6.5 CLI (`genpkey -algorithm ML-DSA-65`,
+  `pkeyutl -sign/-verify -rawin`). Detection order was (a) OpenSSL CLI, (b) `cryptography` 50.0.2
+  (`mldsa.MLDSA65PrivateKey`), (c) liboqs-python 0.16; all three passed a sign / verify /
+  tampered-message / tampered-signature round trip, so (a) is used. A self-test runs before use and
+  there is no fallback to RSA, ECDSA or Ed25519. Tests cross-verify every OpenSSL signature with
+  `cryptography` as an independent ML-DSA-65 implementation.
+- **Keys:** `keys/ledger_mldsa65.key` (git-ignored, mode 0600, never printed). Committed: the public
+  key `ledger/pubkey/ledger_mldsa65.pub.pem` and its fingerprint (SHA-256 of the DER
+  SubjectPublicKeyInfo) in `ledger_mldsa65.pub.sha256`. To sign on a new machine, generate a key
+  pair with `python -c "from ledger.backend import detect; ..."` (see `ledger/backend.py`) or copy the
+  private key out of band; verification needs only the committed public key.
+- **Log** (`ledger/log.py`): append-only JSONL under an exclusive file lock. Entry =
+  `{index, type, payload_hash, payload_ref, prev_hash, ts, alg, backend, pubkey_fp, sig_mldsa}`.
+  Canonical JSON (sorted keys, `(",", ":")`, UTF-8); the signature covers the entry without
+  `sig_mldsa`; `prev_hash` is SHA-256 of the previous entry including its signature (genesis: 64 zeros).
+- **Merkle** (`ledger/merkle.py`): RFC 6962 (leaf `0x00`, node `0x01`, split at the largest power of
+  two, i.e. odd nodes promoted); inclusion proofs verified with the RFC 9162 algorithm. Checked
+  against the Certificate Transparency reference roots and an independent promote-odd build.
+- **Ingest:** signs the immutable per-run payloads under `runs/<run_id>/` (schedule solver runs with
+  job_id/problem_id/solver and input/output hashes, detect, capture with transcript hashes, gates,
+  wave runner with per-wave status and config hashes). Re-ingesting the same payload is a no-op.
+  Root, entry count, public-key fingerprint, algorithm and backend are anchored in `results.json`.
+- **Verify:** per entry: schema, index, chain, key fingerprint, signature, payload re-hash; then the
+  anchored root. Reports the first failing index and reason. Tests cover a one-byte payload edit,
+  an edited field, a corrupted signature, a deleted middle entry, reordered entries, a truncated
+  tail (root no longer matches the anchor), a different public key, and an entry re-signed with
+  another key.
+
+Limits: a local test ledger with one signing key; no external timestamping or transparency log, so
+the anchor in `results.json` is only as trustworthy as wherever results.json is published.
 
 ## Scheduling model (`schedule/`)
 

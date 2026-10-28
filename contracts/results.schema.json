@@ -8,7 +8,7 @@
   "required": [
     "schema_version", "generated_at", "assumptions", "scenarios", "assets", "waves",
     "exposure", "baselines", "avoided", "solver_runs",
-    "detect", "handshake_evidence", "gates", "qaoa", "ledger_root"
+    "detect", "handshake_evidence", "gates", "qaoa", "ledger_root", "ledger"
   ],
   "properties": {
     "schema_version": {"const": "1.0"},
@@ -85,7 +85,25 @@
     "handshake_evidence": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/handshake_evidence"}]},
     "gates": {"type": ["object", "null"]},
     "qaoa": {"type": ["object", "null"]},
-    "ledger_root": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]}
+    "ledger_root": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+    "ledger": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["root", "entry_count", "pubkey_fp", "alg", "backend", "ledger_ref"],
+          "properties": {
+            "root": {"$ref": "#/$defs/sha256"},
+            "entry_count": {"type": "integer", "minimum": 0},
+            "pubkey_fp": {"$ref": "#/$defs/sha256"},
+            "alg": {"const": "ML-DSA-65"},
+            "backend": {"type": "string"},
+            "ledger_ref": {"type": "string"}
+          }
+        }
+      ]
+    }
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -112,7 +130,9 @@
               "kex_class": {"enum": ["classical", "hybrid-pq"]},
               "hndl_exposed": {"type": "boolean"},
               "label": {"type": ["string", "null"]},
-              "transcript_sha256": {"$ref": "#/$defs/sha256"}
+              "transcript_sha256": {"$ref": "#/$defs/sha256"},
+              "auth_alg": {"type": "string"},
+              "auth_class": {"enum": ["pq", "classical"]}
             }
           }
         }

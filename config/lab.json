@@ -7,7 +7,8 @@
   },
   "services": {
     "legacy": {"mode": "legacy", "cert_key": "rsa:2048"},
-    "hybrid": {"mode": "strict", "cert_key": "rsa:2048"}
+    "hybrid": {"mode": "strict", "cert_key": "rsa:2048"},
+    "pq-auth": {"mode": "strict", "cert_key": "ML-DSA-65"}
   },
   "clients": {
     "pq-capable":     {"groups": "X25519MLKEM768:X25519", "tls": "auto"},
@@ -35,6 +36,7 @@
   "client_groups": "X25519MLKEM768:X25519",
   "classical_only_client_groups": "X25519:prime256v1",
   "pq_group_allowlist": ["X25519MLKEM768", "SecP256r1MLKEM768", "SecP384r1MLKEM1024", "MLKEM512", "MLKEM768", "MLKEM1024"],
+  "pq_auth_allowlist": ["ML-DSA", "SLH-DSA"],
   "health_check_client": "classical-only",
   "waves": {
     "initial_mode": "legacy",
