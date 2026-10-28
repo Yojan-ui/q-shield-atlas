@@ -34,7 +34,7 @@ arrives, so the real question for a bank is which systems to move first, and how
 ```bash
 ./announce.sh --fast
 ```
-**On screen:** the Q-SHIELD ATLAS banner, "Track: Post-Quantum Cryptography · PQC-01", 9 modules all ✔ <!-- out/pytest-junit.xml via atlas.announce.module_status; 248 tests passed in the last full run -->,
+**On screen:** the Q-SHIELD ATLAS banner, "Track: Post-Quantum Cryptography · PQC-01", 9 modules all ✔ <!-- out/pytest-junit.xml via atlas.announce.module_status; 249 tests passed in the last full run (pytest at commit d7545a3) -->,
 16 assets to migrate <!-- results.json: detect.inventory.assets = 16 -->, the handshake table and the ledger: 52 entries, ✔ verified <!-- results.json: ledger.entry_count = 52; ledger_verification.ok = true -->.
 **Say:** "One command regenerates everything, and this screen is computed from the signed results, not typed in: every module is built and tested, and the ledger verifies."
 
