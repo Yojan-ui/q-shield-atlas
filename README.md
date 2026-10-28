@@ -1,38 +1,162 @@
 # Q-Shield Atlas
 
-PQC track, problem statement PQC-01. Find vulnerable RSA/ECC in a system, schedule the migration
-optimally with QpiAI Opt, verify every wave, prove it with signed evidence, and show it in a 3D
-exposure tower (2D fallback).
+**Track: Post-Quantum Cryptography · PQC-01**
 
-**Status:** build steps 1-7 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
-evidence, `gates/` with compatibility, rollback and the wave runner, `ledger/`, `qaoa/`, `viz/`).
-`run_demo.sh` is not built yet.
+Q-Shield Atlas finds the RSA, ECC and DH that a cryptographically relevant quantum computer would
+break, turns it into a migration plan, and proves each step. A static scanner and live TLS probes
+build the inventory with file:line evidence and catch static-vs-live drift. QpiAI Opt schedules
+the migration in weekly waves to minimise harvest-now-decrypt-later exposure under several CRQC
+arrival scenarios, and the plan is compared with first-come-first-served and greedy baselines on
+the same data. Every wave is verified on real TLS 1.3 lab services: hybrid X25519MLKEM768 key
+exchange, no silent downgrade, a client compatibility matrix and a tested rollback. Every run is
+signed into an ML-DSA-65 hash-chained ledger with a Merkle root, and a QAOA run is measured against
+the brute-force optimum as a cross-check, not a claim of advantage. Everything is shown in a 2D
+dashboard and a 3D exposure tower that read only `out/results.json`.
 
-**Scope decision:** this project performs no key recovery, factoring or decryption. Quantum
-exposure is shown with real TLS 1.3 handshake evidence: sessions that rely on classical key
-exchange are labelled *HNDL-exposed* (harvest-now-decrypt-later: recorded traffic relies on
-classical key exchange). Nothing is decrypted and no decryption is claimed.
+> Lab demo · local TLS lab services on 127.0.0.1 · local single-key test ledger without public
+> timestamping · simulator-scale QAOA, no quantum advantage claimed · risk, effort and shelf-life
+> values are assumptions (`config/assumptions.json`). No key recovery, factoring or decryption is
+> performed or claimed anywhere.
 
-## Rerun
+## Architecture
 
-```bash
-conda activate pqc            # Python 3.12; the base env lacks qpiai-opt
-source .env.sh                # exports QPIAI_OPT_API_KEY (and QCLOUD_API_KEY); git-ignored
-python -m detect --probe web-gw=HOST:PORT   # -> out/detect.json, out/inventory.json (probe optional)
-python -m capture             # lab TLS 1.3 handshakes -> out/capture.json, out/gates.json, out/handshake_evidence.json
-python -m gates               # compat matrix, wave runner, one forced rollback -> out/gates.json, out/wave_status.json
-python -m qaoa                # QAOA cross-check on local simulators -> out/qaoa.json (add --qcloud: paid, guarded)
-python -m ledger ingest       # sign run manifests (ML-DSA-65) -> out/ledger.jsonl, root anchored in results.json
-python -m ledger verify       # re-hash payloads, check chain, signatures and anchored root (status -> results.json)
-python -m viz                 # serve viz/ + out/results.json on 127.0.0.1 (free port) and open the browser
-python -m schedule --inventory out/inventory.json  # local solves -> out/schedule.json, logs in runs/<run_id>/
-python -m schedule --platform # opt-in: 2 paid QpiAI platform jobs (main plan only), see below
-python -m contracts.assemble  # -> out/results.json, validated against contracts/results.schema.json
-pytest                        # solver tests skip if QPIAI_OPT_API_KEY is absent
+```
+                 config/assumptions.json   config/lab.json   config/qaoa.json
+                            |                     |                 |
+ source tree --> detect/ ---+--> out/inventory.json                 |
+ (code, configs,  static scan + live probe + drift  |               |
+  deps, certs)          |                           v               |
+                        |                     schedule/  --(QpiAI Opt MILP, local; --platform opt-in)
+                        |                           | out/schedule.json (plan + FCFS/greedy baselines)
+                        |               +-----------+-----------+   |
+                        |               v                       v   v
+ openssl s_server --> capture/ --> gates/ (pq_handshake, pq_auth,  qaoa/ (wave QUBO, exact brute force,
+ legacy | hybrid |     handshake    compat matrix, rollback,       local QAOA p=1..3, random baseline;
+ pq-auth (127.0.0.1)  evidence      wave runner)                   QCloud --qcloud opt-in)
+                        |               |                           |
+                        +---------------+------------+--------------+
+                                                     v
+                         runs/<run_id>/manifest.json (immutable per-run evidence)
+                                                     |
+                                    ledger/ (ML-DSA-65 signatures, hash chain, RFC 6962 Merkle root)
+                                                     |
+                         contracts/assemble --> out/results.json (schema-validated)
+                                                     |
+                                 +-------------------+-------------------+
+                                 v                                       v
+                         viz/ (2D SVG default, 3D tower)        atlas announce (terminal)
 ```
 
-No numbers are quoted in this README: they live in `out/results.json`, each traceable to a
-solver run in `runs/`.
+Modules exchange data only through the JSON contracts in `contracts/`.
+
+## Quickstart (one command)
+
+```bash
+conda env create -f environment.yml && conda activate pqc   # Python 3.12 + OpenSSL 3.6.5 (ML-KEM, ML-DSA)
+export QPIAI_OPT_API_KEY=...        # free key from https://opt.qpiai.tech/ (or put it in .env.sh, git-ignored)
+./run_demo.sh                       # regenerate everything, then open the viz; --no-open to skip the browser
+./announce.sh --fast                # terminal launch screen from out/results.json
+```
+
+`run_demo.sh` runs a preflight first and prints a fix for each failure: Python 3.12, the pinned
+packages, OpenSSL >= 3.5 listing X25519MLKEM768 and ML-DSA-65, a free local port, and the API key.
+It then generates the ledger key pair if none exists (it never overwrites one) and runs, timing
+each step: detect -> schedule -> capture -> gates -> qaoa -> ledger ingest -> ledger verify ->
+assemble -> schema validate. It ends with PASS/FAIL and cleans up every lab `openssl s_server`.
+Running it again appends new signed runs and still verifies. With a plain venv instead of conda:
+`python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt` and
+`PYTHON=.venv/bin/python ./run_demo.sh`; OpenSSL is found via `$QSHIELD_OPENSSL`, then the path
+in `config/lab.json`, then next to the interpreter, then `PATH`. A fresh clone generates its own key pair
+in git-ignored `keys/` and signs and verifies with it; the committed project key in `ledger/pubkey/`
+is left untouched.
+
+## What each module proves, and how to check it
+
+| module | proves | check it |
+|---|---|---|
+| `detect/` | where RSA/ECC/DH is, with file:line evidence; live handshakes; static-vs-live drift | `python -m detect --lab-probe web-gw=legacy`; `pytest tests/test_detect.py` (exact match with hand-labelled ground truth incl. decoys); `docs/detect_real_repos.md` |
+| `schedule/` | a proven-optimal migration plan under capacity and dependencies, never worse than FCFS or greedy on the same data | `python -m schedule --inventory out/inventory.json`; `pytest tests/test_schedule.py tests/test_sensitivity.py` (brute force, random instances, assumption sensitivity) |
+| `capture/` | what real TLS 1.3 handshakes negotiate (group, cipher, cert algorithm), with transcript hashes | `python -m capture`; `out/capture.json` validates against `contracts/capture.schema.json` |
+| `gates/` | hybrid key exchange (and separately PQ authentication), no silent downgrade, compatibility per client, tested rollback, per-wave evidence | `python -m gates`; `pytest tests/test_gates_waves.py tests/test_capture_gates.py` |
+| `ledger/` | every run manifest is signed (ML-DSA-65) and chained; any edit, deletion, reorder, truncation or key swap is detected at its index | `python -m ledger verify`; `python -m ledger proof N`; `pytest tests/test_ledger.py tests/test_merkle.py` |
+| `qaoa/` | a measured QAOA cross-check against the exact optimum of a one-week wave QUBO | `python -m qaoa`; `pytest tests/test_qaoa.py tests/test_qaoa_table.py` |
+| `viz/` | every displayed number is a value from results.json with its source; nothing invented for runs that did not happen | `python -m viz`; `pytest tests/test_viz.py` (runs the JS data layer under node) |
+| `atlas/` | status computed from results.json, the ledger and the last test run | `./announce.sh` (runs tests) or `./announce.sh --fast` |
+
+Numbers are deliberately not quoted in this README: they live in `out/results.json`, each one
+traceable to a run under `runs/` and a signed ledger entry. `./announce.sh` prints them with sources.
+
+## Assumptions and limits
+
+- **Assumptions, not measurements:** shelf life and risk weight per data class, effort per asset
+  kind, weekly capacity, start year, CRQC scenario years (2030, 2032, 2035) and weights
+  (`config/assumptions.json`). Sensitivity runs scale shelf life, risk and effort by 0.8 and 1.2.
+  Each asset must fit in one week of capacity.
+- **Exposure model:** Mosca's inequality, linear in completion time. With shelf lives long relative
+  to time-to-CRQC most exposure is structural, so the plan can only reduce the part that depends on
+  finishing earlier; `avoided` reports exactly that.
+- **Chart semantics:** the viz plots unweighted exposure-years, while the optimiser minimises the
+  risk-weighted, scenario-weighted total, so in some weeks its unweighted curve sits above a baseline.
+- **Lab, not production:** TLS services are local `openssl s_server` processes on 127.0.0.1. The
+  legacy and hybrid lab certificates are RSA-2048; only `pq-auth` uses an ML-DSA-65 certificate.
+  Wave verification uses one lab stand-in per asset kind (edge, app, data); kinds with no TLS stand-in
+  (root CA, HSM, VPN, batch SFTP) are reported `not_verified_in_lab`, never passed. "applied" means the
+  stand-in passed the gates, not that the real system was migrated.
+- **Static scan:** line-based rules, no data-flow analysis; hand-made ground truth; crypto configured
+  outside the repo (cloud load balancers, mesh defaults) is only visible to the live probe. Known
+  misses and fixed false positives on real repos: `docs/detect_real_repos.md`.
+- **Ledger:** a local test ledger with one signing key and no public timestamping or transparency
+  log; its anchor in results.json is only as trustworthy as wherever results.json is published.
+- **QAOA:** simulator scale (at most 16 variables, `config/qaoa.json`), small enough for brute force; no quantum advantage
+  claimed. The approximation ratio saturates at this size, so feasible fraction, energy ratio and
+  P(optimal set) are the informative comparisons.
+- **QpiAI platform status:** QpiAI Opt platform MILP submissions were rejected ("no active storage
+  quota found for organization") and QCloud job creation was rejected ("an active subscription is
+  required to run jobs"); no platform job was created. Scheduling uses free local QpiAI Opt solves
+  (`job_id: null` with a reason, run_id and input/output hashes) and QAOA uses the local simulator.
+  Rows for runs that did not happen show their status text, never numbers.
+- **Toolchain:** OpenSSL >= 3.5 is required (ML-KEM groups, ML-DSA); the system LibreSSL and older
+  OpenSSL builds do not work.
+
+## Opt-in paid runs
+
+Default runs never submit QpiAI Opt or QCloud jobs (`QSHIELD_FORBID_PLATFORM=1`; tests force it).
+
+```bash
+./run_demo.sh --platform          # 2 QpiAI Opt platform jobs (main plan), same input also solved locally
+./run_demo.sh --qcloud            # 3 QCloud jobs on QpiAI-QSV-Simulator only (one final circuit per p)
+./run_demo.sh --qcloud --allow-more   # past the 10-submissions-per-UTC-day cap
+```
+
+Each submission is announced ("Submitting N ... jobs"), logged to `runs/platform_jobs.log` and the
+run directory, refused past the daily cap, and stopped after the first failure; real hardware
+(`QpiAI-Indus-1`) is refused. Platform and local results are reported side by side, never merged.
+
+## Version pins
+
+- Python 3.12; `requirements.txt` pins the direct imports: cryptography 50.0.2, jsonschema 4.26.0,
+  numpy 2.5.4, psutil 7.2.2, pytest 9.1.1, **qpiai-opt 0.0.9**, **qpiai-quantum 0.3.0**, rich 15.0.0,
+  scipy 1.18.1. `requirements-lock.txt` is the full environment snapshot; `environment.yml` adds
+  conda-forge `openssl=3.6.5`.
+- OpenSSL: `config/lab.json` `openssl` records the binary path and version used
+  (OpenSSL 3.6.5, conda-forge `h55eecbc_0`) and the required X25519MLKEM768 / ML-DSA-65 support.
+- three.js 0.170.0 vendored in `viz/vendor/` with SHA-256s in `viz/vendor/MANIFEST.json` (below).
+- QpiAI API surface actually used: `docs/qpiai_api_notes.md`.
+
+## Rerunning single modules
+
+```bash
+python -m detect --lab-probe web-gw=legacy  # or --probe SERVICE=HOST:PORT
+python -m schedule --inventory out/inventory.json [--platform]
+python -m capture && python -m gates
+python -m qaoa [--qcloud]
+python -m ledger ingest && python -m ledger verify   # also: python -m ledger proof N, keygen
+python -m contracts.assemble && python -m contracts validate results out/results.json
+python -m viz [--no-browser]
+pytest                                      # QpiAI solver tests skip without QPIAI_OPT_API_KEY
+```
+
+# Module details
 
 ## Detection (`detect/`)
 
@@ -131,9 +255,10 @@ passed the gates in that mode, not that the real system was migrated. Lab certif
 - **Keys:** `keys/ledger_mldsa65.key` (git-ignored, mode 0600, never printed). Committed: the public
   key `ledger/pubkey/ledger_mldsa65.pub.pem` and its fingerprint (SHA-256 of the DER
   SubjectPublicKeyInfo) in `ledger_mldsa65.pub.sha256`. To sign on a new machine, run
-  `python -m ledger keygen` (refuses to overwrite an existing key; the new public key and fingerprint
-  must then be committed) or copy the private key out of band. Verification needs only the
-  committed public key.
+  `python -m ledger keygen`: it refuses to overwrite an existing key and writes the new key pair
+  and fingerprint to git-ignored `keys/`, which signing and verification then prefer over the
+  committed key. To sign as the project, copy the private key out of band. Verifying the
+  project's ledger needs only the committed public key.
 - **Log** (`ledger/log.py`): append-only JSONL under an exclusive file lock. Entry =
   `{index, type, payload_hash, payload_ref, prev_hash, ts, alg, backend, pubkey_fp, sig_mldsa}`.
   Canonical JSON (sorted keys, `(",", ":")`, UTF-8); the signature covers the entry without
@@ -287,32 +412,10 @@ consume credits) is not used for scheduling.
 
 The local QpiAI Opt MILP runtime reports HiGHS status strings, i.e. it is HiGHS-based.
 
-## Assumptions (all in `config/assumptions.json`)
-
-These are illustrative planning values, **not measurements**:
-- shelf life and risk weight per data class; effort per asset kind;
-- weekly capacity (engineer-days), start year, CRQC scenario years and weights;
-- each asset fits within one week of capacity (larger assets must be split in the inventory).
-
-The demo inventory (`schedule/data/mock_bank_assets.json`) is a fictional mock bank; it will be
-replaced by `detect/` output in step 2.
-
-Sensitivity: shelf life, risk weight and effort are each scaled by 0.8 and 1.2 (one at a time);
-MILP and baselines are re-run on the scaled data and recorded in `results.json["sensitivity"]`.
-`tests/test_sensitivity.py` checks the optimum stays no worse than both baselines and that
-optimal exposure is monotone in shelf life.
-
-## Limits (so far)
-
-- Exposure is linear in completion time. When shelf lives are long relative to time-to-CRQC,
-  most exposure is structural (it exists whatever the order), so the schedule can only shave the
-  part that depends on finishing earlier. `avoided` reports exactly that difference.
-- Week granularity; no partial or multi-week assets; single shared capacity pool.
-
 ## Contracts (`contracts/`)
 
 - `capture.schema.json`: established TLS sessions (service_id, negotiated_group, cipher, protocol,
   cert_alg, transcript_sha256, timestamp) and refused handshake attempts. No payloads.
 - `results.schema.json`: assets, waves, status, exposure per scenario, baselines, avoided,
-  solver runs, sensitivity, and module sections (detect, handshake_evidence, gates, qaoa, ledger_root).
-- `ledger_entry.schema.json`: `{index, type, payload_hash, prev_hash, sig_mldsa, ts}`.
+  solver runs, sensitivity, and module sections (detect, handshake_evidence, gates, qaoa, ledger, ledger_root, ledger_verification).
+- `ledger_entry.schema.json`: `{index, type, payload_hash, payload_ref, prev_hash, ts, alg, backend, pubkey_fp, sig_mldsa}`.

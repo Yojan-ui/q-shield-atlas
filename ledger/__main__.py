@@ -25,8 +25,14 @@ from .verify import verify
 
 REPO = Path(__file__).resolve().parent.parent
 PRIVATE_KEY = REPO / "keys" / "ledger_mldsa65.key"
-PUBLIC_KEY = REPO / "ledger" / "pubkey" / "ledger_mldsa65.pub.pem"
+LOCAL_PUBLIC_KEY = REPO / "keys" / "ledger_mldsa65.pub.pem"  # written by keygen; git-ignored
+PROJECT_PUBLIC_KEY = REPO / "ledger" / "pubkey" / "ledger_mldsa65.pub.pem"  # committed project key
 LEDGER = REPO / "out" / "ledger.jsonl"
+
+
+def default_public_key() -> Path:
+    """The key generated on this machine if any, else the committed project key."""
+    return LOCAL_PUBLIC_KEY if LOCAL_PUBLIC_KEY.exists() else PROJECT_PUBLIC_KEY
 
 
 def main(argv=None):
@@ -34,19 +40,22 @@ def main(argv=None):
     ap.add_argument("command", choices=["keygen", "ingest", "verify", "proof"])
     ap.add_argument("index", nargs="?", type=int)
     ap.add_argument("--ledger", type=Path, default=LEDGER)
-    ap.add_argument("--public-key", type=Path, default=PUBLIC_KEY)
+    ap.add_argument("--public-key", type=Path, default=None, help="default: keys/ledger_mldsa65.pub.pem, else the committed key")
     ap.add_argument("--out-dir", type=Path, default=REPO / "out")
     args = ap.parse_args(argv)
     backend = detect()
 
     if args.command == "keygen":
         if PRIVATE_KEY.exists():
-            sys.exit(f"{PRIVATE_KEY.relative_to(REPO)} already exists; not overwriting")
-        backend.generate(PRIVATE_KEY, args.public_key)
-        fp = backend.fingerprint(args.public_key)
-        args.public_key.with_suffix(".sha256").write_text(fp + "\n")
-        print(f"ML-DSA-65 key pair created; private key {PRIVATE_KEY.relative_to(REPO)} (0600, git-ignored); pubkey_fp {fp}")
+            sys.exit(f"{PRIVATE_KEY} already exists; not overwriting")
+        # the public key goes next to the private key (git-ignored): committed files are never rewritten
+        backend.generate(PRIVATE_KEY, LOCAL_PUBLIC_KEY)
+        fp = backend.fingerprint(LOCAL_PUBLIC_KEY)
+        LOCAL_PUBLIC_KEY.with_suffix(".sha256").write_text(fp + "\n")
+        print(f"ML-DSA-65 key pair created in keys/ (git-ignored; private key 0600); pubkey_fp {fp}")
         return 0
+    if args.public_key is None:
+        args.public_key = default_public_key()
 
     if args.command == "ingest":
         if not PRIVATE_KEY.exists():

@@ -178,3 +178,17 @@ def test_committed_public_key_fingerprint_matches(backend):
 def test_private_key_file_mode_is_0600(backend, tmp_path):
     backend.generate(tmp_path / "sk.pem", tmp_path / "pk.pem")
     assert (tmp_path / "sk.pem").stat().st_mode & 0o777 == 0o600
+
+
+def test_keygen_never_touches_committed_public_key(monkeypatch, tmp_path):
+    import ledger.__main__ as cli
+
+    committed = (REPO / "ledger" / "pubkey" / "ledger_mldsa65.pub.pem").read_bytes()
+    monkeypatch.setattr(cli, "PRIVATE_KEY", tmp_path / "keys" / "ledger_mldsa65.key")
+    monkeypatch.setattr(cli, "LOCAL_PUBLIC_KEY", tmp_path / "keys" / "ledger_mldsa65.pub.pem")
+    assert cli.main(["keygen"]) == 0
+    assert (tmp_path / "keys" / "ledger_mldsa65.pub.pem").exists()
+    assert cli.default_public_key() == tmp_path / "keys" / "ledger_mldsa65.pub.pem"
+    assert (REPO / "ledger" / "pubkey" / "ledger_mldsa65.pub.pem").read_bytes() == committed
+    with pytest.raises(SystemExit):
+        cli.main(["keygen"])  # refuses to overwrite
