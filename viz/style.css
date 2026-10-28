@@ -24,6 +24,7 @@ h3 { font-size: 13px; margin: 12px 0 6px; }
 .seg button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
 .seg button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
 .seg button:disabled { opacity: .45; cursor: not-allowed; }
+.report-link { color: var(--ink); border: 1px solid var(--line); background: var(--panel); padding: 6px 12px; border-radius: 6px; text-decoration: none; }
 .note, .fine { color: var(--muted); font-size: 12px; }
 .notice { margin: 0 16px 12px; padding: 8px 12px; border: 1px solid var(--fail); border-radius: 6px; color: var(--fail); background: var(--panel); }
 main { padding: 0 16px 16px; }

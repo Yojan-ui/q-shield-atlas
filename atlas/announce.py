@@ -35,7 +35,7 @@ MODULES = [
     ("ledger", "ledger", ["test_ledger", "test_merkle"], "ledger"),
     ("qaoa", "qaoa", ["test_qaoa", "test_qaoa_table"], "qaoa"),
     ("viz", "viz", ["test_viz"], None),
-    ("atlas", "atlas", ["test_atlas"], None),
+    ("atlas", "atlas", ["test_atlas", "test_report"], None),
 ]
 
 

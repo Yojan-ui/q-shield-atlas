@@ -144,10 +144,17 @@ def scan(root) -> dict:
 
 def summarize(findings: list[dict]) -> dict:
     out: dict[str, int] = {}
+    by_use: dict[str, int] = {}
+    by_family_use: dict[str, dict[str, int]] = {}
     for f in findings:
         out[f["family"]] = out.get(f["family"], 0) + 1
+        by_use[f["use"]] = by_use.get(f["use"], 0) + 1
+        fu = by_family_use.setdefault(f["family"], {})
+        fu[f["use"]] = fu.get(f["use"], 0) + 1
     return {
         "by_family": dict(sorted(out.items())),
+        "by_use": dict(sorted(by_use.items())),
+        "by_family_use": {k: dict(sorted(v.items())) for k, v in sorted(by_family_use.items())},
         "vulnerable_findings": sum(v for k, v in out.items() if k in {"RSA", "ECC", "DH", "DSA"}),
         "pqc_findings": out.get("PQC", 0),
         "needs_live_probe": out.get("UNKNOWN", 0),

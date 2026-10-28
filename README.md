@@ -56,13 +56,14 @@ conda env create -f environment.yml && conda activate pqc   # Python 3.12 + Open
 export QPIAI_OPT_API_KEY=...        # free key from https://opt.qpiai.tech/ (or put it in .env.sh, git-ignored)
 ./run_demo.sh                       # regenerate everything, then open the viz; --no-open to skip the browser
 ./announce.sh --fast                # terminal launch screen from out/results.json
+./report.sh                         # out/report.html: one offline file, signed into the ledger; opens it
 ```
 
 `run_demo.sh` runs a preflight first and prints a fix for each failure: Python 3.12, the pinned
 packages, OpenSSL >= 3.5 listing X25519MLKEM768 and ML-DSA-65, a free local port, and the API key.
 It then generates the ledger key pair if none exists (it never overwrites one) and runs, timing
 each step: detect -> schedule -> capture -> gates -> qaoa -> ledger ingest -> ledger verify ->
-assemble -> schema validate. It ends with PASS/FAIL and cleans up every lab `openssl s_server`.
+assemble -> schema validate -> report -> validate. It ends with PASS/FAIL and cleans up every lab `openssl s_server`.
 Running it again appends new signed runs and still verifies. With a plain venv instead of conda:
 `python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt` and
 `PYTHON=.venv/bin/python ./run_demo.sh`; OpenSSL is found via `$QSHIELD_OPENSSL`, then the path
@@ -81,7 +82,17 @@ is left untouched.
 | `ledger/` | every run manifest is signed (ML-DSA-65) and chained; any edit, deletion, reorder, truncation or key swap is detected at its index | `python -m ledger verify`; `python -m ledger proof N`; `pytest tests/test_ledger.py tests/test_merkle.py` |
 | `qaoa/` | a measured QAOA cross-check against the exact optimum of a one-week wave QUBO | `python -m qaoa`; `pytest tests/test_qaoa.py tests/test_qaoa_table.py` |
 | `viz/` | every displayed number is a value from results.json with its source; nothing invented for runs that did not happen | `python -m viz`; `pytest tests/test_viz.py` (runs the JS data layer under node) |
-| `atlas/` | status computed from results.json, the ledger and the last test run | `./announce.sh` (runs tests) or `./announce.sh --fast` |
+| `atlas/` | status computed from results.json, the ledger and the last test run; a signed, self-contained report | `./announce.sh` (runs tests) or `./announce.sh --fast`; `./report.sh`; `pytest tests/test_atlas.py tests/test_report.py` |
+
+**Report** (`python -m atlas report`, `./report.sh`, also built by `run_demo.sh`; `--report-open` opens
+it): `out/report.html` is one self-contained, offline HTML file (inline CSS/JS, no external URLs,
+data rendered in at build time, so it works over `file://`). It covers the summary with computed
+PASS/FAIL checks, inventory, migration plan, handshake evidence, waves and rollback, the ledger with
+an inclusion proof, QAOA, assumptions and limits, and how to reproduce. Every number is taken from
+results.json and tagged with its run_id/job_id; missing data shows "not yet run". The footer holds
+the file's SHA-256 computed with that field set to 64 zeros; the exact file is copied to
+`runs/<run_id>/report.html`, signed into the ledger (type `report.html`), and the ledger is verified.
+Print → Save as PDF gives a clean document (print CSS expands collapsed sections).
 
 Numbers are deliberately not quoted in this README: they live in `out/results.json`, each one
 traceable to a run under `runs/` and a signed ledger entry. `./announce.sh` prints them with sources.

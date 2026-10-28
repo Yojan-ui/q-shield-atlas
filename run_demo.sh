@@ -3,7 +3,7 @@
 # results.json) and open the viz. Local only by default: no QpiAI Opt or QCloud jobs are submitted
 # unless --platform / --qcloud are given (both go through the guarded commands).
 #
-#   ./run_demo.sh [--no-open] [--platform] [--qcloud] [--allow-more]
+#   ./run_demo.sh [--no-open] [--report-open] [--platform] [--qcloud] [--allow-more]
 #
 # Env: PYTHON (default: python), QSHIELD_OPENSSL (OpenSSL >= 3.5 binary), QPIAI_OPT_API_KEY,
 # QCLOUD_API_KEY (read from .env.sh if present and not already set). Bash 3.2 compatible.
@@ -12,12 +12,14 @@ cd "$(dirname "$0")"
 
 PY="${PYTHON:-python}"
 OPEN=1
+REPORT_OPEN=()
 PLATFORM_ARGS=()
 QCLOUD_ARGS=()
 ALLOW_MORE=()
 for arg in "$@"; do
   case "$arg" in
     --no-open) OPEN=0 ;;
+    --report-open) REPORT_OPEN=(--open) ;;
     --platform) PLATFORM_ARGS=(--platform) ;;
     --qcloud) QCLOUD_ARGS=(--qcloud) ;;
     --allow-more) ALLOW_MORE=(--allow-more) ;;
@@ -138,6 +140,8 @@ step ledger_ingest   "$PY" -m ledger ingest
 step ledger_verify   "$PY" -m ledger verify
 step assemble        "$PY" -m contracts.assemble
 step validate        "$PY" -m contracts validate results out/results.json
+step report          "$PY" -m atlas report ${REPORT_OPEN[@]+"${REPORT_OPEN[@]}"}
+step validate_final  "$PY" -m contracts validate results out/results.json
 summary
 
 if [ "$OPEN" -eq 1 ]; then

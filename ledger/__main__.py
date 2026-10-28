@@ -15,13 +15,12 @@ import sys
 from pathlib import Path
 
 from contracts.assemble import assemble
-from contracts.manifest import utc_now
 
 from .backend import detect
 from .ingest import ingest
 from .log import Ledger, canonical, read_entries
 from .merkle import MerkleTree, verify_proof
-from .verify import verify
+from .verify import status_record, verify
 
 REPO = Path(__file__).resolve().parent.parent
 PRIVATE_KEY = REPO / "keys" / "ledger_mldsa65.key"
@@ -74,9 +73,7 @@ def main(argv=None):
     if args.command == "verify":
         results = json.loads((args.out_dir / "results.json").read_text())
         report = verify(args.ledger, args.public_key, backend, REPO, results.get("ledger"))
-        status = {"ok": report["ok"], "ts": utc_now(), "entries_checked": report["entries_checked"],
-                  "root": report.get("root"), "verifying_pubkey_fp": backend.fingerprint(args.public_key),
-                  "first_failure": report["first_failure"]}
+        status = status_record(report, backend.fingerprint(args.public_key))
         (args.out_dir / "ledger_verify.json").write_text(json.dumps(status, indent=1))
         (args.out_dir / "results.json").write_text(json.dumps(assemble(args.out_dir), indent=1))
         if report["ok"]:

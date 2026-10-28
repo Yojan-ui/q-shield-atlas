@@ -1,7 +1,7 @@
 """python -m viz [--no-browser] [--port N]
 
-Serves the viz on 127.0.0.1 (free port by default) and opens the browser. Only viz/ files and
-out/results.json are served: the rest of the repo (notably keys/) is never exposed, and paths
+Serves the viz on 127.0.0.1 (free port by default) and opens the browser. Only viz/ files,
+out/results.json and out/report.html are served: the rest of the repo (notably keys/) is never exposed, and paths
 outside the allowlist get 404. results.json cannot be loaded over file:// (CORS), hence the server.
 """
 
@@ -16,7 +16,7 @@ from urllib.parse import unquote, urlsplit
 
 REPO = Path(__file__).resolve().parent.parent
 HOST = "127.0.0.1"  # loopback only, never all interfaces
-ALLOWED_FILES = {"/out/results.json"}
+ALLOWED_FILES = {"/out/results.json", "/out/report.html"}
 ALLOWED_PREFIX = "/viz/"
 BLOCKED_SUFFIXES = (".py", ".pyc")
 

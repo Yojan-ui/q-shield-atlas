@@ -1,4 +1,5 @@
 """python -m atlas announce [--fast] [--json]
+python -m atlas report [--open]
 
 Terminal launch screen read from out/results.json, the ledger and pytest's JUnit report.
 Without --fast the test suite is run first (QpiAI platform/QCloud submissions stay forbidden)
@@ -17,11 +18,26 @@ from .announce import REPO, collect, junit_counts, load_json, render
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("command", choices=["announce"])
+    ap.add_argument("command", choices=["announce", "report"])
+    ap.add_argument("--open", action="store_true", help="report: open out/report.html in the default browser")
     ap.add_argument("--fast", action="store_true", help="skip running pytest; use out/pytest-junit.xml from the last run")
     ap.add_argument("--json", action="store_true", help="print the collected data as JSON instead of the screen")
     ap.add_argument("--results", default=str(REPO / "out" / "results.json"))
     args = ap.parse_args(argv)
+
+    if args.command == "report":
+        from .build_report import build_and_sign
+
+        res = build_and_sign()
+        print(f"wrote {res['report']} (run {res['run_id']})")
+        print(f"  file SHA-256 {res['file_sha256']}; footer self-hash {res['content_sha256']}")
+        print(f"  signed into the ledger as entry #{res['ledger_entry']}" if res["ledger_entry"] is not None
+              else "  not signed: no results.json ledger or no signing key (run ./run_demo.sh first)")
+        if args.open:
+            import webbrowser
+
+            webbrowser.open(res["report"].resolve().as_uri())
+        return 0 if res["verify_rc"] in (0, None) else 1
 
     junit_path = REPO / "out" / "pytest-junit.xml"
     if not args.fast:

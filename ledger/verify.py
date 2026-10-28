@@ -19,6 +19,14 @@ from .log import GENESIS, canonical, entry_hash, read_entries, signed_bytes
 from .merkle import MerkleTree
 
 
+def status_record(report: dict, verifying_pubkey_fp: str) -> dict:
+    """What `ledger verify` writes to out/ledger_verify.json (assembled into results.json)."""
+    from contracts.manifest import utc_now
+
+    return {"ok": report["ok"], "ts": utc_now(), "entries_checked": report["entries_checked"], "root": report.get("root"),
+            "verifying_pubkey_fp": verifying_pubkey_fp, "first_failure": report["first_failure"]}
+
+
 def _fail(index, reason, checked):
     return {"ok": False, "first_failure": {"index": index, "reason": reason}, "entries_checked": checked}
 

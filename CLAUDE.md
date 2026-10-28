@@ -84,6 +84,8 @@ Report exposure-years avoided vs both baselines on the same data.
   --platform / --qcloud opt-in). Launch screen: ./announce.sh [--fast] [--json].
 - Pins: requirements.txt (direct imports), requirements-lock.txt, environment.yml; OpenSSL path in
   config/lab.json ("openssl"), override with QSHIELD_OPENSSL.
+- Report: python -m atlas report / ./report.sh -> out/report.html (offline, numbers from results.json
+  only, signed into the ledger as report.html, then verified). Viz links to /out/report.html.
 - Fresh-clone rule: running the demo must never modify tracked files (keys go to git-ignored keys/).
 - viz serves only viz/ and out/results.json (never the repo: keys/ must stay unreachable). QCloud QAOA runs need the user's go-ahead (`python -m qaoa --qcloud`).
 - viz/ must render qaoa.table rows generically: metrics when status == "ok", otherwise status_text.
