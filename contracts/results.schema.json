@@ -8,7 +8,7 @@
   "required": [
     "schema_version", "generated_at", "assumptions", "scenarios", "assets", "waves",
     "exposure", "baselines", "avoided", "solver_runs",
-    "detect", "handshake_evidence", "gates", "qaoa", "ledger_root", "ledger"
+    "detect", "handshake_evidence", "gates", "qaoa", "ledger_root", "ledger", "ledger_verification"
   ],
   "properties": {
     "schema_version": {"const": "1.0"},
@@ -86,6 +86,25 @@
     "gates": {"type": ["object", "null"]},
     "qaoa": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/qaoa"}]},
     "ledger_root": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+    "ledger_verification": {
+      "description": "Result of the last `python -m ledger verify`; cleared by ingest. Valid for the anchored root only if root and entries_checked match `ledger`.",
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ok", "ts", "entries_checked", "root", "verifying_pubkey_fp", "first_failure"],
+          "properties": {
+            "ok": {"type": "boolean"},
+            "ts": {"type": "string", "format": "date-time"},
+            "entries_checked": {"type": "integer", "minimum": 0},
+            "root": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+            "verifying_pubkey_fp": {"$ref": "#/$defs/sha256"},
+            "first_failure": {"type": ["object", "null"]}
+          }
+        }
+      ]
+    },
     "ledger": {
       "oneOf": [
         {"type": "null"},
@@ -342,6 +361,27 @@
         "expected_weighted": {"type": "number", "minimum": 0},
         "worst_case_weighted": {"type": "number", "minimum": 0},
         "makespan_weeks": {"type": "integer", "minimum": 0},
+        "remaining_by_week": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scenario", "year", "points"],
+            "properties": {
+              "scenario": {"type": "string"},
+              "year": {"type": "number"},
+              "points": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["week", "exposure_years"],
+                  "properties": {"week": {"type": "integer", "minimum": 0}, "exposure_years": {"type": "number", "minimum": 0}}
+                }
+              }
+            }
+          }
+        },
         "produced_by": {
           "type": "object",
           "additionalProperties": false,

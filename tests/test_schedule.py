@@ -156,3 +156,17 @@ def test_section_assembles_into_valid_results(opt_client, tmp_path):
     # avoided numbers are recomputable from the plans in the same document
     for row, b, o in zip(results["avoided"]["vs_greedy"], results["baselines"]["greedy"]["per_scenario"], results["exposure"]["per_scenario"]):
         assert row["exposure_years_avoided"] == pytest.approx(b["exposure_years"] - o["exposure_years"])
+
+
+def test_remaining_series_starts_at_total_and_ends_at_zero():
+    from schedule.problem import remaining_series
+
+    p = load_problem()
+    plan = greedy(p)
+    total = evaluate(p, plan, "g")
+    series = remaining_series(p, plan, max(plan.values()) + 2)
+    for s, sc in zip(series, total["per_scenario"]):
+        pts = [x["exposure_years"] for x in s["points"]]
+        assert pts[0] == pytest.approx(sc["exposure_years"])
+        assert pts[-1] == 0.0 and pts[max(plan.values())] == 0.0
+        assert all(a >= b - 1e-12 for a, b in zip(pts, pts[1:]))  # never increases

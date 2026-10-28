@@ -80,8 +80,9 @@ a dependency migrates no later than its dependents.
 Report exposure-years avoided vs both baselines on the same data.
 
 ## Progress
-- Steps 1-6 done (schedule, detect, capture handshake evidence, gates, ML-DSA-65 ledger, qaoa).
-  Next: step 7 (viz/). QCloud QAOA runs need the user's go-ahead (`python -m qaoa --qcloud`).
+- Steps 1-7 done (schedule, detect, capture, gates, ML-DSA-65 ledger, qaoa, viz). Next: step 8
+  (run_demo.sh + pinned requirements).
+- viz serves only viz/ and out/results.json (never the repo: keys/ must stay unreachable). QCloud QAOA runs need the user's go-ahead (`python -m qaoa --qcloud`).
 - viz/ must render qaoa.table rows generically: metrics when status == "ok", otherwise status_text.
   Never invent or zero-fill QCloud numbers.
 - QCloud blocker: job creation needs an active QCloud subscription ("an active subscription is

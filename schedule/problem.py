@@ -193,6 +193,22 @@ def evaluate(problem: Problem, weeks: dict[str, int], method: str) -> dict:
     }
 
 
+def remaining_series(problem: Problem, weeks: dict[str, int], horizon: int) -> list[dict]:
+    """Per scenario, exposure-years still ahead after week k (k = 0..horizon): the summed exposure
+    of assets whose planned completion week is later than k. Week 0 is the plan's total; it falls
+    to 0 once every asset is migrated."""
+    out = []
+    for s in problem.scenarios:
+        e = {a.id: exposure_years(problem, a, weeks[a.id], s) for a in problem.assets}
+        out.append({
+            "scenario": s.name,
+            "year": s.year,
+            "points": [{"week": k, "exposure_years": math.fsum(v for i, v in e.items() if weeks[i] > k)}
+                       for k in range(horizon + 1)],
+        })
+    return out
+
+
 def waves(problem: Problem, weeks: dict[str, int], status="planned") -> list[dict]:
     out: dict[int, list[Asset]] = {}
     for a in problem.assets:

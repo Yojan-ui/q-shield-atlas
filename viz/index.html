@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Q-Shield Atlas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="banner" class="banner" role="note"></div>
+  <header class="top">
+    <div>
+      <h1>Q-Shield Atlas</h1>
+      <p class="sub">PQC migration: exposure, waves, handshake evidence and signed ledger, read from <code>out/results.json</code></p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="tablist" aria-label="View">
+        <button id="btn-2d" role="tab" aria-selected="true">2D</button>
+        <button id="btn-3d" role="tab" aria-selected="false">3D tower</button>
+      </div>
+      <span id="webgl-note" class="note"></span>
+    </div>
+  </header>
+  <div id="notice" class="notice" hidden></div>
+  <main>
+    <section id="view-2d"></section>
+    <section id="view-3d" hidden>
+      <div class="tower-wrap">
+        <div id="tower-canvas" class="tower-canvas"></div>
+        <aside class="tower-side">
+          <label class="slider">Week <output id="week-out"></output>
+            <input id="week" type="range" min="0" step="1">
+          </label>
+          <label class="slider">Scenario <select id="scenario"></select></label>
+          <div id="tower-floor" class="kv"></div>
+          <h3>HNDL beams</h3>
+          <ul id="beams" class="beams"></ul>
+          <p class="fine">A red beam marks a service whose recorded traffic still relies on classical key exchange. It switches off only when that service's pq_handshake gate PASSes in results.json.</p>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <div id="tip" class="tip" hidden></div>
+  <footer id="footer" class="fine"></footer>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

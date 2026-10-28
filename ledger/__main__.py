@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 from contracts.assemble import assemble
+from contracts.manifest import utc_now
 
 from .backend import detect
 from .ingest import ingest
@@ -52,6 +53,7 @@ def main(argv=None):
             sys.exit(f"no signing key at {PRIVATE_KEY.relative_to(REPO)}; generate one (see README) - keys are never committed")
         ledger = Ledger(args.ledger, backend, PRIVATE_KEY, args.public_key, REPO)
         appended, summary = ingest(ledger, args.out_dir, REPO / "runs")
+        (args.out_dir / "ledger_verify.json").unlink(missing_ok=True)  # any earlier verification is stale now
         results = assemble(args.out_dir)
         (args.out_dir / "results.json").write_text(json.dumps(results, indent=1))
         print(f"backend {backend.label}, alg ML-DSA-65, pubkey_fp {summary['pubkey_fp']}")
@@ -63,6 +65,11 @@ def main(argv=None):
     if args.command == "verify":
         results = json.loads((args.out_dir / "results.json").read_text())
         report = verify(args.ledger, args.public_key, backend, REPO, results.get("ledger"))
+        status = {"ok": report["ok"], "ts": utc_now(), "entries_checked": report["entries_checked"],
+                  "root": report.get("root"), "verifying_pubkey_fp": backend.fingerprint(args.public_key),
+                  "first_failure": report["first_failure"]}
+        (args.out_dir / "ledger_verify.json").write_text(json.dumps(status, indent=1))
+        (args.out_dir / "results.json").write_text(json.dumps(assemble(args.out_dir), indent=1))
         if report["ok"]:
             print(f"OK: {report['entries_checked']} entries; chain, ML-DSA-65 signatures and payload hashes verified; "
                   f"root {report['root']} matches results.json")

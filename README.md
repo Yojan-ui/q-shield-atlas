@@ -4,9 +4,9 @@ PQC track, problem statement PQC-01. Find vulnerable RSA/ECC in a system, schedu
 optimally with QpiAI Opt, verify every wave, prove it with signed evidence, and show it in a 3D
 exposure tower (2D fallback).
 
-**Status:** build steps 1-6 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
-evidence, `gates/` with compatibility, rollback and the wave runner, `ledger/`, `qaoa/`). `viz/` and
-`run_demo.sh` are not built yet.
+**Status:** build steps 1-7 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
+evidence, `gates/` with compatibility, rollback and the wave runner, `ledger/`, `qaoa/`, `viz/`).
+`run_demo.sh` is not built yet.
 
 **Scope decision:** this project performs no key recovery, factoring or decryption. Quantum
 exposure is shown with real TLS 1.3 handshake evidence: sessions that rely on classical key
@@ -23,7 +23,8 @@ python -m capture             # lab TLS 1.3 handshakes -> out/capture.json, out/
 python -m gates               # compat matrix, wave runner, one forced rollback -> out/gates.json, out/wave_status.json
 python -m qaoa                # QAOA cross-check on local simulators -> out/qaoa.json (add --qcloud: paid, guarded)
 python -m ledger ingest       # sign run manifests (ML-DSA-65) -> out/ledger.jsonl, root anchored in results.json
-python -m ledger verify       # re-hash payloads, check chain, signatures and anchored root
+python -m ledger verify       # re-hash payloads, check chain, signatures and anchored root (status -> results.json)
+python -m viz                 # serve viz/ + out/results.json on 127.0.0.1 (free port) and open the browser
 python -m schedule --inventory out/inventory.json  # local solves -> out/schedule.json, logs in runs/<run_id>/
 python -m schedule --platform # opt-in: 2 paid QpiAI platform jobs (main plan only), see below
 python -m contracts.assemble  # -> out/results.json, validated against contracts/results.schema.json
@@ -193,6 +194,37 @@ the anchor in `results.json` is only as trustworthy as wherever results.json is 
 - **Reading the results:** at this size the approximation ratio saturates at 1 even for random sampling
   (2048 shots over 2^14 states hit the optimum by chance), so feasible fraction, energy ratio and
   P(optimal set) are the informative comparisons. The QAOA run is signed into the ledger (`qaoa.run`).
+
+## Visualisation (`viz/`)
+
+Vanilla JS + SVG, no framework, no build step, works offline. `python -m viz` serves only `viz/` and
+`out/results.json` on 127.0.0.1 (free port); every other path (including `keys/`) returns 404.
+
+- **Data:** reads only `out/results.json`, including the ledger verification status. `viz/data.js` turns
+  it into a display model; every number is a value present in results.json and carries its source
+  (run_id, solver/backend, job_id, timestamp), shown on hover, focus or tap. Rows that did not run show
+  their `status_text`; absent sections or fields show "not yet run", never 0. A later successful QCloud
+  run appears with no code change.
+- **2D (default, no WebGL):** remaining exposure-years per week for the optimised plan vs FCFS vs greedy,
+  one panel per CRQC scenario, with wave markers coloured by lab-gate status; cards for exposure-years
+  avoided, the ledger (short root, entry count, verified ✔/✖, only for the anchored root), the TLS handshake
+  table (key exchange and authentication per lab service) and the QAOA table ("measured cross-check, no
+  quantum advantage"). The chart shows unweighted exposure-years while the optimiser minimises the
+  risk-weighted, scenario-weighted total, so its curve can sit above a baseline in some weeks; the page says so.
+- **3D (opt-in, needs WebGL):** the exposure tower (one floor per week, floor height = remaining
+  exposure-years), a week slider and scenario picker, and red HNDL beams on every service still on classical
+  key exchange; a beam switches off only when that service's pq_handshake gate PASSes in results.json. If
+  WebGL is missing or fails, the page stays on 2D with a visible notice. `?view=3d&week=N` opens it directly.
+- **Always-visible banner:** "Lab demo · local test ledger · simulator-scale QAOA · risk, effort and
+  shelf-life values are assumptions (config/assumptions.json)".
+- **Vendored three.js** (no CDN), recorded in `viz/vendor/MANIFEST.json` and checked by tests:
+  `three-0.170.0.module.min.js` (from the npm tarball `three@0.170.0`, `build/three.module.min.js`)
+  SHA-256 `08fd7545d13d2c7fb65ab691530a802dafefd638596501854f267d0fb13c39e7`; MIT licence file
+  `three-LICENSE.txt` SHA-256 `4c40a1ef62450b857c3b2aaf294936304cd552d965fbcd9d32d4c5bcf4ba4454`.
+  The tarball matched the registry's sha512 integrity when downloaded.
+- **Tests** run the real `viz/data.js` under node (skipped with a reason if node is absent) against a
+  snapshot of a logged `results.json` (`tests/fixtures/results_sample.json`). No playwright check: it is not
+  installed; the no-WebGL fallback was checked with headless Chrome.
 
 ## Scheduling model (`schedule/`)
 

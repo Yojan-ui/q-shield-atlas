@@ -1,0 +1,5 @@
+{
+ "type": "module",
+ "private": true,
+ "description": "Marks viz/*.js as ES modules for node-based tests; no dependencies, no build step."
+}

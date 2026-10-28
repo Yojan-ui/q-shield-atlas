@@ -15,7 +15,7 @@ from contracts.manifest import sha256_json
 from .baselines import run_baselines
 from .milp import STAGES, optimize
 from .platform_guard import DAILY_LIMIT, PlatformBudget
-from .problem import DEFAULT_ASSUMPTIONS, DEFAULT_INVENTORY, REPO, load_problem
+from .problem import DEFAULT_ASSUMPTIONS, DEFAULT_INVENTORY, REPO, load_problem, remaining_series
 from .sensitivity import horizon_for, run_sensitivity
 
 
@@ -34,6 +34,9 @@ def build_section(problem, client, run_dir, with_sensitivity=True, mode="local",
     baselines = run_baselines(problem)
     optimized, runs = optimize(problem, client, horizon_for(problem, baselines), run_dir, mode=mode, budget=budget)
     weeks = optimized["completion_week"]
+    horizon = max(p["makespan_weeks"] for p in (optimized, *baselines.values()))
+    for plan in (optimized, *baselines.values()):  # common week axis for all plans
+        plan["remaining_by_week"] = remaining_series(problem, plan["completion_week"], horizon)
     return {
         "assumptions": {**problem.raw_assumptions, "sha256": sha256_json(problem.raw_assumptions)},
         "scenarios": [{"name": s.name, "year": s.year, "weight": s.weight} for s in problem.scenarios],

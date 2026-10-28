@@ -1,0 +1,63 @@
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --ink: #1d2125; --muted: #5d6670; --line: #d9dcdf;
+  --opt: #2563eb; --fcfs: #9a3412; --greedy: #6b7280;
+  --applied: #15803d; --partial: #ca8a04; --rolled: #dc2626; --failed: #7f1d1d; --unverified: #6b7280; --planned: #a1a1aa;
+  --pass: #15803d; --fail: #b91c1c; --hndl: #dc2626; --banner: #fff7d6; --banner-ink: #5c4400;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --panel: #1d2024; --ink: #e8eaed; --muted: #a0a7b0; --line: #343a41;
+    --opt: #60a5fa; --fcfs: #fb923c; --greedy: #9ca3af; --banner: #3a3115; --banner-ink: #f5dfa0;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+.banner { position: sticky; top: 0; z-index: 20; background: var(--banner); color: var(--banner-ink); padding: 8px 16px; font-weight: 600; border-bottom: 1px solid var(--line); }
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; padding: 16px; }
+h1 { margin: 0; font-size: 22px; }
+h2 { font-size: 15px; margin: 0 0 8px; }
+h3 { font-size: 13px; margin: 12px 0 6px; }
+.sub { margin: 2px 0 0; color: var(--muted); }
+.controls { display: flex; gap: 10px; align-items: center; }
+.seg button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 6px 12px; cursor: pointer; }
+.seg button:first-child { border-radius: 6px 0 0 6px; }
+.seg button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+.seg button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+.seg button:disabled { opacity: .45; cursor: not-allowed; }
+.note, .fine { color: var(--muted); font-size: 12px; }
+.notice { margin: 0 16px 12px; padding: 8px 12px; border: 1px solid var(--fail); border-radius: 6px; color: var(--fail); background: var(--panel); }
+main { padding: 0 16px 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.card.wide { grid-column: 1 / -1; }
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; }
+svg { width: 100%; height: auto; display: block; }
+svg text { fill: var(--muted); font-size: 11px; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.sw { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 4px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+.tbl { overflow-x: auto; }
+.num { font-variant-numeric: tabular-nums; cursor: help; text-decoration: underline dotted var(--muted); }
+.missing { color: var(--muted); font-style: italic; }
+.status { color: var(--muted); font-style: italic; }
+.PASS { color: var(--pass); font-weight: 600; }
+.FAIL { color: var(--fail); font-weight: 600; }
+.hndl { color: var(--hndl); font-size: 12px; }
+.big { font-size: 22px; font-weight: 700; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+code { font-size: 12px; }
+.tip { position: fixed; z-index: 30; max-width: 420px; background: var(--ink); color: var(--bg); padding: 8px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; white-space: pre-wrap; word-break: break-word; }
+.tower-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; }
+@media (max-width: 760px) { .tower-wrap { grid-template-columns: 1fr; } }
+.tower-canvas { min-height: 520px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.tower-side { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.slider { display: block; margin-bottom: 10px; }
+.slider input, .slider select { width: 100%; }
+.beams { list-style: none; padding: 0; margin: 0; }
+.beams li { padding: 3px 0; }
+.on { color: var(--hndl); font-weight: 600; }
+.off { color: var(--pass); }
+footer { padding: 8px 16px 24px; }

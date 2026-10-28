@@ -69,7 +69,7 @@ def main(argv=None):
         "wave_asset_counts": waves["asset_counts"],
         "wave_counts": waves["wave_counts"],
         "forced_rollback": rollback,
-        **({"pq_handshake": capture_gates["pq_handshake"], "downgrade": capture_gates["downgrade"]} if capture_gates else {}),
+        **({k: capture_gates[k] for k in ("pq_handshake", "pq_auth", "downgrade")} if capture_gates else {}),
     }
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "gates.json").write_text(json.dumps(gates, indent=1))

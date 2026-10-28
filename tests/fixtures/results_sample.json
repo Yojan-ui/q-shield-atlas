@@ -1,0 +1,3945 @@
+{
+ "schema_version": "1.0",
+ "generated_at": "2026-10-28T15:38:33Z",
+ "assumptions": {
+  "label": "ASSUMPTIONS - illustrative planning values, not measurements. Shelf lives, risk weights, efforts, capacity and CRQC scenario years are inputs to be replaced by the asset owner; see tests/test_sensitivity.py.",
+  "start_year": 2027.0,
+  "weeks_per_year": 52,
+  "capacity_days_per_week": 10,
+  "horizon_weeks": 26,
+  "objective": "expected",
+  "scenarios": [
+   {
+    "name": "Z2030",
+    "year": 2030,
+    "weight": 0.3
+   },
+   {
+    "name": "Z2032",
+    "year": 2032,
+    "weight": 0.4
+   },
+   {
+    "name": "Z2035",
+    "year": 2035,
+    "weight": 0.3
+   }
+  ],
+  "data_classes": {
+   "archive_backup": {
+    "shelf_life_years": 25,
+    "risk_weight": 9
+   },
+   "customer_pii": {
+    "shelf_life_years": 10,
+    "risk_weight": 8
+   },
+   "payments": {
+    "shelf_life_years": 7,
+    "risk_weight": 10
+   },
+   "regulatory_records": {
+    "shelf_life_years": 7,
+    "risk_weight": 6
+   },
+   "trade_secrets": {
+    "shelf_life_years": 5,
+    "risk_weight": 7
+   },
+   "internal_ops": {
+    "shelf_life_years": 3,
+    "risk_weight": 3
+   },
+   "auth_session": {
+    "shelf_life_years": 0.5,
+    "risk_weight": 5
+   },
+   "public_content": {
+    "shelf_life_years": 0.1,
+    "risk_weight": 1
+   }
+  },
+  "effort_days_by_kind": {
+   "root_ca": 8,
+   "hsm": 7,
+   "tls_gateway": 3,
+   "service_mtls": 4,
+   "database_tls": 5,
+   "vpn": 6,
+   "message_bus": 4,
+   "batch_sftp": 3,
+   "cdn_edge": 2
+  },
+  "sensitivity": {
+   "shelf_life_factors": [
+    0.8,
+    1.0,
+    1.2
+   ],
+   "risk_weight_factors": [
+    0.8,
+    1.0,
+    1.2
+   ],
+   "effort_factors": [
+    0.8,
+    1.0,
+    1.2
+   ]
+  },
+  "sha256": "ae00875803d15b74beb3322ff6cfee3a6fa50b56bf70a5ab08bd57df8aaa579f"
+ },
+ "scenarios": [
+  {
+   "name": "Z2030",
+   "year": 2030.0,
+   "weight": 0.3
+  },
+  {
+   "name": "Z2032",
+   "year": 2032.0,
+   "weight": 0.4
+  },
+  {
+   "name": "Z2035",
+   "year": 2035.0,
+   "weight": 0.3
+  }
+ ],
+ "assets": [
+  {
+   "id": "auth",
+   "name": "Auth / session service",
+   "kind": "service_mtls",
+   "data_class": "auth_session",
+   "algorithm": "ECC[kex,sig]",
+   "shelf_life_years": 0.5,
+   "effort_days": 4.0,
+   "risk_weight": 5.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "applied",
+   "planned_week": 7,
+   "evidence": [
+    {
+     "file": "services/auth/tokens.py",
+     "line": 4,
+     "family": "ECC",
+     "use": "both",
+     "rule": "py-ec-generate",
+     "snippet": "KEY = ec.generate_private_key(ec.SECP256R1())"
+    },
+    {
+     "file": "services/auth/tokens.py",
+     "line": 8,
+     "family": "ECC",
+     "use": "sig",
+     "rule": "jwt-es",
+     "snippet": "return jwt.encode(claims, KEY, algorithm=\"ES256\")"
+    }
+   ]
+  },
+  {
+   "id": "backup",
+   "name": "Encrypted backup vault",
+   "kind": "batch_sftp",
+   "data_class": "archive_backup",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 25.0,
+   "effort_days": 3.0,
+   "risk_weight": 9.0,
+   "depends_on": [],
+   "status": "not_verified_in_lab",
+   "planned_week": 1,
+   "evidence": [
+    {
+     "file": "services/backup/rotate-keys.sh",
+     "line": 3,
+     "family": "RSA",
+     "use": "both",
+     "rule": "openssl-cli-rsa",
+     "snippet": "openssl genrsa -out /vault/wrap.key 3072"
+    }
+   ]
+  },
+  {
+   "id": "bus",
+   "name": "Internal message bus",
+   "kind": "message_bus",
+   "data_class": "trade_secrets",
+   "algorithm": "ECC[kex] RSA[sig]",
+   "shelf_life_years": 5.0,
+   "effort_days": 4.0,
+   "risk_weight": 7.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "applied",
+   "planned_week": 5,
+   "evidence": [
+    {
+     "file": "services/bus/server.properties",
+     "line": 2,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "tls-ciphers-ecdhe-rsa",
+     "snippet": "ssl.cipher.suites=ECDHE-RSA-AES128-GCM-SHA256"
+    },
+    {
+     "file": "services/bus/server.properties",
+     "line": 2,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "tls-ciphers-ecdhe",
+     "snippet": "ssl.cipher.suites=ECDHE-RSA-AES128-GCM-SHA256"
+    }
+   ]
+  },
+  {
+   "id": "cdn",
+   "name": "Marketing CDN edge",
+   "kind": "cdn_edge",
+   "data_class": "public_content",
+   "algorithm": "ECC[kex]",
+   "shelf_life_years": 0.1,
+   "effort_days": 2.0,
+   "risk_weight": 1.0,
+   "depends_on": [],
+   "status": "applied",
+   "planned_week": 2,
+   "evidence": [
+    {
+     "file": "services/cdn/edge.conf",
+     "line": 3,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "nginx-ecdh-curve",
+     "snippet": "ssl_ecdh_curve prime256v1;"
+    }
+   ]
+  },
+  {
+   "id": "crm",
+   "name": "CRM integration",
+   "kind": "service_mtls",
+   "data_class": "customer_pii",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 10.0,
+   "effort_days": 4.0,
+   "risk_weight": 8.0,
+   "depends_on": [
+    "bus"
+   ],
+   "status": "applied",
+   "planned_week": 5,
+   "evidence": [
+    {
+     "file": "services/crm/client.js",
+     "line": 4,
+     "family": "RSA",
+     "use": "both",
+     "rule": "node-keypair",
+     "snippet": "const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });"
+    },
+    {
+     "file": "services/crm/client.js",
+     "line": 5,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "jwt-rs",
+     "snippet": "const token = jwt.sign(claims, privateKey, { algorithm: 'RS256' });"
+    }
+   ]
+  },
+  {
+   "id": "hsm",
+   "name": "Payments HSM cluster",
+   "kind": "hsm",
+   "data_class": "payments",
+   "algorithm": "RSA[kex]",
+   "shelf_life_years": 7.0,
+   "effort_days": 7.0,
+   "risk_weight": 10.0,
+   "depends_on": [],
+   "status": "not_verified_in_lab",
+   "planned_week": 1,
+   "evidence": [
+    {
+     "file": "services/hsm/hsm.properties",
+     "line": 2,
+     "family": "RSA",
+     "use": "kex",
+     "rule": "key-wrap-rsa",
+     "snippet": "key.wrap.mechanism=RSA_OAEP"
+    },
+    {
+     "file": "services/hsm/hsm.properties",
+     "line": 3,
+     "family": "RSA",
+     "use": "kex",
+     "rule": "key-wrap-rsa",
+     "snippet": "key.size=RSA-2048"
+    }
+   ]
+  },
+  {
+   "id": "kyc-db",
+   "name": "KYC document store",
+   "kind": "database_tls",
+   "data_class": "customer_pii",
+   "algorithm": "ECC[kex,sig]",
+   "shelf_life_years": 10.0,
+   "effort_days": 5.0,
+   "risk_weight": 8.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "applied",
+   "planned_week": 4,
+   "evidence": [
+    {
+     "file": "services/kyc-db/main.go",
+     "line": 11,
+     "family": "ECC",
+     "use": "sig",
+     "rule": "go-ecdsa",
+     "snippet": "_, _ = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)"
+    },
+    {
+     "file": "services/kyc-db/main.go",
+     "line": 11,
+     "family": "ECC",
+     "use": "both",
+     "rule": "go-elliptic",
+     "snippet": "_, _ = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)"
+    },
+    {
+     "file": "services/kyc-db/main.go",
+     "line": 12,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "go-tls-curves",
+     "snippet": "return &tls.Config{CurvePreferences: []tls.CurveID{tls.CurveP384}}"
+    }
+   ]
+  },
+  {
+   "id": "ledger-db",
+   "name": "Core ledger database link",
+   "kind": "database_tls",
+   "data_class": "payments",
+   "algorithm": "ECC[kex] RSA[sig]",
+   "shelf_life_years": 7.0,
+   "effort_days": 5.0,
+   "risk_weight": 10.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "applied",
+   "planned_week": 4,
+   "evidence": [
+    {
+     "file": "services/ledger-db/postgresql.conf",
+     "line": 2,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "tls-ciphers-ecdhe-rsa",
+     "snippet": "ssl_ciphers = 'ECDHE-RSA-AES256-GCM-SHA384'"
+    },
+    {
+     "file": "services/ledger-db/postgresql.conf",
+     "line": 2,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "tls-ciphers-ecdhe",
+     "snippet": "ssl_ciphers = 'ECDHE-RSA-AES256-GCM-SHA384'"
+    }
+   ]
+  },
+  {
+   "id": "ops-dash",
+   "name": "Ops dashboard",
+   "kind": "tls_gateway",
+   "data_class": "internal_ops",
+   "algorithm": "ECC[kex]",
+   "shelf_life_years": 3.0,
+   "effort_days": 3.0,
+   "risk_weight": 3.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "applied",
+   "planned_week": 6,
+   "evidence": [
+    {
+     "file": "services/ops-dash/nginx.conf",
+     "line": 3,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "nginx-ecdh-curve",
+     "snippet": "ssl_ecdh_curve X25519;"
+    }
+   ]
+  },
+  {
+   "id": "payments-api",
+   "name": "Payments API",
+   "kind": "service_mtls",
+   "data_class": "payments",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 7.0,
+   "effort_days": 4.0,
+   "risk_weight": 10.0,
+   "depends_on": [
+    "hsm",
+    "root-ca"
+   ],
+   "status": "applied",
+   "planned_week": 3,
+   "evidence": [
+    {
+     "file": "services/payments-api/src/Signer.java",
+     "line": 5,
+     "family": "RSA",
+     "use": "both",
+     "rule": "java-kpg",
+     "snippet": "KeyPairGenerator k = KeyPairGenerator.getInstance(\"RSA\");"
+    },
+    {
+     "file": "services/payments-api/src/Signer.java",
+     "line": 6,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "java-sig",
+     "snippet": "Signature s = Signature.getInstance(\"SHA256withRSA\");"
+    }
+   ]
+  },
+  {
+   "id": "risk-engine",
+   "name": "Risk model service",
+   "kind": "service_mtls",
+   "data_class": "trade_secrets",
+   "algorithm": "ECC[kex]",
+   "shelf_life_years": 5.0,
+   "effort_days": 4.0,
+   "risk_weight": 7.0,
+   "depends_on": [
+    "bus"
+   ],
+   "status": "applied",
+   "planned_week": 6,
+   "evidence": [
+    {
+     "file": "services/risk-engine/tls.go",
+     "line": 5,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "go-tls-curves",
+     "snippet": "var cfg = &tls.Config{CurvePreferences: []tls.CurveID{tls.CurveP256}}"
+    }
+   ]
+  },
+  {
+   "id": "root-ca",
+   "name": "Internal root CA",
+   "kind": "root_ca",
+   "data_class": "regulatory_records",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 7.0,
+   "effort_days": 8.0,
+   "risk_weight": 6.0,
+   "depends_on": [
+    "hsm"
+   ],
+   "status": "not_verified_in_lab",
+   "planned_week": 2,
+   "evidence": [
+    {
+     "file": "services/root-ca/openssl.cnf",
+     "line": 2,
+     "family": "RSA",
+     "use": "both",
+     "rule": "openssl-default-bits",
+     "snippet": "default_bits = 4096"
+    },
+    {
+     "file": "services/root-ca/certs/root-ca.crt",
+     "line": 1,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "cert-public-key",
+     "snippet": "certificate subject=CN=MockBank Root CA"
+    }
+   ]
+  },
+  {
+   "id": "sftp-reg",
+   "name": "Regulator SFTP drop",
+   "kind": "batch_sftp",
+   "data_class": "regulatory_records",
+   "algorithm": "DH[kex] RSA[sig]",
+   "shelf_life_years": 7.0,
+   "effort_days": 3.0,
+   "risk_weight": 6.0,
+   "depends_on": [],
+   "status": "not_verified_in_lab",
+   "planned_week": 6,
+   "evidence": [
+    {
+     "file": "services/sftp-reg/sshd_config",
+     "line": 1,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "ssh-hostkey-file",
+     "snippet": "HostKey /etc/ssh/ssh_host_rsa_key"
+    },
+    {
+     "file": "services/sftp-reg/sshd_config",
+     "line": 2,
+     "family": "DH",
+     "use": "kex",
+     "rule": "ssh-kex-dh",
+     "snippet": "KexAlgorithms diffie-hellman-group14-sha256"
+    }
+   ]
+  },
+  {
+   "id": "statements",
+   "name": "Statement archive export",
+   "kind": "batch_sftp",
+   "data_class": "archive_backup",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 25.0,
+   "effort_days": 3.0,
+   "risk_weight": 9.0,
+   "depends_on": [
+    "backup"
+   ],
+   "status": "not_verified_in_lab",
+   "planned_week": 3,
+   "evidence": [
+    {
+     "file": "services/statements/export.sh",
+     "line": 2,
+     "family": "RSA",
+     "use": "both",
+     "rule": "pgp-rsa",
+     "snippet": "gpg --batch --default-new-key-algo rsa2048 --quick-generate-key statements@bank.test"
+    }
+   ]
+  },
+  {
+   "id": "vpn",
+   "name": "Branch site-to-site VPN",
+   "kind": "vpn",
+   "data_class": "internal_ops",
+   "algorithm": "ECC[kex]",
+   "shelf_life_years": 3.0,
+   "effort_days": 6.0,
+   "risk_weight": 3.0,
+   "depends_on": [],
+   "status": "not_verified_in_lab",
+   "planned_week": 7,
+   "evidence": [
+    {
+     "file": "services/vpn/ipsec.conf",
+     "line": 2,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "ipsec-ecdh",
+     "snippet": "ike=aes256-sha256-ecp256"
+    }
+   ]
+  },
+  {
+   "id": "web-gw",
+   "name": "Public web TLS gateway",
+   "kind": "tls_gateway",
+   "data_class": "customer_pii",
+   "algorithm": "ECC[kex] RSA[sig]",
+   "shelf_life_years": 10.0,
+   "effort_days": 3.0,
+   "risk_weight": 8.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "applied",
+   "planned_week": 3,
+   "evidence": [
+    {
+     "file": "services/web-gw/nginx.conf",
+     "line": 4,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "nginx-ecdh-curve",
+     "snippet": "ssl_ecdh_curve X25519MLKEM768:X25519;"
+    },
+    {
+     "file": "services/web-gw/nginx.conf",
+     "line": 4,
+     "family": "PQC",
+     "use": "kex",
+     "rule": "tls-groups-pqc",
+     "snippet": "ssl_ecdh_curve X25519MLKEM768:X25519;"
+    },
+    {
+     "file": "services/web-gw/nginx.conf",
+     "line": 5,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "tls-ciphers-ecdhe-rsa",
+     "snippet": "ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384;"
+    },
+    {
+     "file": "services/web-gw/nginx.conf",
+     "line": 5,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "tls-ciphers-ecdhe",
+     "snippet": "ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384;"
+    },
+    {
+     "file": "services/web-gw/certs/web-gw.crt",
+     "line": 1,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "cert-public-key",
+     "snippet": "certificate subject=CN=www.mockbank.test"
+    }
+   ]
+  }
+ ],
+ "waves": [
+  {
+   "week": 1,
+   "assets": [
+    "backup",
+    "hsm"
+   ],
+   "effort_days": 10.0,
+   "status": "not_verified_in_lab",
+   "asset_status": {
+    "backup": "not_verified_in_lab",
+    "hsm": "not_verified_in_lab"
+   },
+   "evidence": {
+    "run_id": "86ae5017aacc499095374491894383ea",
+    "ts": "2026-10-28T15:38:31Z",
+    "lab_services": []
+   }
+  },
+  {
+   "week": 2,
+   "assets": [
+    "cdn",
+    "root-ca"
+   ],
+   "effort_days": 10.0,
+   "status": "partially_verified",
+   "asset_status": {
+    "cdn": "applied",
+    "root-ca": "not_verified_in_lab"
+   },
+   "evidence": {
+    "run_id": "86ae5017aacc499095374491894383ea",
+    "ts": "2026-10-28T15:38:31Z",
+    "lab_services": [
+     {
+      "lab_service": "edge",
+      "assets": [
+       "cdn"
+      ],
+      "service_id": "edge",
+      "from_mode": "legacy",
+      "to_mode": "transition",
+      "snapshot_sha256": "badc87ab97f81c3e7aecd35cf99f48fbf5562a10a824e9718e60f2bf34b6d571",
+      "started_at": "2026-10-28T15:38:31Z",
+      "applied_config_sha256": "4c1b03006f63662fd6805478b24269e0bde12cc2a021bab6fbab74f8a1fc9208",
+      "gates": {
+       "passed": true,
+       "pq_handshake": {
+        "gate": "pq_handshake",
+        "service_id": "edge",
+        "result": "PASS",
+        "negotiated_group": "X25519MLKEM768",
+        "kex_class": "hybrid-pq",
+        "hndl_exposed": false,
+        "label": null,
+        "reason": "X25519MLKEM768 is on the PQ allowlist",
+        "transcript_sha256": "a9c2f56b4988500f08c06303e19bf5b00d63fbb60c774fe972c3b5fa96195c9a"
+       },
+       "compat": {
+        "gate": "compat",
+        "service_id": "edge",
+        "mode": "transition",
+        "result": "PASS",
+        "cells": [
+         {
+          "mode": "transition",
+          "client": "pq-capable",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519MLKEM768"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519MLKEM768",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "PASS",
+          "hndl_exposed": false,
+          "reason": "negotiated X25519MLKEM768 as policy requires",
+          "transcript_sha256": "f5d9c51dc051ef5d3ffd050e1d02595d492735a4d4ad4c82595a6f30b70a789b",
+          "timestamp": "2026-10-28T15:38:31Z"
+         },
+         {
+          "mode": "transition",
+          "client": "classical-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "99f5d9cc1e885289c0dcf54d8d8f95763b91db0beb94f02adff06ad98e6d99b5",
+          "timestamp": "2026-10-28T15:38:31Z"
+         },
+         {
+          "mode": "transition",
+          "client": "tls1.2-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.2",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "2baef6b1d86aa75621be663b77ac2f6781ac4109103dbfb32ad770fe0fd468af",
+          "timestamp": "2026-10-28T15:38:31Z"
+         }
+        ],
+        "counts": {
+         "PASS": 1,
+         "HNDL-exposed": 2,
+         "FAIL": 0
+        }
+       }
+      },
+      "status": "applied",
+      "finished_at": "2026-10-28T15:38:31Z"
+     }
+    ]
+   }
+  },
+  {
+   "week": 3,
+   "assets": [
+    "payments-api",
+    "statements",
+    "web-gw"
+   ],
+   "effort_days": 10.0,
+   "status": "partially_verified",
+   "asset_status": {
+    "payments-api": "applied",
+    "statements": "not_verified_in_lab",
+    "web-gw": "applied"
+   },
+   "evidence": {
+    "run_id": "86ae5017aacc499095374491894383ea",
+    "ts": "2026-10-28T15:38:31Z",
+    "lab_services": [
+     {
+      "lab_service": "app",
+      "assets": [
+       "payments-api"
+      ],
+      "service_id": "app",
+      "from_mode": "legacy",
+      "to_mode": "transition",
+      "snapshot_sha256": "fc7ba01a1bb5071da1227b1865c35698356faa8eda8bf3216bacbd1523ef9162",
+      "started_at": "2026-10-28T15:38:31Z",
+      "applied_config_sha256": "d33aed7f40bb9346a994c4b8e9e6d9fd9528ac90724bbf6918a0eb95705a39d8",
+      "gates": {
+       "passed": true,
+       "pq_handshake": {
+        "gate": "pq_handshake",
+        "service_id": "app",
+        "result": "PASS",
+        "negotiated_group": "X25519MLKEM768",
+        "kex_class": "hybrid-pq",
+        "hndl_exposed": false,
+        "label": null,
+        "reason": "X25519MLKEM768 is on the PQ allowlist",
+        "transcript_sha256": "3e171d5616854dd74cf37b9897ff1c40f873d5ea1f1c53ffb647599c0c89b346"
+       },
+       "compat": {
+        "gate": "compat",
+        "service_id": "app",
+        "mode": "transition",
+        "result": "PASS",
+        "cells": [
+         {
+          "mode": "transition",
+          "client": "pq-capable",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519MLKEM768"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519MLKEM768",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "PASS",
+          "hndl_exposed": false,
+          "reason": "negotiated X25519MLKEM768 as policy requires",
+          "transcript_sha256": "80d1226e438b0c695ced10d43a892118cd3c99f5e9cea2e8713bc7dd64704c5e",
+          "timestamp": "2026-10-28T15:38:31Z"
+         },
+         {
+          "mode": "transition",
+          "client": "classical-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "6fbbc9ee49ed74cdaf33e1f23a786b7a5b5366a57b843f6482bd0ed60d6675fe",
+          "timestamp": "2026-10-28T15:38:31Z"
+         },
+         {
+          "mode": "transition",
+          "client": "tls1.2-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.2",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "002c30fa9eb080edacfe7928d0aaa82c1bc7b11aec1ab02b5b9e333d6eb49da1",
+          "timestamp": "2026-10-28T15:38:31Z"
+         }
+        ],
+        "counts": {
+         "PASS": 1,
+         "HNDL-exposed": 2,
+         "FAIL": 0
+        }
+       }
+      },
+      "status": "applied",
+      "finished_at": "2026-10-28T15:38:31Z"
+     },
+     {
+      "lab_service": "edge",
+      "assets": [
+       "web-gw"
+      ],
+      "service_id": "edge",
+      "from_mode": "transition",
+      "to_mode": "transition",
+      "snapshot_sha256": "4c1b03006f63662fd6805478b24269e0bde12cc2a021bab6fbab74f8a1fc9208",
+      "started_at": "2026-10-28T15:38:31Z",
+      "applied_config_sha256": "4c1b03006f63662fd6805478b24269e0bde12cc2a021bab6fbab74f8a1fc9208",
+      "gates": {
+       "passed": true,
+       "pq_handshake": {
+        "gate": "pq_handshake",
+        "service_id": "edge",
+        "result": "PASS",
+        "negotiated_group": "X25519MLKEM768",
+        "kex_class": "hybrid-pq",
+        "hndl_exposed": false,
+        "label": null,
+        "reason": "X25519MLKEM768 is on the PQ allowlist",
+        "transcript_sha256": "2c74c9e869bc70af442e9b00bea55e844603200b01079ef0d00400b875457c6f"
+       },
+       "compat": {
+        "gate": "compat",
+        "service_id": "edge",
+        "mode": "transition",
+        "result": "PASS",
+        "cells": [
+         {
+          "mode": "transition",
+          "client": "pq-capable",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519MLKEM768"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519MLKEM768",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "PASS",
+          "hndl_exposed": false,
+          "reason": "negotiated X25519MLKEM768 as policy requires",
+          "transcript_sha256": "fa0b5595b079b4794ebc878f4733e2e298bf73c9e968038a9c6c41ef223f716c",
+          "timestamp": "2026-10-28T15:38:31Z"
+         },
+         {
+          "mode": "transition",
+          "client": "classical-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "275699405384c172b258c942d98c7b0afaef0d7b7bed47468cb46f78829f56e0",
+          "timestamp": "2026-10-28T15:38:31Z"
+         },
+         {
+          "mode": "transition",
+          "client": "tls1.2-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.2",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "45c0617cc2f987ec464c51ceb5061ae3119d282c557ba0169d94a3a8e49aaba4",
+          "timestamp": "2026-10-28T15:38:31Z"
+         }
+        ],
+        "counts": {
+         "PASS": 1,
+         "HNDL-exposed": 2,
+         "FAIL": 0
+        }
+       }
+      },
+      "status": "applied",
+      "finished_at": "2026-10-28T15:38:31Z"
+     }
+    ]
+   }
+  },
+  {
+   "week": 4,
+   "assets": [
+    "kyc-db",
+    "ledger-db"
+   ],
+   "effort_days": 10.0,
+   "status": "applied",
+   "asset_status": {
+    "kyc-db": "applied",
+    "ledger-db": "applied"
+   },
+   "evidence": {
+    "run_id": "86ae5017aacc499095374491894383ea",
+    "ts": "2026-10-28T15:38:32Z",
+    "lab_services": [
+     {
+      "lab_service": "data",
+      "assets": [
+       "kyc-db",
+       "ledger-db"
+      ],
+      "service_id": "data",
+      "from_mode": "legacy",
+      "to_mode": "transition",
+      "snapshot_sha256": "de4102799b43547dd3a896531b9edeecdc68ee3ff26584f0e9db201ba9f5e824",
+      "started_at": "2026-10-28T15:38:31Z",
+      "applied_config_sha256": "58b1bd63b29009acfe280ef3ad073519f8cd7ca1c2218a520f97d993c92558c4",
+      "gates": {
+       "passed": true,
+       "pq_handshake": {
+        "gate": "pq_handshake",
+        "service_id": "data",
+        "result": "PASS",
+        "negotiated_group": "X25519MLKEM768",
+        "kex_class": "hybrid-pq",
+        "hndl_exposed": false,
+        "label": null,
+        "reason": "X25519MLKEM768 is on the PQ allowlist",
+        "transcript_sha256": "c81f99bd82f6f07ea532b9ed7a3e6fab1da008b09ef2722b599e81196a7b6b22"
+       },
+       "compat": {
+        "gate": "compat",
+        "service_id": "data",
+        "mode": "transition",
+        "result": "PASS",
+        "cells": [
+         {
+          "mode": "transition",
+          "client": "pq-capable",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519MLKEM768"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519MLKEM768",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "PASS",
+          "hndl_exposed": false,
+          "reason": "negotiated X25519MLKEM768 as policy requires",
+          "transcript_sha256": "4bf443400655e7c06cf1bb9594134db523e3a58e216cdffa5e27dc2c8582fef6",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "classical-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "10b3c65aee3d6288d844033dac820bcb33df985dee9f5484b687ae6e5bd49a06",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "tls1.2-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.2",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "22b2fca4b4946e44e4682f4dc4ba349459e511d2fe0274c15586025a803b1f7c",
+          "timestamp": "2026-10-28T15:38:32Z"
+         }
+        ],
+        "counts": {
+         "PASS": 1,
+         "HNDL-exposed": 2,
+         "FAIL": 0
+        }
+       }
+      },
+      "status": "applied",
+      "finished_at": "2026-10-28T15:38:32Z"
+     }
+    ]
+   }
+  },
+  {
+   "week": 5,
+   "assets": [
+    "bus",
+    "crm"
+   ],
+   "effort_days": 8.0,
+   "status": "applied",
+   "asset_status": {
+    "bus": "applied",
+    "crm": "applied"
+   },
+   "evidence": {
+    "run_id": "86ae5017aacc499095374491894383ea",
+    "ts": "2026-10-28T15:38:32Z",
+    "lab_services": [
+     {
+      "lab_service": "app",
+      "assets": [
+       "bus",
+       "crm"
+      ],
+      "service_id": "app",
+      "from_mode": "transition",
+      "to_mode": "transition",
+      "snapshot_sha256": "d33aed7f40bb9346a994c4b8e9e6d9fd9528ac90724bbf6918a0eb95705a39d8",
+      "started_at": "2026-10-28T15:38:32Z",
+      "applied_config_sha256": "d33aed7f40bb9346a994c4b8e9e6d9fd9528ac90724bbf6918a0eb95705a39d8",
+      "gates": {
+       "passed": true,
+       "pq_handshake": {
+        "gate": "pq_handshake",
+        "service_id": "app",
+        "result": "PASS",
+        "negotiated_group": "X25519MLKEM768",
+        "kex_class": "hybrid-pq",
+        "hndl_exposed": false,
+        "label": null,
+        "reason": "X25519MLKEM768 is on the PQ allowlist",
+        "transcript_sha256": "b5210c3b940e73753b225ae7bcd09572ec7ac9341cbecf5ee0983520114c4121"
+       },
+       "compat": {
+        "gate": "compat",
+        "service_id": "app",
+        "mode": "transition",
+        "result": "PASS",
+        "cells": [
+         {
+          "mode": "transition",
+          "client": "pq-capable",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519MLKEM768"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519MLKEM768",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "PASS",
+          "hndl_exposed": false,
+          "reason": "negotiated X25519MLKEM768 as policy requires",
+          "transcript_sha256": "12a648e1989e1728c899471db8c7f4eea7886952b2c1a5ca9d91547aed066576",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "classical-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "b7f4686748cab527f870c9dce9f8456a45e5275d826f331d6cf8c792348a2cc6",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "tls1.2-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.2",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "6d9b53172b64e550a5482e7834e754a265e0a63202028182245126e5413a9745",
+          "timestamp": "2026-10-28T15:38:32Z"
+         }
+        ],
+        "counts": {
+         "PASS": 1,
+         "HNDL-exposed": 2,
+         "FAIL": 0
+        }
+       }
+      },
+      "status": "applied",
+      "finished_at": "2026-10-28T15:38:32Z"
+     }
+    ]
+   }
+  },
+  {
+   "week": 6,
+   "assets": [
+    "ops-dash",
+    "risk-engine",
+    "sftp-reg"
+   ],
+   "effort_days": 10.0,
+   "status": "partially_verified",
+   "asset_status": {
+    "ops-dash": "applied",
+    "risk-engine": "applied",
+    "sftp-reg": "not_verified_in_lab"
+   },
+   "evidence": {
+    "run_id": "86ae5017aacc499095374491894383ea",
+    "ts": "2026-10-28T15:38:32Z",
+    "lab_services": [
+     {
+      "lab_service": "app",
+      "assets": [
+       "risk-engine"
+      ],
+      "service_id": "app",
+      "from_mode": "transition",
+      "to_mode": "transition",
+      "snapshot_sha256": "d33aed7f40bb9346a994c4b8e9e6d9fd9528ac90724bbf6918a0eb95705a39d8",
+      "started_at": "2026-10-28T15:38:32Z",
+      "applied_config_sha256": "d33aed7f40bb9346a994c4b8e9e6d9fd9528ac90724bbf6918a0eb95705a39d8",
+      "gates": {
+       "passed": true,
+       "pq_handshake": {
+        "gate": "pq_handshake",
+        "service_id": "app",
+        "result": "PASS",
+        "negotiated_group": "X25519MLKEM768",
+        "kex_class": "hybrid-pq",
+        "hndl_exposed": false,
+        "label": null,
+        "reason": "X25519MLKEM768 is on the PQ allowlist",
+        "transcript_sha256": "f2fd687a6070ed2b8af6ceeed7e23420902d28fd4b91cdfa4595f268884a8f4b"
+       },
+       "compat": {
+        "gate": "compat",
+        "service_id": "app",
+        "mode": "transition",
+        "result": "PASS",
+        "cells": [
+         {
+          "mode": "transition",
+          "client": "pq-capable",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519MLKEM768"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519MLKEM768",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "PASS",
+          "hndl_exposed": false,
+          "reason": "negotiated X25519MLKEM768 as policy requires",
+          "transcript_sha256": "6e11df3bcec14f8131126b47035973c99fec7c76b32264c7d25aa41407270d04",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "classical-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "f319d79e087213001fbdd52750af72d57f1d96a75aa2986dac122b89bea7d49b",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "tls1.2-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.2",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "98e211683a568f3210361f3c7bf0042b8c1b670944c5c9396abc19693bfc830d",
+          "timestamp": "2026-10-28T15:38:32Z"
+         }
+        ],
+        "counts": {
+         "PASS": 1,
+         "HNDL-exposed": 2,
+         "FAIL": 0
+        }
+       }
+      },
+      "status": "applied",
+      "finished_at": "2026-10-28T15:38:32Z"
+     },
+     {
+      "lab_service": "edge",
+      "assets": [
+       "ops-dash"
+      ],
+      "service_id": "edge",
+      "from_mode": "transition",
+      "to_mode": "transition",
+      "snapshot_sha256": "4c1b03006f63662fd6805478b24269e0bde12cc2a021bab6fbab74f8a1fc9208",
+      "started_at": "2026-10-28T15:38:32Z",
+      "applied_config_sha256": "4c1b03006f63662fd6805478b24269e0bde12cc2a021bab6fbab74f8a1fc9208",
+      "gates": {
+       "passed": true,
+       "pq_handshake": {
+        "gate": "pq_handshake",
+        "service_id": "edge",
+        "result": "PASS",
+        "negotiated_group": "X25519MLKEM768",
+        "kex_class": "hybrid-pq",
+        "hndl_exposed": false,
+        "label": null,
+        "reason": "X25519MLKEM768 is on the PQ allowlist",
+        "transcript_sha256": "9c21afeb36d5c96265eb73f72fd536ae140c23473289a5a7a4534b4a9d01958b"
+       },
+       "compat": {
+        "gate": "compat",
+        "service_id": "edge",
+        "mode": "transition",
+        "result": "PASS",
+        "cells": [
+         {
+          "mode": "transition",
+          "client": "pq-capable",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519MLKEM768"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519MLKEM768",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "PASS",
+          "hndl_exposed": false,
+          "reason": "negotiated X25519MLKEM768 as policy requires",
+          "transcript_sha256": "65147b4a37087e830757fd8c4562da8c2c58e4b87fcb27c9792ec7ec3afba773",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "classical-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "3e6ccdbe7d914f1a6bb8aab705850ffd49027e18f4a0e7bea83ac4d744aa2e6f",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "tls1.2-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.2",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "21493fd17cc90b3809aa556241c69f71933b6253233c759777db51ee5f4d52ea",
+          "timestamp": "2026-10-28T15:38:32Z"
+         }
+        ],
+        "counts": {
+         "PASS": 1,
+         "HNDL-exposed": 2,
+         "FAIL": 0
+        }
+       }
+      },
+      "status": "applied",
+      "finished_at": "2026-10-28T15:38:32Z"
+     }
+    ]
+   }
+  },
+  {
+   "week": 7,
+   "assets": [
+    "auth",
+    "vpn"
+   ],
+   "effort_days": 10.0,
+   "status": "partially_verified",
+   "asset_status": {
+    "auth": "applied",
+    "vpn": "not_verified_in_lab"
+   },
+   "evidence": {
+    "run_id": "86ae5017aacc499095374491894383ea",
+    "ts": "2026-10-28T15:38:32Z",
+    "lab_services": [
+     {
+      "lab_service": "app",
+      "assets": [
+       "auth"
+      ],
+      "service_id": "app",
+      "from_mode": "transition",
+      "to_mode": "transition",
+      "snapshot_sha256": "d33aed7f40bb9346a994c4b8e9e6d9fd9528ac90724bbf6918a0eb95705a39d8",
+      "started_at": "2026-10-28T15:38:32Z",
+      "applied_config_sha256": "d33aed7f40bb9346a994c4b8e9e6d9fd9528ac90724bbf6918a0eb95705a39d8",
+      "gates": {
+       "passed": true,
+       "pq_handshake": {
+        "gate": "pq_handshake",
+        "service_id": "app",
+        "result": "PASS",
+        "negotiated_group": "X25519MLKEM768",
+        "kex_class": "hybrid-pq",
+        "hndl_exposed": false,
+        "label": null,
+        "reason": "X25519MLKEM768 is on the PQ allowlist",
+        "transcript_sha256": "67bc5fe52b0118a62d28b833c9e1b0f39b82aea3ceb6d5f45ab761498c697203"
+       },
+       "compat": {
+        "gate": "compat",
+        "service_id": "app",
+        "mode": "transition",
+        "result": "PASS",
+        "cells": [
+         {
+          "mode": "transition",
+          "client": "pq-capable",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519MLKEM768"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519MLKEM768",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "PASS",
+          "hndl_exposed": false,
+          "reason": "negotiated X25519MLKEM768 as policy requires",
+          "transcript_sha256": "2e8fd2a38c21ca5de29b1e0608d64def763d97d913cf266a4795321ada6bcc10",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "classical-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.3",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "2cb3dd65833e7285776a96b7583abfb66277bb903abc16b346276a69087867d8",
+          "timestamp": "2026-10-28T15:38:32Z"
+         },
+         {
+          "mode": "transition",
+          "client": "tls1.2-only",
+          "expected": {
+           "expect": "connect",
+           "group": "X25519"
+          },
+          "actual": {
+           "connected": true,
+           "negotiated_group": "X25519",
+           "protocol": "TLSv1.2",
+           "error": null
+          },
+          "result": "HNDL-exposed",
+          "hndl_exposed": true,
+          "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+          "transcript_sha256": "369363cc5bd6860d72528fb1071d999bf881ee5e65bb053b52268526ad1ba98f",
+          "timestamp": "2026-10-28T15:38:32Z"
+         }
+        ],
+        "counts": {
+         "PASS": 1,
+         "HNDL-exposed": 2,
+         "FAIL": 0
+        }
+       }
+      },
+      "status": "applied",
+      "finished_at": "2026-10-28T15:38:32Z"
+     }
+    ]
+   }
+  }
+ ],
+ "exposure": {
+  "method": "qpiai-opt-milp-expected",
+  "completion_week": {
+   "auth": 7,
+   "backup": 1,
+   "bus": 5,
+   "cdn": 2,
+   "crm": 5,
+   "hsm": 1,
+   "kyc-db": 4,
+   "ledger-db": 4,
+   "ops-dash": 6,
+   "payments-api": 3,
+   "risk-engine": 6,
+   "root-ca": 2,
+   "sftp-reg": 6,
+   "statements": 3,
+   "vpn": 7,
+   "web-gw": 3
+  },
+  "waves": [
+   {
+    "week": 1,
+    "assets": [
+     "backup",
+     "hsm"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 2,
+    "assets": [
+     "cdn",
+     "root-ca"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 3,
+    "assets": [
+     "payments-api",
+     "statements",
+     "web-gw"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 4,
+    "assets": [
+     "kyc-db",
+     "ledger-db"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 5,
+    "assets": [
+     "bus",
+     "crm"
+    ],
+    "effort_days": 8.0,
+    "status": "planned"
+   },
+   {
+    "week": 6,
+    "assets": [
+     "ops-dash",
+     "risk-engine",
+     "sftp-reg"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 7,
+    "assets": [
+     "auth",
+     "vpn"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   }
+  ],
+  "per_scenario": [
+   {
+    "scenario": "Z2030",
+    "year": 2030.0,
+    "exposure_years": 90.07692307692308,
+    "weighted_exposure": 767.2307692307693
+   },
+   {
+    "scenario": "Z2032",
+    "year": 2032.0,
+    "exposure_years": 65.82692307692308,
+    "weighted_exposure": 570.4807692307693
+   },
+   {
+    "scenario": "Z2035",
+    "year": 2035.0,
+    "exposure_years": 40.30769230769231,
+    "weighted_exposure": 356.53846153846155
+   }
+  ],
+  "expected_weighted": 565.323076923077,
+  "worst_case_weighted": 767.2307692307693,
+  "makespan_weeks": 7,
+  "objective": "expected",
+  "produced_by": {
+   "solver": "qpiai-opt local",
+   "run_ids": [
+    "b6a73f8db7594ba2adcfc877fb020c73",
+    "fbd5501697474bac9f1bf5a9fd90c66e"
+   ],
+   "job_ids": [
+    null,
+    null
+   ]
+  },
+  "remaining_by_week": [
+   {
+    "scenario": "Z2030",
+    "year": 2030.0,
+    "points": [
+     {
+      "week": 0,
+      "exposure_years": 90.07692307692308
+     },
+     {
+      "week": 1,
+      "exposure_years": 64.03846153846153
+     },
+     {
+      "week": 2,
+      "exposure_years": 60.0
+     },
+     {
+      "week": 3,
+      "exposure_years": 26.826923076923077
+     },
+     {
+      "week": 4,
+      "exposure_years": 15.673076923076923
+     },
+     {
+      "week": 5,
+      "exposure_years": 6.48076923076923
+     },
+     {
+      "week": 6,
+      "exposure_years": 0.13461538461538458
+     },
+     {
+      "week": 7,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 8,
+      "exposure_years": 0.0
+     }
+    ]
+   },
+   {
+    "scenario": "Z2032",
+    "year": 2032.0,
+    "points": [
+     {
+      "week": 0,
+      "exposure_years": 65.82692307692308
+     },
+     {
+      "week": 1,
+      "exposure_years": 43.78846153846153
+     },
+     {
+      "week": 2,
+      "exposure_years": 41.75
+     },
+     {
+      "week": 3,
+      "exposure_years": 14.576923076923077
+     },
+     {
+      "week": 4,
+      "exposure_years": 7.4230769230769225
+     },
+     {
+      "week": 5,
+      "exposure_years": 2.23076923076923
+     },
+     {
+      "week": 6,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 7,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 8,
+      "exposure_years": 0.0
+     }
+    ]
+   },
+   {
+    "scenario": "Z2035",
+    "year": 2035.0,
+    "points": [
+     {
+      "week": 0,
+      "exposure_years": 40.30769230769231
+     },
+     {
+      "week": 1,
+      "exposure_years": 23.28846153846154
+     },
+     {
+      "week": 2,
+      "exposure_years": 23.28846153846154
+     },
+     {
+      "week": 3,
+      "exposure_years": 4.173076923076923
+     },
+     {
+      "week": 4,
+      "exposure_years": 2.0961538461538467
+     },
+     {
+      "week": 5,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 6,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 7,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 8,
+      "exposure_years": 0.0
+     }
+    ]
+   }
+  ]
+ },
+ "baselines": {
+  "fcfs": {
+   "method": "fcfs",
+   "completion_week": {
+    "backup": 1,
+    "cdn": 1,
+    "hsm": 2,
+    "root-ca": 3,
+    "auth": 4,
+    "bus": 4,
+    "crm": 5,
+    "kyc-db": 5,
+    "ledger-db": 6,
+    "ops-dash": 6,
+    "payments-api": 7,
+    "risk-engine": 7,
+    "sftp-reg": 1,
+    "statements": 2,
+    "vpn": 8,
+    "web-gw": 8
+   },
+   "waves": [
+    {
+     "week": 1,
+     "assets": [
+      "backup",
+      "cdn",
+      "sftp-reg"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 2,
+     "assets": [
+      "hsm",
+      "statements"
+     ],
+     "effort_days": 10.0,
+     "status": "planned"
+    },
+    {
+     "week": 3,
+     "assets": [
+      "root-ca"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 4,
+     "assets": [
+      "auth",
+      "bus"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 5,
+     "assets": [
+      "crm",
+      "kyc-db"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 6,
+     "assets": [
+      "ledger-db",
+      "ops-dash"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 7,
+     "assets": [
+      "payments-api",
+      "risk-engine"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 8,
+     "assets": [
+      "vpn",
+      "web-gw"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    }
+   ],
+   "per_scenario": [
+    {
+     "scenario": "Z2030",
+     "year": 2030.0,
+     "exposure_years": 90.25,
+     "weighted_exposure": 768.9230769230769
+    },
+    {
+     "scenario": "Z2032",
+     "year": 2032.0,
+     "exposure_years": 65.98076923076923,
+     "weighted_exposure": 572.1153846153846
+    },
+    {
+     "scenario": "Z2035",
+     "year": 2035.0,
+     "exposure_years": 40.40384615384616,
+     "weighted_exposure": 357.28846153846155
+    }
+   ],
+   "expected_weighted": 566.7096153846154,
+   "worst_case_weighted": 768.9230769230769,
+   "makespan_weeks": 8,
+   "produced_by": {
+    "solver": "python list scheduler (fcfs), scored by schedule.problem.evaluate",
+    "run_ids": [],
+    "job_ids": []
+   },
+   "remaining_by_week": [
+    {
+     "scenario": "Z2030",
+     "year": 2030.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 90.25
+      },
+      {
+       "week": 1,
+       "exposure_years": 64.21153846153847
+      },
+      {
+       "week": 2,
+       "exposure_years": 38.13461538461539
+      },
+      {
+       "week": 3,
+       "exposure_years": 34.07692307692308
+      },
+      {
+       "week": 4,
+       "exposure_years": 32.0
+      },
+      {
+       "week": 5,
+       "exposure_years": 17.807692307692307
+      },
+      {
+       "week": 6,
+       "exposure_years": 13.576923076923077
+      },
+      {
+       "week": 7,
+       "exposure_years": 7.307692307692307
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    },
+    {
+     "scenario": "Z2032",
+     "year": 2032.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 65.98076923076923
+      },
+      {
+       "week": 1,
+       "exposure_years": 43.94230769230769
+      },
+      {
+       "week": 2,
+       "exposure_years": 21.865384615384617
+      },
+      {
+       "week": 3,
+       "exposure_years": 19.807692307692307
+      },
+      {
+       "week": 4,
+       "exposure_years": 19.730769230769234
+      },
+      {
+       "week": 5,
+       "exposure_years": 9.538461538461538
+      },
+      {
+       "week": 6,
+       "exposure_years": 7.423076923076923
+      },
+      {
+       "week": 7,
+       "exposure_years": 5.153846153846153
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    },
+    {
+     "scenario": "Z2035",
+     "year": 2035.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 40.40384615384616
+      },
+      {
+       "week": 1,
+       "exposure_years": 23.384615384615387
+      },
+      {
+       "week": 2,
+       "exposure_years": 6.346153846153847
+      },
+      {
+       "week": 3,
+       "exposure_years": 6.346153846153847
+      },
+      {
+       "week": 4,
+       "exposure_years": 6.346153846153847
+      },
+      {
+       "week": 5,
+       "exposure_years": 2.1538461538461533
+      },
+      {
+       "week": 6,
+       "exposure_years": 2.1538461538461533
+      },
+      {
+       "week": 7,
+       "exposure_years": 2.1538461538461533
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    }
+   ]
+  },
+  "greedy": {
+   "method": "greedy",
+   "completion_week": {
+    "backup": 1,
+    "statements": 1,
+    "sftp-reg": 1,
+    "hsm": 2,
+    "root-ca": 3,
+    "web-gw": 4,
+    "payments-api": 4,
+    "ledger-db": 5,
+    "bus": 5,
+    "crm": 6,
+    "risk-engine": 6,
+    "kyc-db": 7,
+    "auth": 7,
+    "ops-dash": 4,
+    "cdn": 2,
+    "vpn": 8
+   },
+   "waves": [
+    {
+     "week": 1,
+     "assets": [
+      "backup",
+      "sftp-reg",
+      "statements"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 2,
+     "assets": [
+      "cdn",
+      "hsm"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 3,
+     "assets": [
+      "root-ca"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 4,
+     "assets": [
+      "ops-dash",
+      "payments-api",
+      "web-gw"
+     ],
+     "effort_days": 10.0,
+     "status": "planned"
+    },
+    {
+     "week": 5,
+     "assets": [
+      "bus",
+      "ledger-db"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 6,
+     "assets": [
+      "crm",
+      "risk-engine"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 7,
+     "assets": [
+      "auth",
+      "kyc-db"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 8,
+     "assets": [
+      "vpn"
+     ],
+     "effort_days": 6.0,
+     "status": "planned"
+    }
+   ],
+   "per_scenario": [
+    {
+     "scenario": "Z2030",
+     "year": 2030.0,
+     "exposure_years": 90.09615384615384,
+     "weighted_exposure": 767.7115384615385
+    },
+    {
+     "scenario": "Z2032",
+     "year": 2032.0,
+     "exposure_years": 65.86538461538461,
+     "weighted_exposure": 571.0192307692308
+    },
+    {
+     "scenario": "Z2035",
+     "year": 2035.0,
+     "exposure_years": 40.36538461538461,
+     "weighted_exposure": 356.96153846153845
+    }
+   ],
+   "expected_weighted": 565.8096153846154,
+   "worst_case_weighted": 767.7115384615385,
+   "makespan_weeks": 8,
+   "produced_by": {
+    "solver": "python list scheduler (greedy), scored by schedule.problem.evaluate",
+    "run_ids": [],
+    "job_ids": []
+   },
+   "remaining_by_week": [
+    {
+     "scenario": "Z2030",
+     "year": 2030.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 90.09615384615384
+      },
+      {
+       "week": 1,
+       "exposure_years": 42.03846153846153
+      },
+      {
+       "week": 2,
+       "exposure_years": 38.0
+      },
+      {
+       "week": 3,
+       "exposure_years": 33.94230769230769
+      },
+      {
+       "week": 4,
+       "exposure_years": 22.71153846153846
+      },
+      {
+       "week": 5,
+       "exposure_years": 16.51923076923077
+      },
+      {
+       "week": 6,
+       "exposure_years": 7.288461538461538
+      },
+      {
+       "week": 7,
+       "exposure_years": 0.15384615384615374
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    },
+    {
+     "scenario": "Z2032",
+     "year": 2032.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 65.86538461538461
+      },
+      {
+       "week": 1,
+       "exposure_years": 23.807692307692307
+      },
+      {
+       "week": 2,
+       "exposure_years": 21.769230769230766
+      },
+      {
+       "week": 3,
+       "exposure_years": 19.71153846153846
+      },
+      {
+       "week": 4,
+       "exposure_years": 12.557692307692307
+      },
+      {
+       "week": 5,
+       "exposure_years": 10.365384615384615
+      },
+      {
+       "week": 6,
+       "exposure_years": 5.134615384615385
+      },
+      {
+       "week": 7,
+       "exposure_years": 0.0
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    },
+    {
+     "scenario": "Z2035",
+     "year": 2035.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 40.36538461538461
+      },
+      {
+       "week": 1,
+       "exposure_years": 6.326923076923077
+      },
+      {
+       "week": 2,
+       "exposure_years": 6.326923076923077
+      },
+      {
+       "week": 3,
+       "exposure_years": 6.326923076923077
+      },
+      {
+       "week": 4,
+       "exposure_years": 4.25
+      },
+      {
+       "week": 5,
+       "exposure_years": 4.25
+      },
+      {
+       "week": 6,
+       "exposure_years": 2.134615384615385
+      },
+      {
+       "week": 7,
+       "exposure_years": 0.0
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "avoided": {
+  "vs_fcfs": [
+   {
+    "scenario": "Z2030",
+    "exposure_years_avoided": 0.1730769230769198,
+    "weighted_avoided": 1.6923076923076223
+   },
+   {
+    "scenario": "Z2032",
+    "exposure_years_avoided": 0.1538461538461462,
+    "weighted_avoided": 1.6346153846153584
+   },
+   {
+    "scenario": "Z2035",
+    "exposure_years_avoided": 0.0961538461538538,
+    "weighted_avoided": 0.75
+   }
+  ],
+  "vs_greedy": [
+   {
+    "scenario": "Z2030",
+    "exposure_years_avoided": 0.019230769230759392,
+    "weighted_avoided": 0.48076923076916955
+   },
+   {
+    "scenario": "Z2032",
+    "exposure_years_avoided": 0.038461538461532996,
+    "weighted_avoided": 0.5384615384615472
+   },
+   {
+    "scenario": "Z2035",
+    "exposure_years_avoided": 0.0576923076923066,
+    "weighted_avoided": 0.4230769230769056
+   }
+  ]
+ },
+ "solver_runs": [
+  {
+   "run_id": "b6a73f8db7594ba2adcfc877fb020c73",
+   "ts": "2026-10-28T15:38:26Z",
+   "stage": "schedule.milp.expected.expected",
+   "solver": "qpiai-opt local",
+   "provider": "qpiai-opt",
+   "package_version": "0.0.9",
+   "mode": "local",
+   "device": null,
+   "job_id": null,
+   "problem_id": null,
+   "job_id_reason": "QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes",
+   "fallback_reason": null,
+   "status": "optimal",
+   "termination": "optimal",
+   "guarantee": "global_optimum",
+   "objective": 565.3230769230769,
+   "solver_time_s": 0.10320095900000001,
+   "inputs_sha256": "7eef3f5623c48f3216ef8898601aa03582faa949771c907cb00738eac70aae48",
+   "output_sha256": "fbb013f8ea30502adaec72ee6a5e8113d099b52a440c1987f0744ead39950362",
+   "local_output_sha256": "fbb013f8ea30502adaec72ee6a5e8113d099b52a440c1987f0744ead39950362",
+   "comparison": null
+  },
+  {
+   "run_id": "fbd5501697474bac9f1bf5a9fd90c66e",
+   "ts": "2026-10-28T15:38:26Z",
+   "stage": "schedule.milp.expected.tiebreak",
+   "solver": "qpiai-opt local",
+   "provider": "qpiai-opt",
+   "package_version": "0.0.9",
+   "mode": "local",
+   "device": null,
+   "job_id": null,
+   "problem_id": null,
+   "job_id_reason": "QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes",
+   "fallback_reason": null,
+   "status": "optimal",
+   "termination": "optimal",
+   "guarantee": "global_optimum",
+   "objective": 7.9423076923076925,
+   "solver_time_s": 0.10500145799999999,
+   "inputs_sha256": "71289350db4df1bff865f2c1f4f69c7eb28d2b7f46b195bd7397321dd13f2049",
+   "output_sha256": "54f37f0c7605bed3dc04c9098e5076a08dc8903177adcffcf901df4b067cbaad",
+   "local_output_sha256": "54f37f0c7605bed3dc04c9098e5076a08dc8903177adcffcf901df4b067cbaad",
+   "comparison": null
+  }
+ ],
+ "sensitivity": [
+  {
+   "parameter": "shelf",
+   "factor": 0.8,
+   "optimized_expected": 381.14576923076925,
+   "fcfs_expected": 382.51500000000004,
+   "greedy_expected": 381.6496153846154,
+   "optimized_worst": 555.6807692307692,
+   "fcfs_worst": 557.3153846153847,
+   "greedy_worst": 556.2192307692308,
+   "run_ids": [
+    "bda6d6ce9cca4b7088579c0c81129614",
+    "e40f5e63b50649a39d4511442ef70f57"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "shelf",
+   "factor": 1.2,
+   "optimized_expected": 761.1415384615385,
+   "fcfs_expected": 762.7934615384617,
+   "greedy_expected": 761.6626923076924,
+   "optimized_worst": 981.6307692307693,
+   "fcfs_worst": 983.323076923077,
+   "greedy_worst": 982.1115384615385,
+   "run_ids": [
+    "186f6ff3875b41859477d6e9ff9c2df5",
+    "7773dd0fb62f42d7bb7008e519aacfb5"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "risk",
+   "factor": 0.8,
+   "optimized_expected": 452.2584615384616,
+   "fcfs_expected": 453.3676923076923,
+   "greedy_expected": 452.64769230769235,
+   "optimized_worst": 613.7846153846154,
+   "fcfs_worst": 615.1384615384616,
+   "greedy_worst": 614.1692307692308,
+   "run_ids": [
+    "92de97abc6304cf5b33826cedbaa27b4",
+    "e0b409989e2045c78990ace8e7980279"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "risk",
+   "factor": 1.2,
+   "optimized_expected": 678.3876923076922,
+   "fcfs_expected": 680.0515384615385,
+   "greedy_expected": 678.9715384615384,
+   "optimized_worst": 920.676923076923,
+   "fcfs_worst": 922.7076923076922,
+   "greedy_worst": 921.2538461538461,
+   "run_ids": [
+    "2bd42c4807604d1395454f4826c50fd8",
+    "edab196d6ea54cf88f2a6806de3a40d0"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "effort",
+   "factor": 0.8,
+   "optimized_expected": 564.5788461538461,
+   "fcfs_expected": 565.8326923076924,
+   "greedy_expected": 565.1019230769231,
+   "optimized_worst": 766.3076923076924,
+   "fcfs_worst": 767.5384615384615,
+   "greedy_worst": 766.8653846153846,
+   "run_ids": [
+    "7325122f2c334b00bdec53b4cdb411c9",
+    "f5f18d67fe1a4e52ac7e6cbde0f456fd"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "effort",
+   "factor": 1.2,
+   "optimized_expected": 566.3038461538462,
+   "fcfs_expected": 567.7653846153846,
+   "greedy_expected": 567.4365384615385,
+   "optimized_worst": 768.8461538461538,
+   "fcfs_worst": 770.1346153846155,
+   "greedy_worst": 769.9038461538462,
+   "run_ids": [
+    "cd774a74ad78458c849a42165075f92d",
+    "d81d5bd2a30b46ecaf1898c12efb2656"
+   ],
+   "produced_by": "qpiai-opt local"
+  }
+ ],
+ "detect": {
+  "run_id": "0f2094d96fc14743bf4becaa0d270df1",
+  "ts": "2026-10-28T14:18:20Z",
+  "scanned_root": "mock_bank",
+  "tree_sha256": "790e29d360d76fa6837093406a3b74c9d2df5ca4ddf4978dcb7496c876a4e396",
+  "files_scanned": 37,
+  "summary": {
+   "by_family": {
+    "DH": 1,
+    "ECC": 13,
+    "PQC": 2,
+    "RSA": 15
+   },
+   "vulnerable_findings": 29,
+   "pqc_findings": 2,
+   "needs_live_probe": 0,
+   "files_with_findings": 19
+  },
+  "findings": [
+   {
+    "file": "services/auth/tokens.py",
+    "line": 4,
+    "rule": "py-ec-generate",
+    "rules": [
+     "py-ec-generate",
+     "py-ec-curve"
+    ],
+    "family": "ECC",
+    "use": "both",
+    "confidence": "high",
+    "snippet": "KEY = ec.generate_private_key(ec.SECP256R1())",
+    "detail": {
+     "description": "cryptography EC key generation"
+    }
+   },
+   {
+    "file": "services/auth/tokens.py",
+    "line": 8,
+    "rule": "jwt-es",
+    "rules": [
+     "jwt-es"
+    ],
+    "family": "ECC",
+    "use": "sig",
+    "confidence": "high",
+    "snippet": "return jwt.encode(claims, KEY, algorithm=\"ES256\")",
+    "detail": {
+     "description": "JWT ECDSA/EdDSA signature algorithm"
+    }
+   },
+   {
+    "file": "services/backup/rotate-keys.sh",
+    "line": 3,
+    "rule": "openssl-cli-rsa",
+    "rules": [
+     "openssl-cli-rsa"
+    ],
+    "family": "RSA",
+    "use": "both",
+    "confidence": "high",
+    "snippet": "openssl genrsa -out /vault/wrap.key 3072",
+    "detail": {
+     "description": "OpenSSL CLI RSA key generation"
+    }
+   },
+   {
+    "file": "services/bus/server.properties",
+    "line": 2,
+    "rule": "tls-ciphers-ecdhe-rsa",
+    "rules": [
+     "tls-ciphers-ecdhe-rsa"
+    ],
+    "family": "RSA",
+    "use": "sig",
+    "confidence": "medium",
+    "snippet": "ssl.cipher.suites=ECDHE-RSA-AES128-GCM-SHA256",
+    "detail": {
+     "description": "TLS 1.2 suite with RSA authentication"
+    }
+   },
+   {
+    "file": "services/bus/server.properties",
+    "line": 2,
+    "rule": "tls-ciphers-ecdhe",
+    "rules": [
+     "tls-ciphers-ecdhe"
+    ],
+    "family": "ECC",
+    "use": "kex",
+    "confidence": "medium",
+    "snippet": "ssl.cipher.suites=ECDHE-RSA-AES128-GCM-SHA256",
+    "detail": {
+     "description": "TLS 1.2 suite with ECDHE key exchange"
+    }
+   },
+   {
+    "file": "services/cdn/edge.conf",
+    "line": 3,
+    "rule": "nginx-ecdh-curve",
+    "rules": [
+     "nginx-ecdh-curve"
+    ],
+    "family": "ECC",
+    "use": "kex",
+    "confidence": "high",
+    "snippet": "ssl_ecdh_curve prime256v1;",
+    "detail": {
+     "description": "nginx classical ECDH groups"
+    }
+   },
+   {
+    "file": "services/crm/client.js",
+    "line": 4,
+    "rule": "node-keypair",
+    "rules": [
+     "node-keypair"
+    ],
+    "family": "RSA",
+    "use": "both",
+    "confidence": "high",
+    "snippet": "const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });",
+    "detail": {
+     "description": "Node crypto RSA key pair"
+    }
+   },
+   {
+    "file": "services/crm/client.js",
+    "line": 5,
+    "rule": "jwt-rs",
+    "rules": [
+     "jwt-rs"
+    ],
+    "family": "RSA",
+    "use": "sig",
+    "confidence": "high",
+    "snippet": "const token = jwt.sign(claims, privateKey, { algorithm: 'RS256' });",
+    "detail": {
+     "description": "JWT RSA signature algorithm"
+    }
+   },
+   {
+    "file": "services/hsm/hsm.properties",
+    "line": 2,
+    "rule": "key-wrap-rsa",
+    "rules": [
+     "key-wrap-rsa"
+    ],
+    "family": "RSA",
+    "use": "kex",
+    "confidence": "medium",
+    "snippet": "key.wrap.mechanism=RSA_OAEP",
+    "detail": {
+     "description": "RSA key wrapping / RSA key size in config"
+    }
+   },
+   {
+    "file": "services/hsm/hsm.properties",
+    "line": 3,
+    "rule": "key-wrap-rsa",
+    "rules": [
+     "key-wrap-rsa"
+    ],
+    "family": "RSA",
+    "use": "kex",
+    "confidence": "medium",
+    "snippet": "key.size=RSA-2048",
+    "detail": {
+     "description": "RSA key wrapping / RSA key size in config"
+    }
+   },
+   {
+    "file": "services/kyc-db/main.go",
+    "line": 11,
+    "rule": "go-ecdsa",
+    "rules": [
+     "go-ecdsa"
+    ],
+    "family": "ECC",
+    "use": "sig",
+    "confidence": "high",
+    "snippet": "_, _ = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)",
+    "detail": {
+     "description": "Go crypto/ecdsa"
+    }
+   },
+   {
+    "file": "services/kyc-db/main.go",
+    "line": 11,
+    "rule": "go-elliptic",
+    "rules": [
+     "go-elliptic"
+    ],
+    "family": "ECC",
+    "use": "both",
+    "confidence": "high",
+    "snippet": "_, _ = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)",
+    "detail": {
+     "description": "Go elliptic curve"
+    }
+   },
+   {
+    "file": "services/kyc-db/main.go",
+    "line": 12,
+    "rule": "go-tls-curves",
+    "rules": [
+     "go-tls-curves"
+    ],
+    "family": "ECC",
+    "use": "kex",
+    "confidence": "high",
+    "snippet": "return &tls.Config{CurvePreferences: []tls.CurveID{tls.CurveP384}}",
+    "detail": {
+     "description": "Go TLS classical curve preference"
+    }
+   },
+   {
+    "file": "services/ledger-db/postgresql.conf",
+    "line": 2,
+    "rule": "tls-ciphers-ecdhe-rsa",
+    "rules": [
+     "tls-ciphers-ecdhe-rsa"
+    ],
+    "family": "RSA",
+    "use": "sig",
+    "confidence": "medium",
+    "snippet": "ssl_ciphers = 'ECDHE-RSA-AES256-GCM-SHA384'",
+    "detail": {
+     "description": "TLS 1.2 suite with RSA authentication"
+    }
+   },
+   {
+    "file": "services/ledger-db/postgresql.conf",
+    "line": 2,
+    "rule": "tls-ciphers-ecdhe",
+    "rules": [
+     "tls-ciphers-ecdhe"
+    ],
+    "family": "ECC",
+    "use": "kex",
+    "confidence": "medium",
+    "snippet": "ssl_ciphers = 'ECDHE-RSA-AES256-GCM-SHA384'",
+    "detail": {
+     "description": "TLS 1.2 suite with ECDHE key exchange"
+    }
+   },
+   {
+    "file": "services/ops-dash/nginx.conf",
+    "line": 3,
+    "rule": "nginx-ecdh-curve",
+    "rules": [
+     "nginx-ecdh-curve"
+    ],
+    "family": "ECC",
+    "use": "kex",
+    "confidence": "high",
+    "snippet": "ssl_ecdh_curve X25519;",
+    "detail": {
+     "description": "nginx classical ECDH groups"
+    }
+   },
+   {
+    "file": "services/payments-api/src/Signer.java",
+    "line": 5,
+    "rule": "java-kpg",
+    "rules": [
+     "java-kpg"
+    ],
+    "family": "RSA",
+    "use": "both",
+    "confidence": "high",
+    "snippet": "KeyPairGenerator k = KeyPairGenerator.getInstance(\"RSA\");",
+    "detail": {
+     "description": "JCA RSA key pair"
+    }
+   },
+   {
+    "file": "services/payments-api/src/Signer.java",
+    "line": 6,
+    "rule": "java-sig",
+    "rules": [
+     "java-sig"
+    ],
+    "family": "RSA",
+    "use": "sig",
+    "confidence": "high",
+    "snippet": "Signature s = Signature.getInstance(\"SHA256withRSA\");",
+    "detail": {
+     "description": "JCA RSA signature"
+    }
+   },
+   {
+    "file": "services/risk-engine/tls.go",
+    "line": 5,
+    "rule": "go-tls-curves",
+    "rules": [
+     "go-tls-curves"
+    ],
+    "family": "ECC",
+    "use": "kex",
+    "confidence": "high",
+    "snippet": "var cfg = &tls.Config{CurvePreferences: []tls.CurveID{tls.CurveP256}}",
+    "detail": {
+     "description": "Go TLS classical curve preference"
+    }
+   },
+   {
+    "file": "services/root-ca/openssl.cnf",
+    "line": 2,
+    "rule": "openssl-default-bits",
+    "rules": [
+     "openssl-default-bits"
+    ],
+    "family": "RSA",
+    "use": "both",
+    "confidence": "high",
+    "snippet": "default_bits = 4096",
+    "detail": {
+     "description": "OpenSSL req RSA key size"
+    }
+   },
+   {
+    "file": "services/root-ca/certs/root-ca.crt",
+    "line": 1,
+    "rule": "cert-public-key",
+    "rules": [
+     "cert-public-key"
+    ],
+    "family": "RSA",
+    "use": "sig",
+    "confidence": "high",
+    "snippet": "certificate subject=CN=MockBank Root CA",
+    "detail": {
+     "algorithm": "RSA-4096",
+     "signature_algorithm": "sha256WithRSAEncryption",
+     "not_after": "2035-12-30T00:00:00+00:00"
+    }
+   },
+   {
+    "file": "services/sftp-reg/sshd_config",
+    "line": 1,
+    "rule": "ssh-hostkey-file",
+    "rules": [
+     "ssh-hostkey-file"
+    ],
+    "family": "RSA",
+    "use": "sig",
+    "confidence": "high",
+    "snippet": "HostKey /etc/ssh/ssh_host_rsa_key",
+    "detail": {
+     "description": "SSH RSA/DSA host key file"
+    }
+   },
+   {
+    "file": "services/sftp-reg/sshd_config",
+    "line": 2,
+    "rule": "ssh-kex-dh",
+    "rules": [
+     "ssh-kex-dh"
+    ],
+    "family": "DH",
+    "use": "kex",
+    "confidence": "high",
+    "snippet": "KexAlgorithms diffie-hellman-group14-sha256",
+    "detail": {
+     "description": "SSH finite-field DH key exchange"
+    }
+   },
+   {
+    "file": "services/statements/export.sh",
+    "line": 2,
+    "rule": "pgp-rsa",
+    "rules": [
+     "pgp-rsa"
+    ],
+    "family": "RSA",
+    "use": "both",
+    "confidence": "high",
+    "snippet": "gpg --batch --default-new-key-algo rsa2048 --quick-generate-key statements@bank.test",
+    "detail": {
+     "description": "OpenPGP RSA key"
+    }
+   },
+   {
+    "file": "services/status-page/nginx.conf",
+    "line": 3,
+    "rule": "tls-groups-pqc",
+    "rules": [
+     "tls-groups-pqc"
+    ],
+    "family": "PQC",
+    "use": "kex",
+    "confidence": "high",
+    "snippet": "ssl_ecdh_curve X25519MLKEM768;",
+    "detail": {
+     "description": "hybrid / ML-KEM TLS group configured"
+    }
+   },
+   {
+    "file": "services/vpn/ipsec.conf",
+    "line": 2,
+    "rule": "ipsec-ecdh",
+    "rules": [
+     "ipsec-ecdh"
+    ],
+    "family": "ECC",
+    "use": "kex",
+    "confidence": "high",
+    "snippet": "ike=aes256-sha256-ecp256",
+    "detail": {
+     "description": "IKE/IPsec elliptic-curve DH group"
+    }
+   },
+   {
+    "file": "services/web-gw/nginx.conf",
+    "line": 4,
+    "rule": "nginx-ecdh-curve",
+    "rules": [
+     "nginx-ecdh-curve"
+    ],
+    "family": "ECC",
+    "use": "kex",
+    "confidence": "high",
+    "snippet": "ssl_ecdh_curve X25519MLKEM768:X25519;",
+    "detail": {
+     "description": "nginx classical ECDH groups"
+    }
+   },
+   {
+    "file": "services/web-gw/nginx.conf",
+    "line": 4,
+    "rule": "tls-groups-pqc",
+    "rules": [
+     "tls-groups-pqc"
+    ],
+    "family": "PQC",
+    "use": "kex",
+    "confidence": "high",
+    "snippet": "ssl_ecdh_curve X25519MLKEM768:X25519;",
+    "detail": {
+     "description": "hybrid / ML-KEM TLS group configured"
+    }
+   },
+   {
+    "file": "services/web-gw/nginx.conf",
+    "line": 5,
+    "rule": "tls-ciphers-ecdhe-rsa",
+    "rules": [
+     "tls-ciphers-ecdhe-rsa"
+    ],
+    "family": "RSA",
+    "use": "sig",
+    "confidence": "medium",
+    "snippet": "ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384;",
+    "detail": {
+     "description": "TLS 1.2 suite with RSA authentication"
+    }
+   },
+   {
+    "file": "services/web-gw/nginx.conf",
+    "line": 5,
+    "rule": "tls-ciphers-ecdhe",
+    "rules": [
+     "tls-ciphers-ecdhe"
+    ],
+    "family": "ECC",
+    "use": "kex",
+    "confidence": "medium",
+    "snippet": "ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384;",
+    "detail": {
+     "description": "TLS 1.2 suite with ECDHE key exchange"
+    }
+   },
+   {
+    "file": "services/web-gw/certs/web-gw.crt",
+    "line": 1,
+    "rule": "cert-public-key",
+    "rules": [
+     "cert-public-key"
+    ],
+    "family": "RSA",
+    "use": "sig",
+    "confidence": "high",
+    "snippet": "certificate subject=CN=www.mockbank.test",
+    "detail": {
+     "algorithm": "RSA-2048",
+     "signature_algorithm": "sha256WithRSAEncryption",
+     "not_after": "2035-12-30T00:00:00+00:00"
+    }
+   }
+  ],
+  "probes": [
+   {
+    "service": "web-gw",
+    "endpoint": "127.0.0.1:52407",
+    "live": {
+     "endpoint": "127.0.0.1:52407",
+     "ts": "2026-10-28T14:18:20Z",
+     "client_groups_offered": "X25519MLKEM768:X25519:prime256v1",
+     "openssl": "OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026)",
+     "handshake_ok": true,
+     "transcript_sha256": "b2d1dfb8f5a9102e37950e829ac22826e275dfcf76387f3036bf185445c0b093",
+     "protocol": "TLSv1.3",
+     "cipher": "TLS_AES_256_GCM_SHA384",
+     "group": "X25519",
+     "kex_family": "ECC",
+     "cert_algorithm": "RSA-2048",
+     "cert_family": "RSA",
+     "peer_signature_type": "rsa_pss_rsae_sha256",
+     "kex_quantum_vulnerable": true,
+     "auth_quantum_vulnerable": true
+    },
+    "static": {
+     "kex": [
+      "ECC",
+      "PQC"
+     ],
+     "sig": [
+      "RSA"
+     ]
+    },
+    "drift": [
+     {
+      "kind": "pqc_claimed_not_negotiated",
+      "severity": "high",
+      "detail": "config lists a hybrid/ML-KEM group but the live handshake negotiated X25519 (ECC)"
+     }
+    ]
+   }
+  ],
+  "drift_count": 1,
+  "inventory": {
+   "assets": 16,
+   "not_vulnerable": [
+    "status-page"
+   ],
+   "unowned_findings": 0,
+   "sha256": "9df18398acf8fe4c9c28652fa2ea038fbfcfa08407ed85aece6c901256b57583"
+  }
+ },
+ "handshake_evidence": {
+  "run_id": "b3f7c178da5447a19becf6d38ae1cdf3",
+  "ts": "2026-10-28T14:46:21Z",
+  "capture_sha256": "3f3d0cac9886cdecf0a2b0d1b5ec5b97fb40dde24e7e81ecf5950b34ba280b97",
+  "openssl_version": "OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026)",
+  "note": "Real TLS 1.3 handshakes with local lab services; metadata only. No decryption is performed or claimed.",
+  "sessions": [
+   {
+    "service_id": "legacy",
+    "negotiated_group": "X25519",
+    "kex_class": "classical",
+    "hndl_exposed": true,
+    "label": "HNDL-exposed: recorded traffic relies on classical key exchange",
+    "transcript_sha256": "5e1d4472eab10baa3098b897b27f739cc217670ca11666c8e4a7a521d1db1430",
+    "auth_alg": "RSA",
+    "auth_class": "classical"
+   },
+   {
+    "service_id": "hybrid",
+    "negotiated_group": "X25519MLKEM768",
+    "kex_class": "hybrid-pq",
+    "hndl_exposed": false,
+    "label": null,
+    "transcript_sha256": "9f95052e3fa8045e23b23f55e87ddd6ae7ed091f7074abd060ecd9440cd10874",
+    "auth_alg": "RSA",
+    "auth_class": "classical"
+   },
+   {
+    "service_id": "pq-auth",
+    "negotiated_group": "X25519MLKEM768",
+    "kex_class": "hybrid-pq",
+    "hndl_exposed": false,
+    "label": null,
+    "transcript_sha256": "1097fce6cbbe5de3eb7be69d2b550409546a22645f883243d4b6fe7e0fd44aff",
+    "auth_alg": "ML-DSA",
+    "auth_class": "pq"
+   }
+  ]
+ },
+ "gates": {
+  "run_id": "d2f823c2aa7a4213a7e53e288418bf6a",
+  "ts": "2026-10-28T15:38:32Z",
+  "compat_matrix": [
+   {
+    "gate": "compat",
+    "service_id": "compat-legacy",
+    "mode": "legacy",
+    "result": "PASS",
+    "cells": [
+     {
+      "mode": "legacy",
+      "client": "pq-capable",
+      "expected": {
+       "expect": "connect",
+       "group": "X25519"
+      },
+      "actual": {
+       "connected": true,
+       "negotiated_group": "X25519",
+       "protocol": "TLSv1.3",
+       "error": null
+      },
+      "result": "HNDL-exposed",
+      "hndl_exposed": true,
+      "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+      "transcript_sha256": "31af71e034aebbc9321dbb7cd425f426634ba22ea703b4c3b82208f2db05f09b",
+      "timestamp": "2026-10-28T15:38:31Z"
+     },
+     {
+      "mode": "legacy",
+      "client": "classical-only",
+      "expected": {
+       "expect": "connect",
+       "group": "X25519"
+      },
+      "actual": {
+       "connected": true,
+       "negotiated_group": "X25519",
+       "protocol": "TLSv1.3",
+       "error": null
+      },
+      "result": "HNDL-exposed",
+      "hndl_exposed": true,
+      "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+      "transcript_sha256": "8b95bec1a39c3858fce7a07c50d51a46f0d8daf54203ce9e67de7750c6ae8722",
+      "timestamp": "2026-10-28T15:38:31Z"
+     },
+     {
+      "mode": "legacy",
+      "client": "tls1.2-only",
+      "expected": {
+       "expect": "connect",
+       "group": "X25519"
+      },
+      "actual": {
+       "connected": true,
+       "negotiated_group": "X25519",
+       "protocol": "TLSv1.2",
+       "error": null
+      },
+      "result": "HNDL-exposed",
+      "hndl_exposed": true,
+      "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+      "transcript_sha256": "031a4e12ed766280e329feff2ddfc5470e8ef7057d5e2509fdfd32e18ea4cb60",
+      "timestamp": "2026-10-28T15:38:31Z"
+     }
+    ],
+    "counts": {
+     "PASS": 0,
+     "HNDL-exposed": 3,
+     "FAIL": 0
+    }
+   },
+   {
+    "gate": "compat",
+    "service_id": "compat-transition",
+    "mode": "transition",
+    "result": "PASS",
+    "cells": [
+     {
+      "mode": "transition",
+      "client": "pq-capable",
+      "expected": {
+       "expect": "connect",
+       "group": "X25519MLKEM768"
+      },
+      "actual": {
+       "connected": true,
+       "negotiated_group": "X25519MLKEM768",
+       "protocol": "TLSv1.3",
+       "error": null
+      },
+      "result": "PASS",
+      "hndl_exposed": false,
+      "reason": "negotiated X25519MLKEM768 as policy requires",
+      "transcript_sha256": "25cd885586c99e54414b8768d7af1bcc02fec331fe56fd6f8b28a20a1f86857e",
+      "timestamp": "2026-10-28T15:38:31Z"
+     },
+     {
+      "mode": "transition",
+      "client": "classical-only",
+      "expected": {
+       "expect": "connect",
+       "group": "X25519"
+      },
+      "actual": {
+       "connected": true,
+       "negotiated_group": "X25519",
+       "protocol": "TLSv1.3",
+       "error": null
+      },
+      "result": "HNDL-exposed",
+      "hndl_exposed": true,
+      "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+      "transcript_sha256": "b36b7963820dbfe4097470252e4adce42b28bfc722bb73c7222690ac5da59209",
+      "timestamp": "2026-10-28T15:38:31Z"
+     },
+     {
+      "mode": "transition",
+      "client": "tls1.2-only",
+      "expected": {
+       "expect": "connect",
+       "group": "X25519"
+      },
+      "actual": {
+       "connected": true,
+       "negotiated_group": "X25519",
+       "protocol": "TLSv1.2",
+       "error": null
+      },
+      "result": "HNDL-exposed",
+      "hndl_exposed": true,
+      "reason": "connected on classical X25519 as policy allows; HNDL-exposed: recorded traffic relies on classical key exchange",
+      "transcript_sha256": "7543f45bf6b9696318db833205ecfdea2b795b007439d9035ed2bf77f2572a4a",
+      "timestamp": "2026-10-28T15:38:31Z"
+     }
+    ],
+    "counts": {
+     "PASS": 1,
+     "HNDL-exposed": 2,
+     "FAIL": 0
+    }
+   },
+   {
+    "gate": "compat",
+    "service_id": "compat-strict",
+    "mode": "strict",
+    "result": "PASS",
+    "cells": [
+     {
+      "mode": "strict",
+      "client": "pq-capable",
+      "expected": {
+       "expect": "connect",
+       "group": "X25519MLKEM768"
+      },
+      "actual": {
+       "connected": true,
+       "negotiated_group": "X25519MLKEM768",
+       "protocol": "TLSv1.3",
+       "error": null
+      },
+      "result": "PASS",
+      "hndl_exposed": false,
+      "reason": "negotiated X25519MLKEM768 as policy requires",
+      "transcript_sha256": "b32dea307d3dbe356c29c5bf48bdf185bd72d641ba585ed0d09cbfdff40979ea",
+      "timestamp": "2026-10-28T15:38:31Z"
+     },
+     {
+      "mode": "strict",
+      "client": "classical-only",
+      "expected": {
+       "expect": "refused"
+      },
+      "actual": {
+       "connected": false,
+       "negotiated_group": null,
+       "protocol": null,
+       "error": "alert handshake failure"
+      },
+      "result": "PASS",
+      "hndl_exposed": false,
+      "reason": "refused as policy requires",
+      "transcript_sha256": "c25cc659b8ffa2c23f62492389ef2ab856d8870514b473a705b6bf2361ae24c0",
+      "timestamp": "2026-10-28T15:38:31Z"
+     },
+     {
+      "mode": "strict",
+      "client": "tls1.2-only",
+      "expected": {
+       "expect": "refused"
+      },
+      "actual": {
+       "connected": false,
+       "negotiated_group": null,
+       "protocol": null,
+       "error": "alert protocol version"
+      },
+      "result": "PASS",
+      "hndl_exposed": false,
+      "reason": "refused as policy requires",
+      "transcript_sha256": "43e7eae40b347490adb92a5c999216e2559463d6d23c07a1c7dd3a6c57ecf16f",
+      "timestamp": "2026-10-28T15:38:31Z"
+     }
+    ],
+    "counts": {
+     "PASS": 3,
+     "HNDL-exposed": 0,
+     "FAIL": 0
+    }
+   }
+  ],
+  "wave_run_id": "86ae5017aacc499095374491894383ea",
+  "wave_asset_counts": {
+   "applied": 10,
+   "not_verified_in_lab": 6
+  },
+  "wave_counts": {
+   "applied": 2,
+   "not_verified_in_lab": 1,
+   "partially_verified": 4
+  },
+  "forced_rollback": {
+   "service_id": "rollback-demo",
+   "from_mode": "legacy",
+   "to_mode": "strict",
+   "snapshot_sha256": "c0c58cf3acaa9ffce8aa30d102fd84628faa421231b0f2a6b8aa354466f2da38",
+   "started_at": "2026-10-28T15:38:32Z",
+   "applied_config_sha256": "cf3b23e39611fe287edc2106ece6ee868b0f77b3ba8912866cbb396db44b6e6f",
+   "gates": {
+    "passed": false,
+    "pq_handshake": {
+     "gate": "pq_handshake",
+     "service_id": "rollback-demo",
+     "result": "PASS",
+     "negotiated_group": "X25519MLKEM768",
+     "kex_class": "hybrid-pq",
+     "hndl_exposed": false,
+     "label": null,
+     "reason": "X25519MLKEM768 is on the PQ allowlist",
+     "transcript_sha256": "25278e0cb735ce12611b9ba7e3c0d391490886695caccf06b30916e98ea2208f"
+    },
+    "compat": {
+     "gate": "compat",
+     "service_id": "rollback-demo",
+     "mode": "strict",
+     "result": "FAIL",
+     "cells": [
+      {
+       "mode": "strict",
+       "client": "pq-capable",
+       "expected": {
+        "expect": "connect",
+        "group": "X25519MLKEM768"
+       },
+       "actual": {
+        "connected": true,
+        "negotiated_group": "X25519MLKEM768",
+        "protocol": "TLSv1.3",
+        "error": null
+       },
+       "result": "PASS",
+       "hndl_exposed": false,
+       "reason": "negotiated X25519MLKEM768 as policy requires",
+       "transcript_sha256": "65a69ec180a76baed3bbf3b6051db613917845537ad9f06156eab7831d900aed",
+       "timestamp": "2026-10-28T15:38:32Z"
+      },
+      {
+       "mode": "strict",
+       "client": "classical-only",
+       "expected": {
+        "expect": "connect",
+        "group": "X25519"
+       },
+       "actual": {
+        "connected": false,
+        "negotiated_group": null,
+        "protocol": null,
+        "error": "alert handshake failure"
+       },
+       "result": "FAIL",
+       "hndl_exposed": false,
+       "reason": "policy expects a connection on X25519; handshake refused (alert handshake failure)",
+       "transcript_sha256": "ad4c2ca8118a3044908f14620eef6145103e41dfd3d9c57f51b80925c4a7c0b6",
+       "timestamp": "2026-10-28T15:38:32Z"
+      },
+      {
+       "mode": "strict",
+       "client": "tls1.2-only",
+       "expected": {
+        "expect": "refused"
+       },
+       "actual": {
+        "connected": false,
+        "negotiated_group": null,
+        "protocol": null,
+        "error": "alert protocol version"
+       },
+       "result": "PASS",
+       "hndl_exposed": false,
+       "reason": "refused as policy requires",
+       "transcript_sha256": "0e9a28a864c13224c8a1af717e57b98ac0bbcf5c55cc084be641c1d3fb958385",
+       "timestamp": "2026-10-28T15:38:32Z"
+      }
+     ],
+     "counts": {
+      "PASS": 2,
+      "HNDL-exposed": 0,
+      "FAIL": 1
+     }
+    }
+   },
+   "restored_config_sha256": "c0c58cf3acaa9ffce8aa30d102fd84628faa421231b0f2a6b8aa354466f2da38",
+   "health_check": {
+    "client": "classical-only",
+    "result": "PASS",
+    "negotiated_group": "X25519",
+    "transcript_sha256": "38e5364d99ad682ac604c801f0acf5e36cd802be06e7900e9d7a8f90e3127ce0"
+   },
+   "status": "rolled_back",
+   "rollback_problems": [],
+   "finished_at": "2026-10-28T15:38:32Z"
+  },
+  "pq_handshake": [
+   {
+    "gate": "pq_handshake",
+    "service_id": "legacy",
+    "result": "FAIL",
+    "negotiated_group": "X25519",
+    "kex_class": "classical",
+    "hndl_exposed": true,
+    "label": "HNDL-exposed: recorded traffic relies on classical key exchange",
+    "reason": "X25519 is classical (not on the PQ allowlist)",
+    "transcript_sha256": "5e1d4472eab10baa3098b897b27f739cc217670ca11666c8e4a7a521d1db1430"
+   },
+   {
+    "gate": "pq_handshake",
+    "service_id": "hybrid",
+    "result": "PASS",
+    "negotiated_group": "X25519MLKEM768",
+    "kex_class": "hybrid-pq",
+    "hndl_exposed": false,
+    "label": null,
+    "reason": "X25519MLKEM768 is on the PQ allowlist",
+    "transcript_sha256": "9f95052e3fa8045e23b23f55e87ddd6ae7ed091f7074abd060ecd9440cd10874"
+   },
+   {
+    "gate": "pq_handshake",
+    "service_id": "pq-auth",
+    "result": "PASS",
+    "negotiated_group": "X25519MLKEM768",
+    "kex_class": "hybrid-pq",
+    "hndl_exposed": false,
+    "label": null,
+    "reason": "X25519MLKEM768 is on the PQ allowlist",
+    "transcript_sha256": "1097fce6cbbe5de3eb7be69d2b550409546a22645f883243d4b6fe7e0fd44aff"
+   }
+  ],
+  "pq_auth": [
+   {
+    "gate": "pq_auth",
+    "service_id": "legacy",
+    "result": "FAIL",
+    "auth_alg": "RSA",
+    "signature_type": "rsa_pss_rsae_sha256",
+    "auth_class": "classical",
+    "reason": "server authenticates with RSA (rsa_pss_rsae_sha256); classical signature, replace before a CRQC exists (not an HNDL exposure)"
+   },
+   {
+    "gate": "pq_auth",
+    "service_id": "hybrid",
+    "result": "FAIL",
+    "auth_alg": "RSA",
+    "signature_type": "rsa_pss_rsae_sha256",
+    "auth_class": "classical",
+    "reason": "server authenticates with RSA (rsa_pss_rsae_sha256); classical signature, replace before a CRQC exists (not an HNDL exposure)"
+   },
+   {
+    "gate": "pq_auth",
+    "service_id": "pq-auth",
+    "result": "PASS",
+    "auth_alg": "ML-DSA",
+    "signature_type": "mldsa65",
+    "auth_class": "pq",
+    "reason": "server authenticates with ML-DSA (mldsa65)"
+   }
+  ],
+  "downgrade": [
+   {
+    "gate": "downgrade_refused",
+    "service_id": "hybrid",
+    "result": "PASS",
+    "reason": "classical-only client (X25519:prime256v1) was refused (alert handshake failure)"
+   },
+   {
+    "gate": "downgrade_refused",
+    "service_id": "legacy",
+    "result": "FAIL",
+    "reason": "classical-only client (X25519:prime256v1) completed a handshake: X25519"
+   },
+   {
+    "gate": "downgrade_refused",
+    "service_id": "pq-auth",
+    "result": "PASS",
+    "reason": "classical-only client (X25519:prime256v1) was refused (alert handshake failure)"
+   }
+  ]
+ },
+ "qaoa": {
+  "label": "QAOA on simulators. A measured cross-check against the exact optimum. No quantum advantage claimed; the problem is small enough for brute force.",
+  "run_id": "a7985b93f3a5490aaa3636c969dcc1c3",
+  "ts": "2026-10-28T15:29:50Z",
+  "schedule_sha256": "c069dbb88572041126f26a0164c4c331e1e77b0afc09bca598e2ec41383d03db",
+  "problem": {
+   "week": 1,
+   "assets": [
+    "backup",
+    "bus",
+    "crm",
+    "hsm",
+    "kyc-db",
+    "ledger-db",
+    "payments-api",
+    "root-ca",
+    "statements",
+    "web-gw"
+   ],
+   "values": [
+    0.17307692307693046,
+    0.0942307692307689,
+    0.1538461538461462,
+    0.13461538461538414,
+    0.1538461538461462,
+    0.13461538461538414,
+    0.13461538461538414,
+    0.08076923076923048,
+    0.17307692307693046,
+    0.1538461538461462
+   ],
+   "weights": [
+    3,
+    4,
+    4,
+    7,
+    5,
+    5,
+    4,
+    8,
+    3,
+    3
+   ],
+   "capacity": 10,
+   "weight_scale": 1,
+   "slack_bits": 4,
+   "n_variables": 14,
+   "A": 2.3865384615384513,
+   "B": 2.3865384615384513,
+   "dependencies": [
+    [
+     "bus",
+     "root-ca"
+    ],
+    [
+     "crm",
+     "bus"
+    ],
+    [
+     "kyc-db",
+     "root-ca"
+    ],
+    [
+     "ledger-db",
+     "root-ca"
+    ],
+    [
+     "payments-api",
+     "hsm"
+    ],
+    [
+     "payments-api",
+     "root-ca"
+    ],
+    [
+     "root-ca",
+     "hsm"
+    ],
+    [
+     "statements",
+     "backup"
+    ],
+    [
+     "web-gw",
+     "root-ca"
+    ]
+   ],
+   "objective_definition": "minimise -sum_i r_i * a_i * x_i; a_i = scenario-weighted exposure-years avoided by migrating in week 1 instead of 1 week(s) later",
+   "bit_order": "variable k = qubit k = bit k of the basis index; counts strings have qubit 0 rightmost",
+   "shrink_log": [
+    "week 1: 16 assets not yet migrated before this week",
+    "dropped sftp-reg (value 0.08077): with unmet deps [] it exceeds the 10-asset budget",
+    "dropped risk-engine (value 0.09423): with unmet deps [] it exceeds the 10-asset budget",
+    "dropped ops-dash (value 0.01731): with unmet deps [] it exceeds the 10-asset budget",
+    "dropped vpn (value 0.01731): with unmet deps [] it exceeds the 10-asset budget",
+    "dropped auth (value 0): with unmet deps [] it exceeds the 10-asset budget",
+    "dropped cdn (value 0): with unmet deps [] it exceeds the 10-asset budget",
+    "kept 10 candidates: ['backup', 'bus', 'crm', 'hsm', 'kyc-db', 'ledger-db', 'payments-api', 'root-ca', 'statements', 'web-gw']",
+    "A = B = 1 + sum|c_i| = 2.38654; capacity 10 (scale 1), 4 slack bits, 14 variables"
+   ]
+  },
+  "exact": {
+   "objective": -0.3461538461538609,
+   "assets": [
+    "backup",
+    "statements"
+   ],
+   "bitstring": "01000100000001",
+   "method": "brute force over 2^10 asset subsets",
+   "run_id": "a7985b93f3a5490aaa3636c969dcc1c3"
+  },
+  "runs": [
+   {
+    "p": 1,
+    "source": "local",
+    "backend": "numpy statevector (qaoa/local_sim.py)",
+    "shots": 2048,
+    "angles": {
+     "gammas": [
+      10.639415770812775
+     ],
+     "betas": [
+      2.5931595595823183
+     ]
+    },
+    "energy_scale": 6206.346153846125,
+    "optimizer": "scipy COBYLA, 5 seeded restarts (seed 7), maxiter 400",
+    "expected_energy_exact": 101.33871926230603,
+    "p_optimal_exact": 0.0011441240640986522,
+    "job_ids": [],
+    "metrics": {
+     "shots": 2048,
+     "distinct_bitstrings": 1012,
+     "feasible_fraction": 0.1044921875,
+     "best_feasible_objective": -0.3461538461538609,
+     "best_feasible_assets": [
+      "backup",
+      "statements"
+     ],
+     "approximation_ratio": 1.0,
+     "mean_energy": 93.00035963792021,
+     "mean_energy_se": 3.975582107464812,
+     "energy_ratio": 0.9849595057751932,
+     "p_optimal": 0.0009765625,
+     "p_optimal_assets": 0.01123046875
+    }
+   },
+   {
+    "p": 2,
+    "source": "local",
+    "backend": "numpy statevector (qaoa/local_sim.py)",
+    "shots": 2048,
+    "angles": {
+     "gammas": [
+      4.957331169116809,
+      5.840875043585224
+     ],
+     "betas": [
+      3.814531910010929,
+      -0.9027873466899895
+     ]
+    },
+    "energy_scale": 6206.346153846125,
+    "optimizer": "scipy COBYLA, 5 seeded restarts (seed 7), maxiter 400",
+    "expected_energy_exact": 71.80174904708848,
+    "p_optimal_exact": 0.0012211844265963673,
+    "job_ids": [],
+    "metrics": {
+     "shots": 2048,
+     "distinct_bitstrings": 773,
+     "feasible_fraction": 0.1943359375,
+     "best_feasible_objective": -0.3461538461538609,
+     "best_feasible_assets": [
+      "backup",
+      "statements"
+     ],
+     "approximation_ratio": 1.0,
+     "mean_energy": 70.79382887620176,
+     "mean_energy_se": 2.388651157863709,
+     "energy_ratio": 0.9885375419032549,
+     "p_optimal": 0.00048828125,
+     "p_optimal_assets": 0.015625
+    }
+   },
+   {
+    "p": 3,
+    "source": "local",
+    "backend": "numpy statevector (qaoa/local_sim.py)",
+    "shots": 2048,
+    "angles": {
+     "gammas": [
+      -2.6980943894810268,
+      4.069416541053173,
+      3.8673186402936666
+     ],
+     "betas": [
+      1.367560115333718,
+      0.3214390290479535,
+      2.368354780120845
+     ]
+    },
+    "energy_scale": 6206.346153846125,
+    "optimizer": "scipy COBYLA, 5 seeded restarts (seed 7), maxiter 400",
+    "expected_energy_exact": 64.97162026431037,
+    "p_optimal_exact": 0.0013598178304541956,
+    "job_ids": [],
+    "metrics": {
+     "shots": 2048,
+     "distinct_bitstrings": 776,
+     "feasible_fraction": 0.19482421875,
+     "best_feasible_objective": -0.3461538461538609,
+     "best_feasible_assets": [
+      "backup",
+      "statements"
+     ],
+     "approximation_ratio": 1.0,
+     "mean_energy": 67.24581956129785,
+     "mean_energy_se": 2.1726700855325762,
+     "energy_ratio": 0.9891092163195627,
+     "p_optimal": 0.00146484375,
+     "p_optimal_assets": 0.015625
+    }
+   },
+   {
+    "p": null,
+    "source": "random",
+    "backend": "uniform random bitstrings (numpy, seed 1007)",
+    "shots": 2048,
+    "angles": null,
+    "job_ids": [],
+    "metrics": {
+     "shots": 2048,
+     "distinct_bitstrings": 1912,
+     "feasible_fraction": 0.00341796875,
+     "best_feasible_objective": -0.3461538461538609,
+     "best_feasible_assets": [
+      "backup",
+      "statements"
+     ],
+     "approximation_ratio": 1.0,
+     "mean_energy": 1173.0612886868948,
+     "mean_energy_se": 19.679288413769044,
+     "energy_ratio": 0.8109342577023554,
+     "p_optimal": 0.0,
+     "p_optimal_assets": 0.0009765625
+    }
+   }
+  ],
+  "comparisons": [],
+  "qcloud": {
+   "requested": true,
+   "device": "QpiAI-QSV-Simulator",
+   "jobs": [
+    {
+     "p": 1,
+     "status": "failed",
+     "job_id": null,
+     "credits_used": null,
+     "error": "JobManagerError: Error during QASM job submission: Bad Request (400) when submitting job.\nServer response: {'error': 'Failed to create job: an active subscription is required to run jobs'}\n\nCommon causes:\n  1. You may not have access to the specified compute resource\n     (if part of an organization, contact your administrator)\n  2. Invalid circuit QASM format\n  3. Invalid method or device_name value\n  4. Missing or invalid circuit_id or experiment_id\n  5. Invalid shots value (must be positive i"
+    },
+    {
+     "p": 2,
+     "status": "skipped",
+     "job_id": null,
+     "credits_used": null,
+     "error": "earlier QCloud failure: JobManagerError: Error during QASM job submission: Bad Request (400) when submitting job.\nServer response: {'error': 'Failed to create job: an active subscription is required to run jobs'}\n\nCommon causes:\n  1. You may not have access to the specified compute resource\n     (if part of an organization, contact your administrator)\n  2. Invalid circuit QASM format\n  3. Invalid method or device_name value\n  4. Missing or invalid circuit_id or experiment_id\n  5. Invalid shots value (must be positive i"
+    },
+    {
+     "p": 3,
+     "status": "skipped",
+     "job_id": null,
+     "credits_used": null,
+     "error": "earlier QCloud failure: JobManagerError: Error during QASM job submission: Bad Request (400) when submitting job.\nServer response: {'error': 'Failed to create job: an active subscription is required to run jobs'}\n\nCommon causes:\n  1. You may not have access to the specified compute resource\n     (if part of an organization, contact your administrator)\n  2. Invalid circuit QASM format\n  3. Invalid method or device_name value\n  4. Missing or invalid circuit_id or experiment_id\n  5. Invalid shots value (must be positive i"
+    }
+   ]
+  },
+  "ledger_index": 7,
+  "table": [
+   {
+    "p": 1,
+    "source": "local",
+    "status": "ok",
+    "status_text": null,
+    "backend": "numpy statevector (qaoa/local_sim.py)",
+    "shots": 2048,
+    "job_ids": [],
+    "metrics": {
+     "shots": 2048,
+     "distinct_bitstrings": 1012,
+     "feasible_fraction": 0.1044921875,
+     "best_feasible_objective": -0.3461538461538609,
+     "best_feasible_assets": [
+      "backup",
+      "statements"
+     ],
+     "approximation_ratio": 1.0,
+     "mean_energy": 93.00035963792021,
+     "mean_energy_se": 3.975582107464812,
+     "energy_ratio": 0.9849595057751932,
+     "p_optimal": 0.0009765625,
+     "p_optimal_assets": 0.01123046875
+    }
+   },
+   {
+    "p": 1,
+    "source": "qcloud",
+    "status": "failed",
+    "status_text": "failed: no QCloud subscription (attempt logged, ledger #7)",
+    "backend": "QpiAI-QSV-Simulator",
+    "shots": null,
+    "job_ids": [],
+    "metrics": null
+   },
+   {
+    "p": 2,
+    "source": "local",
+    "status": "ok",
+    "status_text": null,
+    "backend": "numpy statevector (qaoa/local_sim.py)",
+    "shots": 2048,
+    "job_ids": [],
+    "metrics": {
+     "shots": 2048,
+     "distinct_bitstrings": 773,
+     "feasible_fraction": 0.1943359375,
+     "best_feasible_objective": -0.3461538461538609,
+     "best_feasible_assets": [
+      "backup",
+      "statements"
+     ],
+     "approximation_ratio": 1.0,
+     "mean_energy": 70.79382887620176,
+     "mean_energy_se": 2.388651157863709,
+     "energy_ratio": 0.9885375419032549,
+     "p_optimal": 0.00048828125,
+     "p_optimal_assets": 0.015625
+    }
+   },
+   {
+    "p": 2,
+    "source": "qcloud",
+    "status": "skipped",
+    "status_text": "skipped: no QCloud subscription (attempt logged, ledger #7)",
+    "backend": "QpiAI-QSV-Simulator",
+    "shots": null,
+    "job_ids": [],
+    "metrics": null
+   },
+   {
+    "p": 3,
+    "source": "local",
+    "status": "ok",
+    "status_text": null,
+    "backend": "numpy statevector (qaoa/local_sim.py)",
+    "shots": 2048,
+    "job_ids": [],
+    "metrics": {
+     "shots": 2048,
+     "distinct_bitstrings": 776,
+     "feasible_fraction": 0.19482421875,
+     "best_feasible_objective": -0.3461538461538609,
+     "best_feasible_assets": [
+      "backup",
+      "statements"
+     ],
+     "approximation_ratio": 1.0,
+     "mean_energy": 67.24581956129785,
+     "mean_energy_se": 2.1726700855325762,
+     "energy_ratio": 0.9891092163195627,
+     "p_optimal": 0.00146484375,
+     "p_optimal_assets": 0.015625
+    }
+   },
+   {
+    "p": 3,
+    "source": "qcloud",
+    "status": "skipped",
+    "status_text": "skipped: no QCloud subscription (attempt logged, ledger #7)",
+    "backend": "QpiAI-QSV-Simulator",
+    "shots": null,
+    "job_ids": [],
+    "metrics": null
+   },
+   {
+    "p": null,
+    "source": "random",
+    "status": "ok",
+    "status_text": null,
+    "backend": "uniform random bitstrings (numpy, seed 1007)",
+    "shots": 2048,
+    "job_ids": [],
+    "metrics": {
+     "shots": 2048,
+     "distinct_bitstrings": 1912,
+     "feasible_fraction": 0.00341796875,
+     "best_feasible_objective": -0.3461538461538609,
+     "best_feasible_assets": [
+      "backup",
+      "statements"
+     ],
+     "approximation_ratio": 1.0,
+     "mean_energy": 1173.0612886868948,
+     "mean_energy_se": 19.679288413769044,
+     "energy_ratio": 0.8109342577023554,
+     "p_optimal": 0.0,
+     "p_optimal_assets": 0.0009765625
+    }
+   }
+  ]
+ },
+ "ledger": {
+  "root": "3ee87b35d484234040117a389de1d9154e1a799c15e1e2c1e3600ad4536e81d1",
+  "entry_count": 12,
+  "pubkey_fp": "0241cc01bed23f442a87270064d4f113bbdbc29d1bfce761a870c9e748a9f12e",
+  "alg": "ML-DSA-65",
+  "backend": "openssl-cli (OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026))",
+  "ledger_ref": "out/ledger.jsonl",
+  "entries": [
+   {
+    "index": 0,
+    "type": "schedule.solver_run",
+    "payload_ref": "runs/ef850446f5914678ab01f54c3adebb02/manifest.json"
+   },
+   {
+    "index": 1,
+    "type": "schedule.solver_run",
+    "payload_ref": "runs/415da2ce07b74fd4b96f7a4f6051017c/manifest.json"
+   },
+   {
+    "index": 2,
+    "type": "detect.run",
+    "payload_ref": "runs/0f2094d96fc14743bf4becaa0d270df1/manifest.json"
+   },
+   {
+    "index": 3,
+    "type": "capture.run",
+    "payload_ref": "runs/b3f7c178da5447a19becf6d38ae1cdf3/manifest.json"
+   },
+   {
+    "index": 4,
+    "type": "gates.run",
+    "payload_ref": "runs/ad22679a1c284d75ba3d02c2c89673f8/manifest.json"
+   },
+   {
+    "index": 5,
+    "type": "gates.wave_run",
+    "payload_ref": "runs/e886d6d6e22246eaaf4be08ed7aa7c44/wave_runner.json"
+   },
+   {
+    "index": 6,
+    "type": "qaoa.run",
+    "payload_ref": "runs/aa71a2fe8703426c87b580f180151621/manifest.json"
+   },
+   {
+    "index": 7,
+    "type": "qaoa.run",
+    "payload_ref": "runs/a7985b93f3a5490aaa3636c969dcc1c3/manifest.json"
+   },
+   {
+    "index": 8,
+    "type": "schedule.solver_run",
+    "payload_ref": "runs/b6a73f8db7594ba2adcfc877fb020c73/manifest.json"
+   },
+   {
+    "index": 9,
+    "type": "schedule.solver_run",
+    "payload_ref": "runs/fbd5501697474bac9f1bf5a9fd90c66e/manifest.json"
+   },
+   {
+    "index": 10,
+    "type": "gates.run",
+    "payload_ref": "runs/d2f823c2aa7a4213a7e53e288418bf6a/manifest.json"
+   },
+   {
+    "index": 11,
+    "type": "gates.wave_run",
+    "payload_ref": "runs/86ae5017aacc499095374491894383ea/wave_runner.json"
+   }
+  ]
+ },
+ "ledger_root": "3ee87b35d484234040117a389de1d9154e1a799c15e1e2c1e3600ad4536e81d1",
+ "ledger_verification": {
+  "ok": true,
+  "ts": "2026-10-28T15:38:33Z",
+  "entries_checked": 12,
+  "root": "3ee87b35d484234040117a389de1d9154e1a799c15e1e2c1e3600ad4536e81d1",
+  "verifying_pubkey_fp": "0241cc01bed23f442a87270064d4f113bbdbc29d1bfce761a870c9e748a9f12e",
+  "first_failure": null
+ }
+}

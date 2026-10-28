@@ -32,6 +32,8 @@ def assemble(out_dir: Path = OUT) -> dict:
     ledger = out_dir / "ledger.json"
     results["ledger"] = json.loads(ledger.read_text()) if ledger.exists() else None
     results["ledger_root"] = results["ledger"]["root"] if results["ledger"] else None
+    verify_path = out_dir / "ledger_verify.json"
+    results["ledger_verification"] = json.loads(verify_path.read_text()) if verify_path.exists() else None
     if results["qaoa"] is not None:
         from qaoa.table import build_table
 

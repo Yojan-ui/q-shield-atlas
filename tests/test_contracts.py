@@ -113,7 +113,7 @@ def _results():
              "job_id_reason": "local solve issues no job id", "status": "optimal",
              "inputs_sha256": H, "output_sha256": H}
         ],
-        "detect": None, "handshake_evidence": None, "gates": None, "qaoa": None, "ledger_root": None, "ledger": None,
+        "detect": None, "handshake_evidence": None, "gates": None, "qaoa": None, "ledger_root": None, "ledger": None, "ledger_verification": None,
     }
 
 
