@@ -181,6 +181,12 @@ python -m viz [--no-browser]
 pytest                                      # QpiAI solver tests skip without QPIAI_OPT_API_KEY
 ```
 
+Every step can target a separate workspace instead of the repo's `out/`, `runs/` and `keys/` (defaults
+unchanged): `--out-dir`/`--runs` on all modules, `contracts.assemble --out-dir`, `ledger --root DIR`
+(the directory `payload_ref`/`ledger_ref` are relative to) `--keys-dir DIR`, `atlas report --out-dir
+--runs --root --keys-dir`, `detect --probe-timeout S` (a timeout is recorded as `probe_failed`), and
+`schedule`/`qaoa --platform-log FILE` so several workspaces share one daily-cap log.
+
 # Module details
 
 ## Detection (`detect/`)

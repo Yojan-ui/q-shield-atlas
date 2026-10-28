@@ -103,20 +103,20 @@ def solver_manifest_checks(r: dict, runs_dir: Path) -> list[tuple[str, bool]]:
     return out
 
 
-def ledger_file_root(r: dict) -> tuple[str | None, int | None]:
+def ledger_file_root(r: dict, root: Path = REPO) -> tuple[str | None, int | None]:
     if not r.get("ledger"):
         return None, None
     from ledger.log import canonical, read_entries
     from ledger.merkle import MerkleTree
 
-    path = REPO / r["ledger"]["ledger_ref"]
+    path = root / r["ledger"]["ledger_ref"]
     if not path.exists():
         return None, None
     entries = read_entries(path)
     return MerkleTree([canonical(x) for x in entries]).root(), len(entries)
 
 
-def checks(r: dict | None, runs_dir: Path) -> list[tuple[str, bool]]:
+def checks(r: dict | None, runs_dir: Path, ledger_root: Path = REPO) -> list[tuple[str, bool]]:
     if not r:
         return [("out/results.json present", False)]
     out = []
@@ -128,7 +128,7 @@ def checks(r: dict | None, runs_dir: Path) -> list[tuple[str, bool]]:
     led, ver = r.get("ledger"), r.get("ledger_verification")
     out.append(("ledger verified for the anchored root",
                 bool(led and ver and ver["ok"] and ver["root"] == led["root"] and ver["entries_checked"] == led["entry_count"])))
-    root, count = ledger_file_root(r)
+    root, count = ledger_file_root(r, ledger_root)
     out.append(("ledger file recomputes to the anchored Merkle root", bool(led and root == led["root"] and count == led["entry_count"])))
     out.append(("every MILP stage proven optimal", bool(r.get("solver_runs")) and all(x.get("termination") == "optimal" for x in r["solver_runs"])))
     out += solver_manifest_checks(r, runs_dir)
@@ -288,7 +288,7 @@ def sec_waves(r):
     return f"{counts}<h3>Forced rollback</h3>{rb}"
 
 
-def sec_ledger(r):
+def sec_ledger(r, root: Path = REPO):
     led = (r or {}).get("ledger")
     if not led:
         return missing()
@@ -299,7 +299,7 @@ def sec_ledger(r):
     from ledger.merkle import MerkleTree, verify_proof
 
     proof_html = missing()
-    path = REPO / led["ledger_ref"]
+    path = root / led["ledger_ref"]  # ledger_ref is relative to the ledger root (repo or workspace)
     q = r.get("qaoa") or {}
     idx = q.get("ledger_index")
     if path.exists() and idx is not None:
@@ -393,16 +393,16 @@ BANNER = ("Lab demo · local TLS lab services on 127.0.0.1 · local single-key t
           "simulator-scale QAOA, no quantum advantage claimed · risk, effort and shelf-life values are assumptions (config/assumptions.json)")
 
 
-def build_html(r: dict | None, runs_dir: Path = REPO / "runs", commit: str | None = None) -> str:
+def build_html(r: dict | None, runs_dir: Path = REPO / "runs", commit: str | None = None, ledger_root: Path = REPO) -> str:
     commit = commit or git_commit()
-    chk = checks(r, runs_dir)
+    chk = checks(r, runs_dir, ledger_root)
     sections = [
         ("1. Summary", sec_summary(r, chk, commit)),
         ("2. Inventory (detect)", sec_inventory(r)),
         ("3. Migration plan (schedule)", sec_plan(r)),
         ("4. Handshake evidence", sec_handshake(r)),
         ("5. Waves & rollback", sec_waves(r)),
-        ("6. Signed ledger", sec_ledger(r)),
+        ("6. Signed ledger", sec_ledger(r, ledger_root)),
         ("7. QAOA cross-check", sec_qaoa(r)),
         ("8. Assumptions & limits", sec_assumptions(r)),
         ("9. Reproduce", sec_reproduce(r)),

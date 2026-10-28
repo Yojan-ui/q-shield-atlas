@@ -23,7 +23,7 @@ REPO = Path(__file__).resolve().parent.parent
 DEFAULT_ROOT = REPO / "detect" / "fixtures" / "mock_bank"
 
 
-def run(root: Path, probes: dict[str, tuple[str, int]], run_dir: Path) -> tuple[dict, dict]:
+def run(root: Path, probes: dict[str, tuple[str, int]], run_dir: Path, probe_timeout: float = 20) -> tuple[dict, dict]:
     run_id = new_run_id()
     result = scan(root)
     inventory = build_inventory(root, result)
@@ -31,7 +31,7 @@ def run(root: Path, probes: dict[str, tuple[str, int]], run_dir: Path) -> tuple[
     by_id = {json.loads((d / "atlas-service.json").read_text())["id"]: prefix for prefix, d in dirs.items()}
     probe_records = []
     for sid, (host, port) in probes.items():
-        live = probe(host, port, transcript_dir=run_dir / run_id, label=sid)
+        live = probe(host, port, transcript_dir=run_dir / run_id, label=sid, timeout=probe_timeout)
         findings = [f for f in result["findings"] if owner(f["file"], dirs) == by_id.get(sid)]
         probe_records.append(compare(sid, findings, live))
     section = {
@@ -69,6 +69,7 @@ def main(argv=None):
     ap.add_argument("--lab-probe", action="append", default=[], metavar="SERVICE=MODE")
     ap.add_argument("--out-dir", type=Path, default=REPO / "out")
     ap.add_argument("--runs", type=Path, default=REPO / "runs")
+    ap.add_argument("--probe-timeout", type=float, default=20, help="seconds per live probe; a timeout is recorded as probe_failed")
     args = ap.parse_args(argv)
 
     probes = dict(map(parse_probe, args.probe))
@@ -81,7 +82,7 @@ def main(argv=None):
                 sid, _, mode = item.partition("=")
                 svc = stack.enter_context(managed_service(f"probe-{sid}", mode, lab))
                 probes[sid] = (svc.host, svc.port)
-        section, inventory = run(args.root, probes, args.runs)
+        section, inventory = run(args.root, probes, args.runs, args.probe_timeout)
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "detect.json").write_text(json.dumps(section, indent=1))
     (args.out_dir / "inventory.json").write_text(json.dumps(inventory, indent=1))

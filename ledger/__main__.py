@@ -7,6 +7,9 @@ ingest  append ML-DSA-65-signed run manifests to out/ledger.jsonl, write out/led
         re-assemble out/results.json (ledger_root, entry_count, pubkey_fp anchored there)
 verify  re-hash payloads, check chain, signatures and the root anchored in results.json
 proof   print and check an RFC 6962 inclusion proof for one entry
+
+Path flags (defaults = the repo layout): --root is the directory payload_ref / ledger_ref are
+relative to (it must contain --runs and the ledger), --keys-dir holds the signing key pair.
 """
 
 import argparse
@@ -29,9 +32,10 @@ PROJECT_PUBLIC_KEY = REPO / "ledger" / "pubkey" / "ledger_mldsa65.pub.pem"  # co
 LEDGER = REPO / "out" / "ledger.jsonl"
 
 
-def default_public_key() -> Path:
-    """The key generated on this machine if any, else the committed project key."""
-    return LOCAL_PUBLIC_KEY if LOCAL_PUBLIC_KEY.exists() else PROJECT_PUBLIC_KEY
+def default_public_key(keys_dir: Path | None = None) -> Path:
+    """The key generated on this machine (in keys_dir) if any, else the committed project key."""
+    local = LOCAL_PUBLIC_KEY if keys_dir is None else Path(keys_dir) / LOCAL_PUBLIC_KEY.name
+    return local if local.exists() else PROJECT_PUBLIC_KEY
 
 
 def main(argv=None):
@@ -41,26 +45,32 @@ def main(argv=None):
     ap.add_argument("--ledger", type=Path, default=LEDGER)
     ap.add_argument("--public-key", type=Path, default=None, help="default: keys/ledger_mldsa65.pub.pem, else the committed key")
     ap.add_argument("--out-dir", type=Path, default=REPO / "out")
+    ap.add_argument("--runs", type=Path, default=REPO / "runs")
+    ap.add_argument("--root", type=Path, default=REPO, help="directory payload_ref and ledger_ref are relative to")
+    ap.add_argument("--keys-dir", type=Path, default=PRIVATE_KEY.parent)
     args = ap.parse_args(argv)
     backend = detect()
+    private_key = args.keys_dir / PRIVATE_KEY.name
+    local_public_key = args.keys_dir / LOCAL_PUBLIC_KEY.name
 
     if args.command == "keygen":
-        if PRIVATE_KEY.exists():
-            sys.exit(f"{PRIVATE_KEY} already exists; not overwriting")
+        if private_key.exists():
+            sys.exit(f"{private_key} already exists; not overwriting")
+        args.keys_dir.mkdir(parents=True, exist_ok=True)
         # the public key goes next to the private key (git-ignored): committed files are never rewritten
-        backend.generate(PRIVATE_KEY, LOCAL_PUBLIC_KEY)
-        fp = backend.fingerprint(LOCAL_PUBLIC_KEY)
-        LOCAL_PUBLIC_KEY.with_suffix(".sha256").write_text(fp + "\n")
-        print(f"ML-DSA-65 key pair created in keys/ (git-ignored; private key 0600); pubkey_fp {fp}")
+        backend.generate(private_key, local_public_key)
+        fp = backend.fingerprint(local_public_key)
+        local_public_key.with_suffix(".sha256").write_text(fp + "\n")
+        print(f"ML-DSA-65 key pair created in {args.keys_dir.name}/ (git-ignored; private key 0600); pubkey_fp {fp}")
         return 0
     if args.public_key is None:
-        args.public_key = default_public_key()
+        args.public_key = default_public_key(args.keys_dir)
 
     if args.command == "ingest":
-        if not PRIVATE_KEY.exists():
-            sys.exit(f"no signing key at {PRIVATE_KEY.relative_to(REPO)}; generate one (see README) - keys are never committed")
-        ledger = Ledger(args.ledger, backend, PRIVATE_KEY, args.public_key, REPO)
-        appended, summary = ingest(ledger, args.out_dir, REPO / "runs")
+        if not private_key.exists():
+            sys.exit(f"no signing key at {private_key}; generate one (see README) - keys are never committed")
+        ledger = Ledger(args.ledger, backend, private_key, args.public_key, args.root)
+        appended, summary = ingest(ledger, args.out_dir, args.runs)
         (args.out_dir / "ledger_verify.json").unlink(missing_ok=True)  # any earlier verification is stale now
         results = assemble(args.out_dir)
         (args.out_dir / "results.json").write_text(json.dumps(results, indent=1))
@@ -72,8 +82,8 @@ def main(argv=None):
 
     if args.command == "verify":
         results = json.loads((args.out_dir / "results.json").read_text())
-        report = verify(args.ledger, args.public_key, backend, REPO, results.get("ledger"))
-        anchored = results.get("ledger") and args.ledger.resolve() == (REPO / results["ledger"]["ledger_ref"]).resolve()
+        report = verify(args.ledger, args.public_key, backend, args.root, results.get("ledger"))
+        anchored = results.get("ledger") and args.ledger.resolve() == (args.root / results["ledger"]["ledger_ref"]).resolve()
         if anchored:  # only the anchored ledger's result is recorded; checking a copy never touches out/
             status = status_record(report, backend.fingerprint(args.public_key))
             (args.out_dir / "ledger_verify.json").write_text(json.dumps(status, indent=1))

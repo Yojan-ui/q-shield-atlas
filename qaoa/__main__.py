@@ -101,13 +101,15 @@ def main(argv=None):
     ap.add_argument("--runs", type=Path, default=REPO / "runs")
     ap.add_argument("--qcloud", action="store_true", help="opt-in: sample final circuits on a QpiAI QCloud simulator (paid)")
     ap.add_argument("--allow-more", action="store_true", help=f"allow more than {DAILY_LIMIT} platform jobs per UTC day")
+    ap.add_argument("--platform-log", type=Path, default=None,
+                    help="shared daily-cap log (default RUNS/platform_jobs.log); point every workspace at one file")
     args = ap.parse_args(argv)
 
     cfg = json.loads(args.config.read_text())
     budget = None
     if args.qcloud:
         qcloud_run.check_device(cfg["qcloud"]["device"], cfg["qcloud"]["allowed_devices"])
-        budget = PlatformBudget(args.runs / "platform_jobs.log", allow_more=args.allow_more)
+        budget = PlatformBudget(args.platform_log or args.runs / "platform_jobs.log", allow_more=args.allow_more)
         budget.check(len(cfg["reps"]))
     section = run(json.loads(args.schedule.read_text()), cfg, args.runs, args.qcloud, budget)
     args.out_dir.mkdir(parents=True, exist_ok=True)

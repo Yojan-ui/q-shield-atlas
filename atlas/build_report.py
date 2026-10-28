@@ -14,7 +14,7 @@ def build_and_sign(out_dir: Path = REPO / "out", runs_dir: Path = REPO / "runs",
                    private_key: Path | None = None, public_key: Path | None = None) -> dict:
     results_path = out_dir / "results.json"
     results = json.loads(results_path.read_text()) if results_path.exists() else None
-    html_text, content_hash = finalize(build_html(results, runs_dir))
+    html_text, content_hash = finalize(build_html(results, runs_dir, ledger_root=repo))
     assert self_hash_ok(html_text)
     run_id = new_run_id()
     run_dir = runs_dir / run_id
