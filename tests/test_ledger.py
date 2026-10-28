@@ -192,3 +192,19 @@ def test_keygen_never_touches_committed_public_key(monkeypatch, tmp_path):
     assert (REPO / "ledger" / "pubkey" / "ledger_mldsa65.pub.pem").read_bytes() == committed
     with pytest.raises(SystemExit):
         cli.main(["keygen"])  # refuses to overwrite
+
+
+def test_verifying_a_copy_never_touches_recorded_results(tmp_path):
+    """Live tamper demo safety: `ledger verify --ledger COPY` must not rewrite out/ results or verify status."""
+    import ledger.__main__ as cli
+
+    out = REPO / "out"
+    if not (out / "results.json").exists() or not (out / "ledger.jsonl").exists():
+        pytest.skip("no generated out/results.json + ledger")
+    before = {p: p.read_bytes() for p in (out / "results.json", out / "ledger_verify.json") if p.exists()}
+    entries = read_entries(out / "ledger.jsonl")
+    entries[min(2, len(entries) - 1)]["type"] = "forged"
+    copy_path = tmp_path / "ledger.jsonl"
+    copy_path.write_text("".join(canonical(e).decode() + "\n" for e in entries))
+    assert cli.main(["verify", "--ledger", str(copy_path)]) == 1
+    assert {p: p.read_bytes() for p in before} == before

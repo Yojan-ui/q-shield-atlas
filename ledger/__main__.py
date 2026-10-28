@@ -73,9 +73,13 @@ def main(argv=None):
     if args.command == "verify":
         results = json.loads((args.out_dir / "results.json").read_text())
         report = verify(args.ledger, args.public_key, backend, REPO, results.get("ledger"))
-        status = status_record(report, backend.fingerprint(args.public_key))
-        (args.out_dir / "ledger_verify.json").write_text(json.dumps(status, indent=1))
-        (args.out_dir / "results.json").write_text(json.dumps(assemble(args.out_dir), indent=1))
+        anchored = results.get("ledger") and args.ledger.resolve() == (REPO / results["ledger"]["ledger_ref"]).resolve()
+        if anchored:  # only the anchored ledger's result is recorded; checking a copy never touches out/
+            status = status_record(report, backend.fingerprint(args.public_key))
+            (args.out_dir / "ledger_verify.json").write_text(json.dumps(status, indent=1))
+            (args.out_dir / "results.json").write_text(json.dumps(assemble(args.out_dir), indent=1))
+        else:
+            print(f"(checking {args.ledger}, not the anchored ledger: result not recorded)")
         if report["ok"]:
             print(f"OK: {report['entries_checked']} entries; chain, ML-DSA-65 signatures and payload hashes verified; "
                   f"root {report['root']} matches results.json")
