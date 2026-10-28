@@ -4,8 +4,14 @@ PQC track, problem statement PQC-01. Find vulnerable RSA/ECC in a system, schedu
 optimally with QpiAI Opt, verify every wave, prove it with signed evidence, and show it in a 3D
 exposure tower (2D fallback).
 
-**Status:** build steps 1-2 of 8 (`schedule/`, JSON contracts, `detect/`). Later modules
-(capture, attack, gates, ledger, qaoa, viz) are not built yet; their sections in `results.json` are `null`.
+**Status:** build steps 1-3 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
+evidence) plus the first gate (`gates/pq_handshake.py`). Later modules (remaining gates, ledger,
+qaoa, viz) are not built yet; their sections in `results.json` are `null`.
+
+**Scope decision:** this project performs no key recovery, factoring or decryption. Quantum
+exposure is shown with real TLS 1.3 handshake evidence: sessions that rely on classical key
+exchange are labelled *HNDL-exposed* (harvest-now-decrypt-later: recorded traffic relies on
+classical key exchange). Nothing is decrypted and no decryption is claimed.
 
 ## Rerun
 
@@ -13,6 +19,7 @@ exposure tower (2D fallback).
 conda activate pqc            # Python 3.12; the base env lacks qpiai-opt
 source .env.sh                # exports QPIAI_OPT_API_KEY (and QCLOUD_API_KEY); git-ignored
 python -m detect --probe web-gw=HOST:PORT   # -> out/detect.json, out/inventory.json (probe optional)
+python -m capture             # lab TLS 1.3 handshakes -> out/capture.json, out/gates.json, out/handshake_evidence.json
 python -m schedule --inventory out/inventory.json  # local solves -> out/schedule.json, logs in runs/<run_id>/
 python -m schedule --platform # opt-in: 2 paid QpiAI platform jobs (main plan only), see below
 python -m contracts.assemble  # -> out/results.json, validated against contracts/results.schema.json
@@ -48,6 +55,34 @@ microservice repos; the manual review of every finding is in `docs/detect_real_r
 
 Limits: regex/line-based static rules (no data-flow analysis); ground truth is small and hand-made;
 crypto configured outside the repo (cloud LB policies, mesh defaults) is only visible to the probe.
+
+## Handshake evidence (`capture/`) and the PQ handshake gate (`gates/pq_handshake.py`)
+
+Requires OpenSSL >= 3.5 with ML-KEM: the `pqc` env pins conda-forge `openssl 3.6.5 h55eecbc_0`.
+(The system LibreSSL 3.3.6 and the base env's OpenSSL 3.0.18 have no ML-KEM.) Tests that need
+ML-KEM skip with that reason instead of passing.
+
+- `capture/services.py` starts two real TLS 1.3 services with `openssl s_server`, each with a fresh
+  self-signed RSA-2048 certificate in a temp dir, bound to 127.0.0.1 on a free port:
+  **legacy** (`-groups X25519`, classical) and **hybrid** (`-groups X25519MLKEM768`).
+  Processes are terminated (then killed if needed) on exit, including on errors.
+- `capture/handshake.py` connects with `openssl s_client -groups <list> -brief` and records the
+  negotiated group, cipher, protocol and certificate key family (from the TLS signature type), plus
+  the raw transcript (saved under `runs/<run_id>/`) and its SHA-256. Each service is probed by a
+  modern client (`X25519MLKEM768:X25519`) and by a classical-only client (`X25519:prime256v1`).
+  `out/capture.json` follows `contracts/capture.schema.json`; failed handshakes go to `refused_attempts`.
+- `gates/pq_handshake.py` reads capture.json only. **pq_handshake** passes only if the negotiated group
+  is on the allowlist in `config/lab.json`. **downgrade** passes only if the classical-only client was
+  refused; with no recorded attempt it reports `NOT_RUN`, not a pass.
+- Sessions that negotiated a classical group are labelled
+  *"HNDL-exposed: recorded traffic relies on classical key exchange"* in `results.json`
+  (`handshake_evidence`). That is a statement about the key exchange, not a demonstrated break:
+  no traffic is decrypted and no decryption is claimed.
+
+Limits: both lab certificates are RSA-2048, so authentication is still classical even on the hybrid
+service (HNDL concerns confidentiality, which the key exchange protects). `-brief` output has no
+per-session data, so identical handshakes give identical transcript hashes; endpoint and timestamp
+distinguish sessions.
 
 ## Scheduling model (`schedule/`)
 
@@ -134,7 +169,8 @@ optimal exposure is monotone in shelf life.
 
 ## Contracts (`contracts/`)
 
-- `capture.schema.json`: service id, handshake bytes, ciphertext (base64).
+- `capture.schema.json`: established TLS sessions (service_id, negotiated_group, cipher, protocol,
+  cert_alg, transcript_sha256, timestamp) and refused handshake attempts. No payloads.
 - `results.schema.json`: assets, waves, status, exposure per scenario, baselines, avoided,
-  solver runs, sensitivity, and module sections (detect, attack, gates, qaoa, ledger_root).
+  solver runs, sensitivity, and module sections (detect, handshake_evidence, gates, qaoa, ledger_root).
 - `ledger_entry.schema.json`: `{index, type, payload_hash, prev_hash, sig_mldsa, ts}`.

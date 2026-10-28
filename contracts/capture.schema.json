@@ -1,18 +1,54 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://q-shield-atlas.local/contracts/capture.schema.json",
-  "title": "Captured lab handshake and payload",
-  "description": "Produced by capture/, consumed by attack/. Lab traffic only: the legacy service uses a deliberately tiny RSA key as a toy stand-in for what a CRQC would do to RSA-2048.",
+  "title": "TLS handshake evidence",
+  "description": "Produced by capture/, consumed by gates/. Real TLS 1.3 handshakes against local lab services, recorded with openssl s_client -brief. Metadata only: no application payloads, no keys, no decryption.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "service_id", "captured_at", "handshake_b64", "ciphertext_b64"],
+  "required": ["schema_version", "run_id", "generated_at", "openssl_version", "sessions", "refused_attempts"],
   "properties": {
-    "schema_version": {"const": "1.0"},
-    "service_id": {"type": "string", "minLength": 1},
-    "captured_at": {"type": "string", "format": "date-time"},
-    "kex": {"type": "string", "description": "Key-establishment mode observed, e.g. rsa-toy or hybrid-x25519-mlkem768."},
-    "handshake_b64": {"type": "string", "pattern": "^[A-Za-z0-9+/]*={0,2}$"},
-    "ciphertext_b64": {"type": "string", "pattern": "^[A-Za-z0-9+/]*={0,2}$"},
-    "notes": {"type": "string"}
+    "schema_version": {"const": "2.0"},
+    "run_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "openssl_version": {"type": "string"},
+    "sessions": {
+      "type": "array",
+      "description": "Handshakes that completed.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["service_id", "negotiated_group", "cipher", "protocol", "cert_alg", "transcript_sha256", "timestamp"],
+        "properties": {
+          "service_id": {"type": "string", "minLength": 1},
+          "endpoint": {"type": "string"},
+          "client_groups_offered": {"type": "string"},
+          "negotiated_group": {"type": "string", "minLength": 1},
+          "cipher": {"type": "string", "minLength": 1},
+          "protocol": {"type": "string", "minLength": 1},
+          "cert_alg": {"type": "string", "minLength": 1, "description": "Server certificate key family from the TLS signature type, e.g. RSA, ECDSA, Ed25519, ML-DSA."},
+          "signature_type": {"type": "string"},
+          "transcript_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    "refused_attempts": {
+      "type": "array",
+      "description": "Handshakes that did not complete, e.g. a classical-only client against a hybrid-only service.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["service_id", "client_groups_offered", "established", "transcript_sha256", "timestamp"],
+        "properties": {
+          "service_id": {"type": "string", "minLength": 1},
+          "endpoint": {"type": "string"},
+          "client_groups_offered": {"type": "string"},
+          "established": {"const": false},
+          "error": {"type": ["string", "null"]},
+          "transcript_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
   }
 }

@@ -150,7 +150,7 @@ def test_section_assembles_into_valid_results(opt_client, tmp_path):
     (tmp_path / "schedule.json").write_text(json.dumps(section))
     results = assemble(tmp_path)
     validate("results", results)
-    assert results["attack"] is None and results["ledger_root"] is None
+    assert results["handshake_evidence"] is None and results["ledger_root"] is None
     for b in results["baselines"].values():
         assert results["exposure"]["expected_weighted"] <= b["expected_weighted"] + 1e-6
     # avoided numbers are recomputable from the plans in the same document

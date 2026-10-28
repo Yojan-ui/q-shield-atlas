@@ -5,6 +5,9 @@ Find vulnerable RSA/ECC in a system, schedule the migration optimally with QpiAI
 verify every wave, prove it with signed evidence, show it in a 3D exposure tower (2D fallback).
 
 ## Environment
+- PQC TLS: `/opt/anaconda3/envs/pqc/bin/openssl` = OpenSSL 3.6.5 (conda-forge `openssl 3.6.5 h55eecbc_0`,
+  pinned) with ML-KEM, X25519MLKEM768 and ML-DSA. System LibreSSL 3.3.6 and base-env OpenSSL 3.0.18
+  have none of these; never use them for lab services.
 - Python 3.12, conda env `pqc`: `conda activate pqc` (interpreter: `/opt/anaconda3/envs/pqc/bin/python`).
   The `base` env is Python 3.13 and lacks qpiai-opt / liboqs — never run project code with it.
 - Credentials: `source .env.sh` exports `QPIAI_OPT_API_KEY` and `QCLOUD_API_KEY`.
@@ -19,8 +22,9 @@ verify every wave, prove it with signed evidence, show it in a 3D exposure tower
    with timestamp, input hashes, solver output and job ID (or an explicit `null` + reason
    when the backend issues no job ID, e.g. local Opt solves).
 3. No claim of quantum advantage. QAOA is a measured cross-check against the exact optimum only.
-4. The small-key RSA break is a labelled toy stand-in for what a CRQC would do to RSA-2048.
-   Say so in code comments, UI and README.
+4. No key recovery, factoring or decryption anywhere in the project (user decision 2026-10-28).
+   Quantum exposure is shown with handshake evidence only: classical-only sessions are labelled
+   "HNDL-exposed: recorded traffic relies on classical key exchange". Never claim decryption.
 5. Risk/effort scores and shelf-life values are assumptions: they live in config, are shown
    in the UI/README as assumptions, and have a sensitivity test.
 6. QCloud platform runs must name a simulator device explicitly (`QpiAI-QSV-Simulator` etc.).
@@ -47,17 +51,21 @@ verify every wave, prove it with signed evidence, show it in a 3D exposure tower
 
 ## Architecture
 Modules communicate only through the JSON contracts in `contracts/` (validated in tests).
-- `capture/`  lab TLS-like service with a deliberately small RSA key (64–128 bit) + capture
+- `capture/`  two local real-TLS-1.3 services via `openssl s_server` (legacy: X25519 only;
+              hybrid: X25519MLKEM768 only) + handshake evidence via `openssl s_client -brief`
 - `detect/`   static scan (code/config/certs, file:line evidence) + live handshake probe + drift
 - `schedule/` QpiAI Opt MILP + baselines (FCFS, greedy)
-- `gates/`    per-wave checks: PQ handshake, compatibility test, tested rollback
-- `attack/`   toy factoring + decrypt of captured legacy traffic; replay must FAIL on hybrid
+- `gates/`    per-wave checks: PQ handshake (group allowlist), downgrade refused,
+              compatibility test, tested rollback
 - `ledger/`   SHA-256 Merkle log, entries signed with ML-DSA (backend detected and recorded)
 - `qaoa/`     wave-selection QUBO (<=16 vars) via QAOA on QpiAI simulators vs exact optimum
 - `viz/`      Three.js exposure tower + 2D fallback (default); reads only `results.json`
 - `tests/`, `run_demo.sh`, `README.md`
 
-Contracts: `capture.json`, `results.json`, ledger entry
+Lab services bind 127.0.0.1 only, on free ports, as subprocesses with timeouts and clean shutdown.
+
+Contracts: `capture.json` (handshake sessions: service_id, negotiated_group, cipher, protocol,
+cert_alg, transcript_sha256, timestamp; plus refused attempts), `results.json`, ledger entry
 `{index, type, payload_hash, prev_hash, sig_mldsa, ts}`.
 
 ## Core model (schedule/)
@@ -69,13 +77,15 @@ a dependency migrates no later than its dependents.
 Report exposure-years avoided vs both baselines on the same data.
 
 ## Progress
-- Step 1 (schedule + contracts) and step 2 (detect) done. Next: step 3 (capture/ + attack/).
+- Steps 1 (schedule + contracts) and 2 (detect) done. Step 3 = capture/ handshake evidence +
+  gates/pq_handshake.py (start of step 4).
 - Real-repo scans are read-only; clones live in git-ignored `.cache/repos/`.
 
 ## Workflow
-- Build order is fixed: schedule → detect → capture+attack → gates → ledger → qaoa → viz → run_demo.
+- Build order is fixed: schedule → detect → capture (handshake evidence) → gates → ledger → qaoa → viz → run_demo.
   Do not skip ahead.
 - Small verified steps. Run `pytest` after each step, then commit.
-- Definition of done: pytest green (attack succeeds on legacy / fails on migrated; ledger tamper
-  detected; schedule feasible and never worse than baselines); `./run_demo.sh` regenerates
+- Definition of done: pytest green (legacy negotiates a classical group → PQ gate FAIL and
+  HNDL-exposed; hybrid negotiates X25519MLKEM768 → gate PASS; classical-only client refused by
+  the hybrid service; ledger tamper detected; schedule feasible and never worse than baselines); `./run_demo.sh` regenerates
   `results.json` and opens the viz; README states every assumption, limit and how to rerun.

@@ -37,12 +37,15 @@ def test_ledger_entry_invalid(mutate):
 
 
 CAPTURE = {
-    "schema_version": "1.0",
-    "service_id": "legacy-bank",
-    "captured_at": "2026-10-28T12:00:00Z",
-    "kex": "rsa-toy",
-    "handshake_b64": "AAEC",
-    "ciphertext_b64": "AwQF",
+    "schema_version": "2.0",
+    "run_id": "0" * 32,
+    "generated_at": "2026-10-28T12:00:00Z",
+    "openssl_version": "OpenSSL 3.6.5",
+    "sessions": [
+        {"service_id": "hybrid", "negotiated_group": "X25519MLKEM768", "cipher": "TLS_AES_256_GCM_SHA384",
+         "protocol": "TLSv1.3", "cert_alg": "RSA", "transcript_sha256": H, "timestamp": "2026-10-28T12:00:00Z"}
+    ],
+    "refused_attempts": [],
 }
 
 
@@ -50,9 +53,25 @@ def test_capture_valid():
     validate("capture", CAPTURE)
 
 
-def test_capture_missing_ciphertext_fails():
-    doc = dict(CAPTURE)
-    doc.pop("ciphertext_b64")
+@pytest.mark.parametrize("field", ["negotiated_group", "cipher", "protocol", "cert_alg", "transcript_sha256", "service_id"])
+def test_capture_missing_session_field_rejected(field):
+    doc = copy.deepcopy(CAPTURE)
+    del doc["sessions"][0][field]
+    with pytest.raises(ValidationError):
+        validate("capture", doc)
+
+
+def test_capture_payload_fields_rejected():
+    doc = copy.deepcopy(CAPTURE)
+    doc["sessions"][0]["ciphertext_b64"] = "AAAA"
+    with pytest.raises(ValidationError):
+        validate("capture", doc)
+
+
+def test_capture_refused_attempt_cannot_claim_established():
+    doc = copy.deepcopy(CAPTURE)
+    doc["refused_attempts"] = [{"service_id": "hybrid", "client_groups_offered": "X25519", "established": True,
+                                "transcript_sha256": H, "timestamp": "2026-10-28T12:00:00Z"}]
     with pytest.raises(ValidationError):
         validate("capture", doc)
 
@@ -90,7 +109,7 @@ def _results():
              "job_id_reason": "local solve issues no job id", "status": "optimal",
              "inputs_sha256": H, "output_sha256": H}
         ],
-        "detect": None, "attack": None, "gates": None, "qaoa": None, "ledger_root": None,
+        "detect": None, "handshake_evidence": None, "gates": None, "qaoa": None, "ledger_root": None,
     }
 
 

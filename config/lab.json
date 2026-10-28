@@ -1,0 +1,12 @@
+{
+  "label": "Local lab TLS 1.3 services (openssl s_server on 127.0.0.1). Configuration, not measurements.",
+  "services": {
+    "legacy": {"groups": "X25519", "cert_key": "rsa:2048"},
+    "hybrid": {"groups": "X25519MLKEM768", "cert_key": "rsa:2048"}
+  },
+  "client_groups": "X25519MLKEM768:X25519",
+  "classical_only_client_groups": "X25519:prime256v1",
+  "pq_group_allowlist": ["X25519MLKEM768", "SecP256r1MLKEM768", "SecP384r1MLKEM1024", "MLKEM512", "MLKEM768", "MLKEM1024"],
+  "timeouts_s": {"keygen": 30, "startup": 10, "handshake": 15, "shutdown": 5},
+  "hndl_label": "HNDL-exposed: recorded traffic relies on classical key exchange"
+}
