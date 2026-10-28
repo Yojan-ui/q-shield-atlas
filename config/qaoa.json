@@ -11,10 +11,10 @@
   "cobyla_maxiter": 400,
   "qcloud": {
     "device": "QpiAI-QSV-Simulator",
-    "allowed_devices": ["QpiAI-QSV-Simulator", "QpiAI-QSV-Lite"],
+    "allowed_devices": ["QpiAI-QSV-Simulator"],
     "max_jobs_per_run": 3,
     "timeout_s": 600,
-    "experiment_name": "qshield-qaoa-crosscheck"
+    "experiment_name": "Default Experiment"
   },
   "compare_sigma": 4.0
 }

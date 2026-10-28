@@ -82,6 +82,8 @@ Report exposure-years avoided vs both baselines on the same data.
 ## Progress
 - Steps 1-6 done (schedule, detect, capture handshake evidence, gates, ML-DSA-65 ledger, qaoa).
   Next: step 7 (viz/). QCloud QAOA runs need the user's go-ahead (`python -m qaoa --qcloud`).
+- QCloud blocker: job creation needs an active QCloud subscription ("an active subscription is
+  required to run jobs"). Do not retry --qcloud until the user says the account has one.
 - QCloud (qpiai_quantum 0.3.0): Circuit.run(shots, device_name=...) blocks and returns JobResult
   (counts, job_id, credits_used). Only QpiAI-QSV-Simulator / QSV-Lite allowed; never Indus-1.
   Counts strings: qubit 0 rightmost; rz/rzz/rx = exp(-i t/2 P).

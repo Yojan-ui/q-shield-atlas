@@ -5,7 +5,8 @@ claimed; the problem is small enough for brute force.
 
 Only the final circuit for each p is submitted (angles are optimised locally), one job per p,
 at most `max_jobs_per_run`. Device must be on the simulator allowlist; QpiAI-Indus-1 (QPU) is
-refused. Uses the shared platform guard: prints "Submitting N QCloud jobs", logs to
+refused. The experiment name must already exist on the account (checked read-only before any
+submission; qpiai-quantum 0.3.0 has no create call). Uses the shared platform guard: prints "Submitting N QCloud jobs", logs to
 runs/platform_jobs.log, daily cap unless --allow-more, refused entirely under pytest.
 """
 
@@ -31,9 +32,11 @@ def run(q, angle_sets: list[dict], cfg: dict, budget, run_id: str, run_dir: Path
         raise ValueError(f"{len(angle_sets)} jobs exceed max_jobs_per_run={qc['max_jobs_per_run']}")
     budget.check(len(angle_sets))  # refuse up front rather than after a partial run
 
-    from qpiai_quantum import QpiAIQuantumAuth
+    from qpiai_quantum import JobManager, QpiAIQuantumAuth
 
     QpiAIQuantumAuth.login(os.environ["QCLOUD_API_KEY"])
+    # Read-only pre-flight: the SDK cannot create experiments and the server rejects unknown names.
+    JobManager().get_experiment_id_by_name(qc["experiment_name"])
     records, failed = [], None
     for a in angle_sets:
         stage = f"qaoa.qcloud.p{a['p']}"

@@ -176,6 +176,11 @@ the anchor in `results.json` is only as trustworthy as wherever results.json is 
   (2048 shots, at most 3 jobs) to `QpiAI-QSV-Simulator` (usage rate 1; QPU `QpiAI-Indus-1` refused),
   through the same guard as the scheduler (announce, log, 10 jobs/UTC day shared, refused under pytest).
   Local and QCloud statistics are compared with z-scores; large differences are reported, both kept.
+  **Current status: no QCloud results.** Attempts on 2026-10-28 were rejected before any job was
+  created: first `Experiment 'qshield-qaoa-crosscheck' not found` (the SDK cannot create experiments;
+  now uses the existing `Default Experiment`, checked read-only before submitting), then
+  `Failed to create job: an active subscription is required to run jobs`. The account shows 0 QCloud
+  jobs. All QAOA numbers so far come from the local numpy simulator and the random baseline.
 - **Metrics** (`qaoa/metrics.py`): feasible fraction; best feasible objective; approximation ratio =
   best_feasible / exact_optimum (both <= 0, so 1 = optimum found); energy ratio
   (E_max - mean E)/(E_max - E_min); probability of the exact optimal bitstring and of the optimal asset set.
