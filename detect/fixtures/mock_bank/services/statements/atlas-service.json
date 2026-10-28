@@ -1,0 +1,9 @@
+{
+ "id": "statements",
+ "name": "Statement archive export",
+ "kind": "batch_sftp",
+ "data_class": "archive_backup",
+ "depends_on": [
+  "backup"
+ ]
+}

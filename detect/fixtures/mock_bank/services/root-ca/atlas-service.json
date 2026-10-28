@@ -1,0 +1,9 @@
+{
+ "id": "root-ca",
+ "name": "Internal root CA",
+ "kind": "root_ca",
+ "data_class": "regulatory_records",
+ "depends_on": [
+  "hsm"
+ ]
+}

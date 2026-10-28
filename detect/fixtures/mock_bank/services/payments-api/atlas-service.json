@@ -1,0 +1,10 @@
+{
+ "id": "payments-api",
+ "name": "Payments API",
+ "kind": "service_mtls",
+ "data_class": "payments",
+ "depends_on": [
+  "hsm",
+  "root-ca"
+ ]
+}

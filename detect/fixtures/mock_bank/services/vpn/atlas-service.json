@@ -1,0 +1,7 @@
+{
+ "id": "vpn",
+ "name": "Branch site-to-site VPN",
+ "kind": "vpn",
+ "data_class": "internal_ops",
+ "depends_on": []
+}

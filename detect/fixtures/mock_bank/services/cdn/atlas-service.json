@@ -1,0 +1,7 @@
+{
+ "id": "cdn",
+ "name": "Marketing CDN edge",
+ "kind": "cdn_edge",
+ "data_class": "public_content",
+ "depends_on": []
+}

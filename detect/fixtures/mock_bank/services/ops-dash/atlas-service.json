@@ -1,0 +1,9 @@
+{
+ "id": "ops-dash",
+ "name": "Ops dashboard",
+ "kind": "tls_gateway",
+ "data_class": "internal_ops",
+ "depends_on": [
+  "root-ca"
+ ]
+}

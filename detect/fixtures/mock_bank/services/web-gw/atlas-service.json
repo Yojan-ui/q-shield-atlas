@@ -1,0 +1,9 @@
+{
+ "id": "web-gw",
+ "name": "Public web TLS gateway",
+ "kind": "tls_gateway",
+ "data_class": "customer_pii",
+ "depends_on": [
+  "root-ca"
+ ]
+}

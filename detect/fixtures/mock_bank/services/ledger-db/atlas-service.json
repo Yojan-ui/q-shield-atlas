@@ -1,0 +1,9 @@
+{
+ "id": "ledger-db",
+ "name": "Core ledger database link",
+ "kind": "database_tls",
+ "data_class": "payments",
+ "depends_on": [
+  "root-ca"
+ ]
+}

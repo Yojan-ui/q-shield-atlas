@@ -68,6 +68,10 @@ Constraints: each asset migrates exactly once; weekly effort <= capacity;
 a dependency migrates no later than its dependents.
 Report exposure-years avoided vs both baselines on the same data.
 
+## Progress
+- Step 1 (schedule + contracts) and step 2 (detect) done. Next: step 3 (capture/ + attack/).
+- Real-repo scans are read-only; clones live in git-ignored `.cache/repos/`.
+
 ## Workflow
 - Build order is fixed: schedule → detect → capture+attack → gates → ledger → qaoa → viz → run_demo.
   Do not skip ahead.

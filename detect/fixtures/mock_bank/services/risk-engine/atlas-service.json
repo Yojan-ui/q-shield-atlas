@@ -1,0 +1,9 @@
+{
+ "id": "risk-engine",
+ "name": "Risk model service",
+ "kind": "service_mtls",
+ "data_class": "trade_secrets",
+ "depends_on": [
+  "bus"
+ ]
+}

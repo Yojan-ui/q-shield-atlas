@@ -1,0 +1,9 @@
+{
+ "id": "auth",
+ "name": "Auth / session service",
+ "kind": "service_mtls",
+ "data_class": "auth_session",
+ "depends_on": [
+  "root-ca"
+ ]
+}

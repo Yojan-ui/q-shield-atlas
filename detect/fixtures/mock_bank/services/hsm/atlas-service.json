@@ -1,0 +1,7 @@
+{
+ "id": "hsm",
+ "name": "Payments HSM cluster",
+ "kind": "hsm",
+ "data_class": "payments",
+ "depends_on": []
+}

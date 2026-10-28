@@ -1,0 +1,7 @@
+{
+ "id": "status-page",
+ "name": "Public status page (already hybrid PQC)",
+ "kind": "tls_gateway",
+ "data_class": "public_content",
+ "depends_on": []
+}

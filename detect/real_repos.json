@@ -1,0 +1,7 @@
+{
+  "note": "Public microservice repos scanned read-only at pinned commits (resolved 2026-10-28). Nothing from them is built or executed.",
+  "repos": [
+    {"name": "online-boutique", "url": "https://github.com/GoogleCloudPlatform/microservices-demo.git", "commit": "c7cb6d5bfd6ea3aed768634ebbcb98cb7a523712"},
+    {"name": "opentelemetry-demo", "url": "https://github.com/open-telemetry/opentelemetry-demo.git", "commit": "841adc0194e98804798248632bfe8711284e62ac"}
+  ]
+}

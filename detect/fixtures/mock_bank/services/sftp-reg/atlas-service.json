@@ -1,0 +1,7 @@
+{
+ "id": "sftp-reg",
+ "name": "Regulator SFTP drop",
+ "kind": "batch_sftp",
+ "data_class": "regulatory_records",
+ "depends_on": []
+}

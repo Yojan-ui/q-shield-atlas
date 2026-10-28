@@ -1,0 +1,4 @@
+flask==3.0.0
+rsa==4.9.1
+rsa-docs-theme==1.0  # decoy: a different package
+google-auth==2.30.0

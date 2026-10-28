@@ -1,0 +1,9 @@
+{
+ "id": "bus",
+ "name": "Internal message bus",
+ "kind": "message_bus",
+ "data_class": "trade_secrets",
+ "depends_on": [
+  "root-ca"
+ ]
+}

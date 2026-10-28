@@ -1,0 +1,9 @@
+{
+ "id": "kyc-db",
+ "name": "KYC document store",
+ "kind": "database_tls",
+ "data_class": "customer_pii",
+ "depends_on": [
+  "root-ca"
+ ]
+}

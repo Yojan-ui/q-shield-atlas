@@ -50,6 +50,7 @@ def build_section(problem, client, run_dir, with_sensitivity=True, mode="local",
                 "depends_on": list(a.depends_on),
                 "status": "planned",
                 "planned_week": weeks[a.id],
+                "evidence": list(a.evidence),
             }
             for a in problem.assets
         ],

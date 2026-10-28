@@ -28,6 +28,7 @@ class Asset:
     kind: str = ""
     data_class: str = ""
     algorithm: str = ""
+    evidence: tuple = ()  # file:line findings from detect/, if the inventory came from a scan
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,7 @@ def problem_from_dicts(cfg: dict, inventory: dict) -> Problem:
                 kind=row.get("kind", ""),
                 data_class=row.get("data_class", ""),
                 algorithm=row.get("algorithm", ""),
+                evidence=tuple(row.get("evidence", ())),
             )
         )
     return Problem(

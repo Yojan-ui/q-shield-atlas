@@ -1,0 +1,7 @@
+{
+ "id": "backup",
+ "name": "Encrypted backup vault",
+ "kind": "batch_sftp",
+ "data_class": "archive_backup",
+ "depends_on": []
+}

@@ -1,0 +1,12 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        tls:
+exporters:
+  debug:
+    verbosity: basic  # decoy: no crypto here
+  otlp/plain:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true  # decoy: TLS disabled, not TLS-on-defaults
