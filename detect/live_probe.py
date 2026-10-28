@@ -103,20 +103,24 @@ def parse_transcript(text: str) -> dict:
     }
 
 
-def probe(host: str, port: int, groups: str = CLIENT_GROUPS, transcript_dir: Path | None = None, label: str = "") -> dict:
+def probe(host: str, port: int, groups: str = CLIENT_GROUPS, transcript_dir: Path | None = None, label: str = "",
+          timeout: float = 20) -> dict:
     binary = openssl_binary()
     info = openssl_info(binary)
     if not info["ml_kem"]:
         groups = ":".join(g for g in groups.split(":") if g not in PQC_GROUPS)
     cmd = [binary, "s_client", "-connect", f"{host}:{port}", "-groups", groups, "-showcerts"]
-    proc = subprocess.run(cmd, input="", capture_output=True, text=True, timeout=20)
-    text = proc.stdout + proc.stderr
+    try:
+        proc = subprocess.run(cmd, input="", capture_output=True, text=True, timeout=timeout)
+        text, ok = proc.stdout + proc.stderr, proc.returncode == 0
+    except subprocess.TimeoutExpired:  # recorded as a failed probe (drift: probe_failed), never as a result
+        text, ok = f"probe timed out after {timeout:g} s\n", False
     record = {
         "endpoint": f"{host}:{port}",
         "ts": utc_now(),
         "client_groups_offered": groups,
         "openssl": info["version"],
-        "handshake_ok": proc.returncode == 0 and "Cipher is" in text and "(NONE)" not in text,
+        "handshake_ok": ok and "Cipher is" in text and "(NONE)" not in text,
         "transcript_sha256": sha256_hex(text.encode()),
         **parse_transcript(text),
     }

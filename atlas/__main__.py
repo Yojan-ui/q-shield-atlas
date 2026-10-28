@@ -1,5 +1,6 @@
 """python -m atlas announce [--fast] [--json]
-python -m atlas report [--open]
+python -m atlas report [--open] [--out-dir DIR --runs DIR --root DIR --keys-dir DIR]
+python -m atlas site [--port N] [--no-browser]   (showcase site; read-only; frontend in site/)
 
 Terminal launch screen read from out/results.json, the ledger and pytest's JUnit report.
 Without --fast the test suite is run first (QpiAI platform/QCloud submissions stay forbidden)
@@ -17,18 +18,32 @@ from .announce import REPO, collect, junit_counts, load_json, render
 
 
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["site"]:  # `python -m site` is the stdlib module, so the site backend lives here
+        from .site_server import main as site_main
+
+        return site_main(argv[1:])
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("command", choices=["announce", "report"])
     ap.add_argument("--open", action="store_true", help="report: open out/report.html in the default browser")
     ap.add_argument("--fast", action="store_true", help="skip running pytest; use out/pytest-junit.xml from the last run")
     ap.add_argument("--json", action="store_true", help="print the collected data as JSON instead of the screen")
     ap.add_argument("--results", default=str(REPO / "out" / "results.json"))
+    ap.add_argument("--out-dir", type=Path, default=REPO / "out", help="report: directory with results.json")
+    ap.add_argument("--runs", type=Path, default=REPO / "runs", help="report: run manifests directory")
+    ap.add_argument("--root", type=Path, default=REPO, help="report: directory ledger_ref / payload_ref are relative to")
+    ap.add_argument("--keys-dir", type=Path, default=None, help="report: ledger signing key directory (default keys/)")
     args = ap.parse_args(argv)
 
     if args.command == "report":
         from .build_report import build_and_sign
 
-        res = build_and_sign()
+        keys = {}
+        if args.keys_dir is not None:
+            from ledger.__main__ import PRIVATE_KEY, default_public_key
+
+            keys = {"private_key": args.keys_dir / PRIVATE_KEY.name, "public_key": default_public_key(args.keys_dir)}
+        res = build_and_sign(args.out_dir, args.runs, args.root, **keys)
         print(f"wrote {res['report']} (run {res['run_id']})")
         print(f"  file SHA-256 {res['file_sha256']}; footer self-hash {res['content_sha256']}")
         print(f"  signed into the ledger as entry #{res['ledger_entry']}" if res["ledger_entry"] is not None

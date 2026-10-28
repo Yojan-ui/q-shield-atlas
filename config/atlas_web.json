@@ -1,0 +1,62 @@
+{
+  "label": "atlas_web settings. Policy, not measurements.",
+  "platform": {
+    "note": "Paid QpiAI runs from the web UI: admin-only, confirm dialog, same platform_guard (daily cap, logging, QpiAI-Indus-1 refused). Both stay disabled until the user flips the switch below after the account is fixed.",
+    "opt_enabled": false,
+    "opt_blocked_reason": "QpiAI Opt platform submissions were rejected by the server: \"no active storage quota found for organization\" (2026-10-28). No platform job was created. Disabled until the account has a storage quota.",
+    "qcloud_enabled": false,
+    "qcloud_blocked_reason": "QCloud job creation was rejected: \"an active subscription is required to run jobs\" (2026-10-28). No QCloud job was created. Disabled until the account has a subscription."
+  },
+  "limits": {
+    "upload_max_bytes": 209715200,
+    "unzipped_max_bytes": 1073741824,
+    "unzipped_max_files": 20000,
+    "max_compression_ratio": 200,
+    "clone_timeout_s": 120,
+    "probe_timeout_s": 10,
+    "step_timeout_s": 900,
+    "session_hours": 8,
+    "login_failures": 5,
+    "login_window_s": 300
+  },
+  "presentation": {
+    "note": "Layout of THE LATTICE only (where a service sits), not data: layer by asset kind, front to back.",
+    "layers": [
+      {
+        "id": "edge",
+        "label": "edge",
+        "kinds": [
+          "cdn_edge",
+          "tls_gateway",
+          "vpn"
+        ]
+      },
+      {
+        "id": "app",
+        "label": "application",
+        "kinds": [
+          "service_mtls",
+          "message_bus",
+          "batch_sftp"
+        ]
+      },
+      {
+        "id": "data",
+        "label": "data",
+        "kinds": [
+          "database_tls"
+        ]
+      },
+      {
+        "id": "trust",
+        "label": "root of trust",
+        "kinds": [
+          "root_ca",
+          "hsm"
+        ]
+      }
+    ],
+    "layer_spacing": 4.0,
+    "cell": 2.0
+  }
+}

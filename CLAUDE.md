@@ -86,6 +86,10 @@ Report exposure-years avoided vs both baselines on the same data.
   config/lab.json ("openssl"), override with QSHIELD_OPENSSL.
 - Report: python -m atlas report / ./report.sh -> out/report.html (offline, numbers from results.json
   only, signed into the ledger as report.html, then verified). Viz links to /out/report.html.
+- Site: frontend in site/ (static, no Python package: `python -m site` is the stdlib module), backend
+  `python -m atlas site` (atlas/site_server.py), read-only. While building it the outputs are frozen:
+  no run_demo/schedule/gates/qaoa/ledger ingest/report, no ledger appends, and no `ledger verify` of
+  the real ledger (it rewrites results.json); tests use temp copies only.
 - Fresh-clone rule: running the demo must never modify tracked files (keys go to git-ignored keys/).
 - viz serves only viz/ and out/results.json (never the repo: keys/ must stay unreachable). QCloud QAOA runs need the user's go-ahead (`python -m qaoa --qcloud`).
 - viz/ must render qaoa.table rows generically: metrics when status == "ok", otherwise status_text.
@@ -98,6 +102,17 @@ Report exposure-years avoided vs both baselines on the same data.
 - Ledger signing: OpenSSL CLI ML-DSA-65 only; never fall back to classical signatures. Private key
   lives in git-ignored keys/ (0600); never print it, never commit it.
 - Real-repo scans are read-only; clones live in git-ignored `.cache/repos/`.
+
+## atlas_web (user, 2026-10-28; supersedes site/, which stays untouched)
+- `python -m atlas_web`: login-protected full-stack UI that runs the pipeline CLIs as subprocesses in
+  workspaces under git-ignored atlas_web/data/workspaces/<id>/{src,out,runs,config,keys}. The output freeze
+  above protects only the repo snapshot: workspace runs are allowed; the `demo` workspace (repo out/ + runs/)
+  is read-only. Workspace runs share runs/platform_jobs.log (--platform-log) so the daily cap stays global.
+- Platform/QCloud controls are admin-only and disabled (blocker text shown) until the user flips the switch
+  in config/atlas_web.json. Clones go to the workspace src/.
+- v2.0-demo: THE LATTICE engine (atlas_web/static/js/engine/: one renderer, draws only inside [data-stage]),
+  route scenes in js/scenes/, `python -m atlas_web export` (static, file://), crash recovery (INTERRUPTED runs).
+  Verify with pytest, `node --test atlas_web/jstests/*.test.mjs`, `python tools/route_check.py`, `tools/bench_api.py`.
 
 ## Workflow
 - Build order is fixed: schedule → detect → capture (handshake evidence) → gates → ledger → qaoa → viz → run_demo.

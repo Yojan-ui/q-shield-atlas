@@ -57,6 +57,7 @@ export QPIAI_OPT_API_KEY=...        # free key from https://opt.qpiai.tech/ (or 
 ./run_demo.sh                       # regenerate everything, then open the viz; --no-open to skip the browser
 ./announce.sh --fast                # terminal launch screen from out/results.json
 ./report.sh                         # out/report.html: one offline file, signed into the ledger; opens it
+python -m atlas site                # showcase site "The Lattice" (site/), read-only, 127.0.0.1
 ```
 
 `run_demo.sh` runs a preflight first and prints a fix for each failure: Python 3.12, the pinned
@@ -96,6 +97,53 @@ Print → Save as PDF gives a clean document (print CSS expands collapsed sectio
 
 Numbers are deliberately not quoted in this README: they live in `out/results.json`, each one
 traceable to a run under `runs/` and a signed ledger entry. `./announce.sh` prints them with sources.
+
+## Showcase site (`site/`, in progress)
+
+`python -m atlas site` serves "The Lattice", a scroll-driven WebGL story built from the current
+`out/results.json` and ledger. (The brief named it `python -m site`, but that name is Python's
+standard-library `site` module, so the backend lives in `atlas/site_server.py`.) The server is
+read-only and stdlib-only: it serves `site/`, the hash-checked three.js from `viz/vendor/`, the 2D
+viz as the no-WebGL fallback, and `/api/results`, `/api/ledger` (with an in-memory, unrecorded
+verification), `/api/handshakes` and `/api/events` (SSE on file change). It binds 127.0.0.1 on a free
+port; `keys/`, `.env.sh`, `runs/`, the ledger file and source files return 404. Chapters 1–4
+(harvest, detect, schedule, handshake) are built; ledger, QAOA, close, the tamper endpoint and the
+static export are next. Every number comes from the API with a provenance tooltip; `?debug` shows fps
+and draw calls; `prefers-reduced-motion` gives a static camera.
+
+## Web app (`atlas_web/`)
+
+`python -m atlas_web` serves a login-protected, routed web app on 127.0.0.1 that drives the whole pipeline
+through the existing module CLIs (one subprocess per step, with workspace path flags) and shows the results in
+THE LATTICE, one persistent three.js world (vendored, hash-checked; 2D fallback without WebGL).
+
+```bash
+python -m atlas_web create-user --role admin     # no default user; password via getpass
+python -m atlas_web                              # 127.0.0.1, free port, opens the browser
+python -m atlas_web --demo --kiosk --port 8080   # venue mode: landing on the demo snapshot, no sign-out
+python -m atlas_web export                       # static read-only snapshot in atlas_web/dist/ (works over file://)
+```
+
+- **Workspaces:** `demo` is the repo's `out/` + `runs/`, read-only. Others live in git-ignored
+  `atlas_web/data/workspaces/<id>/{src,out,runs,config,keys}` with their own ML-DSA-65 key; the repo's `out/`,
+  `runs/` and `keys/` are never written (tested). All workspaces share `runs/platform_jobs.log`, so the paid-run
+  daily cap stays global.
+- **Real data:** .zip upload (absolute paths, `..`, symlinks and zip bombs rejected; nothing executed), shallow
+  clone of a public https repository, an `atlas-service.json` editor, live TLS probes behind an
+  "I own or am authorised to test these endpoints" confirmation that is stored with the run, an assumptions editor
+  and calibration ("calibrated from your measurements": medians of recorded engineer-days, never applied
+  automatically; applying re-plans and signs a `calibration.apply` entry with `python -m ledger append`).
+- **Roles:** viewer (read), operator (run, upload, calibrate), admin (users; paid QpiAI runs, which stay disabled in
+  `config/atlas_web.json` until the account issues are fixed). scrypt passwords, hashed session tokens, CSRF
+  double-submit, login rate limit.
+- **Honesty:** every number comes from results.json or the ledger with its run_id, solver, job_id (or the reason
+  there is none) and ledger index on hover/focus; missing data reads "not yet run". Positions in the 3D world are
+  layout; colours, beams, heights and pulses map to recorded fields (status, exposure-years, week, findings).
+  The tamper demo verifies an edited temporary copy; the real ledger's hash is checked unchanged.
+- **Checks:** `pytest` (API, auth, access matrix, zip safety, full pipeline and end-to-end runs in temp
+  workspaces, crash recovery), `node --test atlas_web/jstests/*.test.mjs`, `python tools/route_check.py`
+  (every route × 3 sizes × 4 roles in headless Chrome, plus the static export over file://, zero errors) and
+  `python tools/bench_api.py` (read API p95).
 
 ## Assumptions and limits
 
@@ -166,6 +214,12 @@ python -m contracts.assemble && python -m contracts validate results out/results
 python -m viz [--no-browser]
 pytest                                      # QpiAI solver tests skip without QPIAI_OPT_API_KEY
 ```
+
+Every step can target a separate workspace instead of the repo's `out/`, `runs/` and `keys/` (defaults
+unchanged): `--out-dir`/`--runs` on all modules, `contracts.assemble --out-dir`, `ledger --root DIR`
+(the directory `payload_ref`/`ledger_ref` are relative to) `--keys-dir DIR`, `atlas report --out-dir
+--runs --root --keys-dir`, `detect --probe-timeout S` (a timeout is recorded as `probe_failed`), and
+`schedule`/`qaoa --platform-log FILE` so several workspaces share one daily-cap log.
 
 # Module details
 

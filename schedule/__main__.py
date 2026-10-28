@@ -75,13 +75,15 @@ def main(argv=None):
     ap.add_argument("--no-sensitivity", action="store_true")
     ap.add_argument("--platform", action="store_true", help="opt-in: submit the main-plan MILP stages as paid QpiAI platform jobs")
     ap.add_argument("--allow-more", action="store_true", help=f"allow more than {DAILY_LIMIT} platform jobs per UTC day")
+    ap.add_argument("--platform-log", type=Path, default=None,
+                    help="shared daily-cap log (default RUNS/platform_jobs.log); point every workspace at one file")
     args = ap.parse_args(argv)
 
     problem = load_problem(args.assumptions, args.inventory)
     mode, budget = "local", None
     if args.platform:
         mode = "platform"
-        budget = PlatformBudget(Path(args.runs) / "platform_jobs.log", allow_more=args.allow_more)
+        budget = PlatformBudget(Path(args.platform_log or Path(args.runs) / "platform_jobs.log"), allow_more=args.allow_more)
         budget.check(len(STAGES[problem.objective]))  # refuse up front rather than after a partial run
     client = Client(api_key=os.environ["QPIAI_OPT_API_KEY"])
     section = build_section(problem, client, Path(args.runs), not args.no_sensitivity, mode, budget)

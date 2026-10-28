@@ -1,0 +1,91 @@
+/* Q-Shield Atlas design tokens: "precision instrument at night". Every colour, size, space and duration
+   used by app.css is defined here; nothing is hard-coded elsewhere. Contrast pairs are checked by
+   atlas_web/jstests/contrast.test.mjs, motion values by motion.test.mjs (they mirror js/motion.js). */
+:root {
+  color-scheme: dark;
+  /* colour */
+  --base: #05070A;
+  --surface: rgba(14, 18, 24, 0.72);
+  --surface-solid: #0B0E13;
+  --surface-raised: #11161D;
+  --blur: 16px;
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --text: #E6EDF3;
+  --text-2: #8B98A5;
+  --text-3: #7A8692;
+  --accent: #5CE1E6;
+  --accent-ink: #04191A;
+  --accent-wash: rgba(92, 225, 230, 0.10);
+  --exposure: #FF4D5E;
+  --exposure-wash: rgba(255, 77, 94, 0.10);
+  --pass: #4ADE80;
+  --pass-wash: rgba(74, 222, 128, 0.10);
+  --caution: #F5B84B;
+  --caution-wash: rgba(245, 184, 75, 0.10);
+  --scrim: rgba(5, 7, 10, 0.72);
+
+  /* type */
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fs-28: 28px;
+  --fs-40: 40px;
+  --fs-64: 64px;
+  --lh-tight: 1.1;
+  --lh-body: 1.5;
+  --track-tight: -0.02em;
+  --track-label: 0.12em;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* space (4 px base) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  /* grid */
+  --cols: 12;
+  --gutter: 24px;
+  --page-max: 1440px;
+  --page-pad: 32px;
+  --strip-h: 56px;
+  --rail-h: 56px;
+
+  /* shape */
+  --r-chip: 2px;
+  --r-surface: 8px;
+  --rule: 1px;
+  --focus-ring: 2px;
+  --focus-offset: 2px;
+
+  /* motion (mirrors js/motion.js) */
+  --dur-overlay: 280ms;
+  --dur-exit: 180ms;
+  --dur-stagger: 60ms;
+  --dur-roll: 600ms;
+  --rise: 24px;
+  --ease-overlay: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* layers */
+  --z-world: 0;
+  --z-page: 10;
+  --z-strip: 20;
+  --z-tip: 40;
+  --z-toast: 50;
+}
+@media (max-width: 760px) {
+  :root { --page-pad: 16px; --gutter: 16px; }
+}

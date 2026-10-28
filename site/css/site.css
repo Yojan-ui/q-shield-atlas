@@ -1,0 +1,55 @@
+:root {
+  --void: #04060a; --ink: #e9eef5; --dim: #8b97a8; --line: rgba(160, 190, 220, .18);
+  --red: #ff4a3d; --amber: #ffb547; --mint: #46f2b0; --cyan: #7fd3ff;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--void); color: var(--ink); font: 18px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; transition: opacity .5s; }
+#labels { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+#labels .lbl { position: absolute; transform: translate(-50%, -100%); font: 600 13px/1.2 var(--mono); color: var(--ink);
+  text-shadow: 0 0 6px #000, 0 0 2px #000; white-space: nowrap; }
+#labels .lbl.red { color: var(--red); } #labels .lbl.mint { color: var(--mint); } #labels .lbl.dim { color: var(--dim); }
+
+main { position: relative; z-index: 3; }
+.chapter { min-height: 170vh; padding: 0 clamp(16px, 5vw, 72px); }
+.chapter.tall { min-height: 260vh; }
+.panel { position: sticky; top: 12vh; max-width: 30rem; padding: 18px 20px; background: linear-gradient(90deg, rgba(4, 6, 10, .82), rgba(4, 6, 10, .35));
+  border-left: 2px solid var(--line); backdrop-filter: blur(2px); }
+.kicker { margin: 0 0 6px; font: 600 13px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); }
+h1, h2 { margin: 0 0 10px; font-weight: 750; letter-spacing: -.02em; line-height: 1.05; }
+h1 { font-size: clamp(38px, 6vw, 72px); } h2 { font-size: clamp(30px, 4vw, 48px); }
+.lede { margin: 0 0 14px; color: #c9d2de; }
+.stat { margin: 6px 0; font: 15px/1.5 var(--mono); }
+.stat b { font-size: 26px; font-weight: 700; color: #fff; }
+.fine { margin: 8px 0 0; font-size: 13px; color: var(--dim); }
+.drift { margin: 8px 0 0; font: 14px/1.4 var(--mono); color: var(--amber); }
+.num { cursor: help; border-bottom: 1px dotted var(--dim); font-variant-numeric: tabular-nums; }
+.missing { color: var(--dim); font-style: italic; }
+.dial { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin: 2px 0 8px; }
+.dial button { all: unset; cursor: pointer; padding: 6px 14px; border-radius: 999px; font: 600 15px var(--mono); color: var(--dim); }
+.dial button[aria-checked="true"] { background: var(--ink); color: var(--void); }
+.dial button:focus-visible { outline: 2px solid var(--cyan); }
+.services { list-style: none; padding: 0; margin: 8px 0 0; font: 14px/1.45 var(--mono); }
+.services li { padding: 7px 0; border-top: 1px solid var(--line); }
+.services .svc { font-weight: 700; color: #fff; }
+.pass { color: var(--mint); } .fail { color: var(--red); } .hndl { color: var(--red); font-size: 12.5px; }
+
+#rail { position: fixed; right: clamp(10px, 2vw, 28px); top: 50%; transform: translateY(-50%); z-index: 4; display: flex; flex-direction: column; gap: 10px; }
+#rail a { color: var(--dim); text-decoration: none; font: 600 13px var(--mono); padding: 4px 8px; border-right: 2px solid transparent; text-align: right; }
+#rail a span { color: var(--line); margin-right: 6px; }
+#rail a.on { color: var(--ink); border-right-color: var(--cyan); }
+#rail a.on span { color: var(--cyan); }
+#rail a:focus-visible { outline: 2px solid var(--cyan); }
+
+#tip { position: fixed; z-index: 10; max-width: 420px; padding: 8px 10px; background: #0d1219; color: var(--ink); border: 1px solid var(--line);
+  border-radius: 6px; font: 12px/1.45 var(--mono); white-space: pre-wrap; pointer-events: none; }
+#fps { position: fixed; left: 10px; top: 10px; z-index: 10; font: 12px var(--mono); color: var(--mint); background: rgba(0,0,0,.6); padding: 4px 6px; }
+#honesty { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; padding: 5px 16px; font: 11.5px/1.4 var(--mono); color: #a8b2c0;
+  background: rgba(4, 6, 10, .78); border-top: 1px solid var(--line); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 720px) {
+  body { font-size: 16px; } .panel { max-width: none; } #rail a { font-size: 0; padding: 6px; } #rail a span { font-size: 12px; margin: 0; }
+}

@@ -1,4 +1,4 @@
-"""python -m contracts.assemble  ->  out/results.json from module sections in out/.
+"""python -m contracts.assemble [--out-dir DIR]  ->  DIR/results.json from module sections in DIR (default out/).
 
 Sections from modules that have not run yet are null. The output must validate against
 contracts/results.schema.json before it is written.
@@ -46,10 +46,15 @@ def assemble(out_dir: Path = OUT) -> dict:
     return results
 
 
-def main():
-    results = assemble()
-    (OUT / "results.json").write_text(json.dumps(results, indent=1))
-    print(f"wrote {OUT / 'results.json'}")
+def main(argv=None):
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--out-dir", type=Path, default=OUT)
+    args = ap.parse_args(argv)
+    results = assemble(args.out_dir)
+    (args.out_dir / "results.json").write_text(json.dumps(results, indent=1))
+    print(f"wrote {args.out_dir / 'results.json'}")
 
 
 if __name__ == "__main__":

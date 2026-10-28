@@ -1,0 +1,5 @@
+{
+ "type": "module",
+ "private": true,
+ "description": "Marks atlas_web JS as ES modules for node unit tests (node --test atlas_web/jstests). No dependencies, no build step."
+}
