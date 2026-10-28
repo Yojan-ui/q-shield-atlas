@@ -2,7 +2,8 @@
 
 Shelf life, risk weight and effort are assumptions (config/assumptions.json). Each is scaled by
 the configured factors while the others stay at 1.0; MILP and baselines are re-run on the
-scaled data so every row is a measured comparison on identical inputs.
+scaled data so every row is a measured comparison on identical inputs. Sensitivity always uses
+local QpiAI Opt solves (no paid platform jobs).
 """
 
 from .baselines import run_baselines
@@ -39,6 +40,7 @@ def run_sensitivity(problem: Problem, client, run_dir=None) -> list[dict]:
                     "fcfs_worst": base["fcfs"]["worst_case_weighted"],
                     "greedy_worst": base["greedy"]["worst_case_weighted"],
                     "run_ids": [r["run_id"] for r in runs],
+                    "produced_by": opt["produced_by"]["solver"],
                 }
             )
     return rows

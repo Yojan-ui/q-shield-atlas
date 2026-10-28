@@ -33,7 +33,11 @@ def greedy(problem: Problem) -> dict[str, int]:
 
 
 def run_baselines(problem: Problem) -> dict[str, dict]:
-    return {
-        "fcfs": evaluate(problem, fcfs(problem), "fcfs"),
-        "greedy": evaluate(problem, greedy(problem), "greedy"),
-    }
+    out = {"fcfs": evaluate(problem, fcfs(problem), "fcfs"), "greedy": evaluate(problem, greedy(problem), "greedy")}
+    for name, plan in out.items():
+        plan["produced_by"] = {
+            "solver": f"python list scheduler ({name}), scored by schedule.problem.evaluate",
+            "run_ids": [],
+            "job_ids": [],
+        }
+    return out

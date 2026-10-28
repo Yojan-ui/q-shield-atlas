@@ -12,7 +12,8 @@ attack, gates, ledger, qaoa, viz) are not built yet; their sections in `results.
 ```bash
 conda activate pqc            # Python 3.12; the base env lacks qpiai-opt
 source .env.sh                # exports QPIAI_OPT_API_KEY (and QCLOUD_API_KEY); git-ignored
-python -m schedule            # -> out/schedule.json, raw solver logs in runs/<run_id>/
+python -m schedule            # local solves -> out/schedule.json, raw solver logs in runs/<run_id>/
+python -m schedule --platform # opt-in: 2 paid QpiAI platform jobs (main plan only), see below
 python -m contracts.assemble  # -> out/results.json, validated against contracts/results.schema.json
 pytest                        # solver tests skip if QPIAI_OPT_API_KEY is absent
 ```
@@ -42,6 +43,32 @@ e_i = max(0, X_i + t_i − (Z − start_year)) years (Mosca's inequality).
 - The MILP horizon is extended to cover both baseline plans, so both baselines are feasible MILP
   solutions and a proven optimum cannot be worse. Tests check this on the demo data, random
   instances, and against brute-force enumeration on a small instance.
+
+### Which solver produced each number
+
+Every plan in `results.json` (`exposure`, `baselines.*`) carries `produced_by`
+(`solver`, `run_ids`, `job_ids`), and every entry in `solver_runs` has a `solver` label:
+`qpiai-opt platform`, `qpiai-opt local`, `qpiai-opt local (fallback: platform submission failed)`
+or `qpiai-opt local (fallback: platform skipped after an earlier failure in this run)`.
+Sensitivity rows always come from local solves and say so in `produced_by`.
+
+### Platform mode (opt-in, guarded)
+
+- Default is local. Only `python -m schedule --platform` submits paid platform jobs: one per
+  main-plan MILP stage (2 for the `expected` objective). Sensitivity, pytest and `run_demo.sh`
+  never submit (`QSHIELD_FORBID_PLATFORM=1` makes the guard refuse).
+- Before each submission it prints `Submitting N QpiAI jobs`, writes that line to
+  `runs/<run_id>/platform_submit.log`, and appends to `runs/platform_jobs.log`.
+- At most 10 submissions per UTC day (attempts count, including failed ones); `--allow-more` overrides.
+- Each stage is also solved locally on the identical input; `comparison` records both objectives,
+  their difference and `match`. A mismatch is printed and kept, not merged.
+- If a submission fails, that stage uses the local result labelled as a fallback with the error
+  in `fallback_reason`, and the run stops submitting for its remaining stages.
+
+**Current status:** platform submissions are rejected by the QpiAI Opt server with
+`APIError: no active storage quota found for organization` (first attempt 2026-10-28). The
+account had 0 problems and 0 jobs afterwards, so nothing was created. Until the account has a
+storage quota, all scheduling numbers come from local solves and are labelled as such.
 
 ### Solver job IDs: documented fallback
 

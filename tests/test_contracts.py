@@ -65,6 +65,7 @@ def _plan(method):
         "expected_weighted": 2.0,
         "worst_case_weighted": 2.0,
         "makespan_weeks": 1,
+        "produced_by": {"solver": "fixture", "run_ids": [], "job_ids": []},
     }
 
 
@@ -84,7 +85,7 @@ def _results():
         "baselines": {"fcfs": _plan("fcfs"), "greedy": _plan("greedy")},
         "avoided": {"vs_fcfs": [], "vs_greedy": []},
         "solver_runs": [
-            {"run_id": "0" * 32, "ts": "2026-10-28T12:00:00Z", "stage": "s", "provider": "qpiai-opt",
+            {"run_id": "0" * 32, "ts": "2026-10-28T12:00:00Z", "stage": "s", "solver": "qpiai-opt local", "provider": "qpiai-opt",
              "package_version": "0.0.9", "mode": "local", "job_id": None,
              "job_id_reason": "local solve issues no job id", "status": "optimal",
              "inputs_sha256": H, "output_sha256": H}
@@ -100,6 +101,13 @@ def test_results_valid():
 def test_results_null_job_id_requires_reason():
     doc = _results()
     doc["solver_runs"][0]["job_id_reason"] = None
+    with pytest.raises(ValidationError):
+        validate("results", doc)
+
+
+def test_results_plan_requires_solver_attribution():
+    doc = _results()
+    del doc["baselines"]["greedy"]["produced_by"]
     with pytest.raises(ValidationError):
         validate("results", doc)
 

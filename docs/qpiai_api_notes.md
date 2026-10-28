@@ -32,6 +32,14 @@ Only names listed here are known to exist.
 
 Live smoke test: 3-var MILP, local -> `status=optimal`, `guarantee=global_optimum`, `job_id=None`.
 
+Platform account checks (2026-10-28):
+- `Client.get_user_quotas()` -> `APIError: secret token is not permitted for this endpoint`
+  (credit/quota balance not readable with an API key).
+- `solve(model, mode="platform", ...)` -> `APIError: no active storage quota found for organization`.
+  MILP platform solves upload the LP model to storage first; the account has no storage quota.
+- `Client.list_jobs()` / `list_problems()` work (read-only): 0 jobs, 0 problems after the failure.
+- Platform MILP accepts the same `time_limit` / `mip_rel_gap` options (mapped to `MILPSolverConfig`).
+
 ## Gate-based optimisation — `qpiai_opt.quantum`
 - `QAOA(reps=1, parameterization="standard"|"multi_angle", optimizer="cobyla"|"spsa"|"nelder_mead"|"powell"|callable,
   max_iterations=100, initial_point=None, aggregation=CVaR|None, warm_start=None, mixer=XYMixer|callable|None, initial_state=None)`.

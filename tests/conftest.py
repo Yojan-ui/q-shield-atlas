@@ -19,6 +19,9 @@ def _load_env_sh():
 
 _load_env_sh()
 
+# pytest must never submit paid QpiAI platform jobs (see schedule/platform_guard.py).
+os.environ["QSHIELD_FORBID_PLATFORM"] = "1"
+
 
 @pytest.fixture(scope="session")
 def opt_client():

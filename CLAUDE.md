@@ -36,6 +36,15 @@ verify every wave, prove it with signed evidence, show it in a 3D exposure tower
   on `QpiAI-QSV-Simulator` and log the real job IDs. Code must enforce a simulator device
   (reject `QpiAI-Indus-1` / unset device) before any platform call.
 
+## Platform guardrails (user, 2026-10-28)
+- Scheduling platform mode is opt-in only (`python -m schedule --platform`), 2 jobs per run,
+  main plan only. Sensitivity, pytest and run_demo.sh stay local (`QSHIELD_FORBID_PLATFORM=1`).
+- Print/log "Submitting N QpiAI jobs" before each submit; cap 10/UTC day in
+  runs/platform_jobs.log unless `--allow-more`.
+- Platform vs local objectives on the same input are both recorded; never silently pick one.
+- Known blocker: Opt platform returns "no active storage quota found for organization".
+  Do not retry until the user says the account is fixed.
+
 ## Architecture
 Modules communicate only through the JSON contracts in `contracts/` (validated in tests).
 - `capture/`  lab TLS-like service with a deliberately small RSA key (64–128 bit) + capture

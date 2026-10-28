@@ -118,7 +118,7 @@
     "plan_summary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["method", "completion_week", "per_scenario", "expected_weighted", "worst_case_weighted", "makespan_weeks"],
+      "required": ["method", "completion_week", "per_scenario", "expected_weighted", "worst_case_weighted", "makespan_weeks", "produced_by"],
       "properties": {
         "method": {"type": "string"},
         "objective": {"enum": ["expected", "robust"]},
@@ -127,7 +127,17 @@
         "per_scenario": {"type": "array", "items": {"$ref": "#/$defs/scenario_exposure"}},
         "expected_weighted": {"type": "number", "minimum": 0},
         "worst_case_weighted": {"type": "number", "minimum": 0},
-        "makespan_weeks": {"type": "integer", "minimum": 0}
+        "makespan_weeks": {"type": "integer", "minimum": 0},
+        "produced_by": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["solver", "run_ids", "job_ids"],
+          "properties": {
+            "solver": {"type": "string", "minLength": 1},
+            "run_ids": {"type": "array", "items": {"type": "string"}},
+            "job_ids": {"type": "array", "items": {"type": ["string", "null"]}}
+          }
+        }
       }
     },
     "avoided_list": {
@@ -146,7 +156,7 @@
     "solver_run": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["run_id", "ts", "stage", "provider", "package_version", "mode", "job_id", "job_id_reason", "status", "inputs_sha256", "output_sha256"],
+      "required": ["run_id", "ts", "stage", "solver", "provider", "package_version", "mode", "job_id", "job_id_reason", "status", "inputs_sha256", "output_sha256"],
       "properties": {
         "run_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
         "ts": {"type": "string", "format": "date-time"},
@@ -157,6 +167,22 @@
         "device": {"type": ["string", "null"]},
         "job_id": {"type": ["string", "null"]},
         "job_id_reason": {"type": ["string", "null"]},
+        "solver": {"type": "string", "minLength": 1, "description": "Which solver produced this run's numbers, e.g. 'qpiai-opt platform' or 'qpiai-opt local'."},
+        "problem_id": {"type": ["string", "null"]},
+        "fallback_reason": {"type": ["string", "null"]},
+        "local_output_sha256": {"$ref": "#/$defs/sha256"},
+        "comparison": {
+          "type": ["object", "null"],
+          "description": "Platform vs local objective on the identical input; both kept, never silently merged.",
+          "additionalProperties": false,
+          "required": ["platform_objective", "local_objective", "abs_diff", "match"],
+          "properties": {
+            "platform_objective": {"type": "number"},
+            "local_objective": {"type": "number"},
+            "abs_diff": {"type": "number", "minimum": 0},
+            "match": {"type": "boolean"}
+          }
+        },
         "status": {"type": "string"},
         "termination": {"type": ["string", "null"]},
         "guarantee": {"type": ["string", "null"]},
