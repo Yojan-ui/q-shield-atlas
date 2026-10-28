@@ -110,6 +110,9 @@ Report exposure-years avoided vs both baselines on the same data.
   is read-only. Workspace runs share runs/platform_jobs.log (--platform-log) so the daily cap stays global.
 - Platform/QCloud controls are admin-only and disabled (blocker text shown) until the user flips the switch
   in config/atlas_web.json. Clones go to the workspace src/.
+- v2.0-demo: THE LATTICE engine (atlas_web/static/js/engine/: one renderer, draws only inside [data-stage]),
+  route scenes in js/scenes/, `python -m atlas_web export` (static, file://), crash recovery (INTERRUPTED runs).
+  Verify with pytest, `node --test atlas_web/jstests/*.test.mjs`, `python tools/route_check.py`, `tools/bench_api.py`.
 
 ## Workflow
 - Build order is fixed: schedule → detect → capture (handshake evidence) → gates → ledger → qaoa → viz → run_demo.

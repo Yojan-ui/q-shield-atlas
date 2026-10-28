@@ -437,7 +437,7 @@ def make_handler(app: App):
             if name == "scene" and method == "GET" and len(sub) == 1:
                 from .scene import scene_bytes
 
-                body, etag = app.cached(("scene", ws.id), file_stamp(ws.results), lambda: scene_bytes(ws.id, load_results(ws)))
+                body, etag = app.cached(("scene", ws.id), file_stamp(ws.results), lambda: scene_bytes(ws.id, load_results(ws), ws.src))
                 if self.headers.get("If-None-Match") == etag:
                     self._headers(304, TYPES[".json"], 0, [("ETag", etag)])
                     return

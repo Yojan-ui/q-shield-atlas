@@ -1,0 +1,124 @@
+// The lattice of services from scene.json. Every visual maps to a data field:
+//   crystal colour/flicker = status (classical amber-red flicker until its wave, cyan cell once its stand-in
+//   passed the gates, ghost = not_verified_in_lab, caution = rolled_back); red beam height = that asset's
+//   exposure-years in the selected scenario (off once migrated); conduit pulse = dependency order (week);
+//   halo = PQ authentication (ML-DSA) on its stand-in. State lives in shader uniforms (uWeek, uScenario).
+export const STATE = { classical: 0, hybrid: 1, ghost: 2, rolled_back: 3, rollback_failed: 3, clean: 4 };
+
+const CRYSTAL_VS = `
+attribute float aState; attribute float aWeek; attribute vec3 aExp; attribute float aSeed;
+uniform float uTime; uniform float uWeek;
+varying vec3 vColor; varying float vAlpha; varying vec3 vN;
+void main() {
+  bool migrated = aState == 1.0 && aWeek > 0.0 && uWeek >= aWeek;
+  vec3 red = vec3(1.0, 0.30, 0.37), amber = vec3(0.96, 0.62, 0.29), cyan = vec3(0.36, 0.88, 0.90);
+  float flick = 0.5 + 0.5 * sin(uTime * 2.3 + aSeed * 17.0);
+  vColor = mix(red, amber, 0.35 * flick); vAlpha = 1.0;
+  float s = 1.0 + 0.04 * sin(uTime * 3.1 + aSeed * 9.0);
+  if (migrated) { vColor = cyan; s = 1.0; }
+  else if (aState == 2.0) { vColor = vec3(0.55, 0.6, 0.66); vAlpha = 0.28; s = 1.0; }
+  else if (aState == 3.0) { vColor = vec3(0.96, 0.72, 0.29); }
+  else if (aState == 4.0) { vColor = vec3(0.35, 0.42, 0.5); vAlpha = 0.7; s = 0.8; }
+  vec4 wp = modelMatrix * instanceMatrix * vec4(position * s, 1.0);
+  vN = normalize(mat3(modelMatrix * instanceMatrix) * normal);
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`;
+const CRYSTAL_FS = `
+varying vec3 vColor; varying float vAlpha; varying vec3 vN;
+void main() {
+  float l = 0.45 + 0.55 * max(dot(vN, normalize(vec3(0.4, 0.8, 0.5))), 0.0);
+  gl_FragColor = vec4(vColor * l * 1.25, vAlpha);
+}`;
+const BEAM_VS = `
+attribute float aState; attribute float aWeek; attribute vec3 aExp;
+uniform float uWeek; uniform float uScenario; uniform float uBeamScale;
+varying float vY; varying float vOn;
+void main() {
+  bool migrated = aState == 1.0 && aWeek > 0.0 && uWeek >= aWeek;
+  float e = uScenario < 0.5 ? aExp.x : (uScenario < 1.5 ? aExp.y : aExp.z);
+  vOn = (migrated || aState == 4.0) ? 0.0 : 1.0;
+  vec3 p = position; p.y *= e * uBeamScale * vOn; vY = position.y;
+  gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(p, 1.0);
+}`;
+const BEAM_FS = `
+varying float vY; varying float vOn;
+void main() { if (vOn < 0.5) discard; gl_FragColor = vec4(1.0, 0.30, 0.37, 0.55 * (1.0 - vY)); }`;
+const EDGE_VS = `
+attribute float aOrder; uniform float uWeek; uniform float uTime; varying float vGlow;
+void main() {
+  float lit = step(aOrder, uWeek);
+  vGlow = 0.18 + 0.5 * lit * (0.5 + 0.5 * sin(uTime * 2.0 - aOrder));
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+const EDGE_FS = `varying float vGlow; void main() { gl_FragColor = vec4(0.36, 0.88, 0.90, vGlow); }`;
+
+export function buildLattice(THREE, group, scene, uniforms, { beamScale = 0.5, grid = true } = {}) {
+  const nodes = scene.nodes || [];
+  const scen = (scene.scenarios || []).map((s) => s.name);
+  const U = { ...uniforms, uBeamScale: { value: beamScale } };
+  const byId = {};
+  nodes.forEach((n, i) => { byId[n.id] = { index: i, pos: n.pos, node: n }; });
+  const n = Math.max(1, nodes.length);
+  const attrs = (count) => ({ state: new Float32Array(count), week: new Float32Array(count), exp: new Float32Array(count * 3), seed: new Float32Array(count) });
+  const a = attrs(n);
+  const m = new THREE.Matrix4();
+  const crystals = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.42, 0),
+    new THREE.ShaderMaterial({ vertexShader: CRYSTAL_VS, fragmentShader: CRYSTAL_FS, uniforms: U, transparent: true }), n);
+  const beams = new THREE.InstancedMesh(new THREE.BoxGeometry(0.05, 1, 0.05).translate(0, 0.5, 0),
+    new THREE.ShaderMaterial({ vertexShader: BEAM_VS, fragmentShader: BEAM_FS, uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), n);
+  nodes.forEach((node, i) => {
+    m.makeTranslation(...node.pos);
+    crystals.setMatrixAt(i, m);
+    m.makeTranslation(node.pos[0], node.pos[1] + 0.4, node.pos[2]);
+    beams.setMatrixAt(i, m);
+    a.state[i] = STATE[node.state] ?? 0;
+    a.week[i] = node.week ?? 0;
+    a.seed[i] = (i * 0.618) % 1;
+    scen.slice(0, 3).forEach((s, k) => { a.exp[i * 3 + k] = node.exposure_years ? node.exposure_years[s] || 0 : 0; });
+  });
+  if (!nodes.length) { crystals.count = 0; beams.count = 0; }
+  for (const mesh of [crystals, beams]) {
+    mesh.geometry.setAttribute("aState", new THREE.InstancedBufferAttribute(a.state, 1));
+    mesh.geometry.setAttribute("aWeek", new THREE.InstancedBufferAttribute(a.week, 1));
+    mesh.geometry.setAttribute("aExp", new THREE.InstancedBufferAttribute(a.exp, 3));
+    mesh.geometry.setAttribute("aSeed", new THREE.InstancedBufferAttribute(a.seed, 1));
+    mesh.frustumCulled = false;
+    group.add(mesh);
+  }
+  // dependency conduits: one line segment per edge; aOrder = the dependent's planned week (pulse in dependency order)
+  const edges = (scene.edges || []).filter((e) => byId[e.from] && byId[e.to]);
+  if (edges.length) {
+    const pos = new Float32Array(edges.length * 6), ord = new Float32Array(edges.length * 2);
+    edges.forEach((e, i) => {
+      pos.set(byId[e.to].pos, i * 6); pos.set(byId[e.from].pos, i * 6 + 3);
+      ord[i * 2] = byId[e.to].node.week ?? 0; ord[i * 2 + 1] = byId[e.from].node.week ?? 0;
+    });
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setAttribute("aOrder", new THREE.BufferAttribute(ord, 1));
+    group.add(new THREE.LineSegments(g, new THREE.ShaderMaterial({ vertexShader: EDGE_VS, fragmentShader: EDGE_FS, uniforms: U, transparent: true, depthWrite: false })));
+  }
+  // PQ-authentication halos (ML-DSA on the stand-in)
+  const halos = nodes.filter((x) => x.pq_auth);
+  if (halos.length) {
+    const ring = new THREE.InstancedMesh(new THREE.TorusGeometry(0.62, 0.015, 6, 48), new THREE.MeshBasicMaterial({ color: 0xe6edf3 }), halos.length);
+    halos.forEach((x, i) => { m.makeRotationX(Math.PI / 2).setPosition(...x.pos); ring.setMatrixAt(i, m); });
+    group.add(ring);
+  }
+  if (grid) group.add(latticeGrid(THREE, nodes));
+  return { crystals, beams, byId, uniforms: U, scenarios: scen, setScenario: (name) => { U.uScenario.value = Math.max(0, scen.indexOf(name)); } };
+}
+
+// The module lattice itself: a cubic grid of faint edges around the services (one draw call).
+export function latticeGrid(THREE, nodes, step = 2) {
+  const xs = nodes.map((n) => n.pos[0]), ys = nodes.map((n) => n.pos[1]), zs = nodes.map((n) => n.pos[2]);
+  const lo = [Math.min(-4, ...xs) - step, Math.min(-2, ...ys) - step, Math.min(-12, ...zs) - step];
+  const hi = [Math.max(4, ...xs) + step, Math.max(2, ...ys) + step, Math.max(0, ...zs) + step];
+  const pts = [];
+  for (let x = lo[0]; x <= hi[0]; x += step) for (let y = lo[1]; y <= hi[1]; y += step) pts.push(x, y, lo[2], x, y, hi[2]);
+  for (let x = lo[0]; x <= hi[0]; x += step) for (let z = lo[2]; z <= hi[2]; z += step) pts.push(x, lo[1], z, x, hi[1], z);
+  for (let y = lo[1]; y <= hi[1]; y += step) for (let z = lo[2]; z <= hi[2]; z += step) pts.push(lo[0], y, z, hi[0], y, z);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(pts), 3));
+  return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x5ce1e6, transparent: true, opacity: 0.06, depthWrite: false }));
+}

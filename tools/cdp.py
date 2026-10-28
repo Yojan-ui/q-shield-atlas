@@ -98,7 +98,11 @@ class Browser:
         self.profile = tempfile.mkdtemp(prefix="atlas-cdp-")
         flags = ["--headless=new", "--remote-debugging-port=0", f"--user-data-dir={self.profile}", "--no-first-run",
                  "--no-default-browser-check", "--disable-extensions", "--disable-background-networking", "--disable-sync",
-                 "--mute-audio", "--hide-scrollbars", "--enable-unsafe-swiftshader", "--use-angle=swiftshader", *extra_flags]
+                 "--mute-audio", "--hide-scrollbars", *extra_flags]
+        if "--disable-gpu" in extra_flags:  # no GPU and no software GL: WebGL unavailable (tests the 2D fallback)
+            flags.append("--disable-software-rasterizer")
+        else:
+            flags += ["--enable-unsafe-swiftshader", "--use-angle=swiftshader"]
         self.proc = subprocess.Popen([binary, *flags, "about:blank"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         port_file = Path(self.profile) / "DevToolsActivePort"
         for _ in range(200):

@@ -7,31 +7,56 @@ import { h } from "./dom.js";
 import { ROUTES } from "./routes.js";
 import { createTable, direction, resolve, safeNext } from "./router.js";
 import { createStore } from "./store.js";
-import { createWorld } from "./world.js";
+import { createWorld } from "./engine/world.js";
+
+const STATIC = window.__ATLAS_STATIC || null; // set only by the static export (file://)
+function staticFetch(path, opts = {}) {
+  const key = path.split("?")[0];
+  const reply = (status, obj) => Promise.resolve({ ok: status < 400, status, text: async () => JSON.stringify(obj) });
+  if ((opts.method || "GET") !== "GET") {
+    if (key.endsWith("/tamper-demo") && STATIC[key]) return reply(200, STATIC[key]);
+    return reply(403, { error: { code: "static_snapshot", message: "This is a read-only static snapshot; run python -m atlas_web for the live app." } });
+  }
+  return key in STATIC ? reply(200, STATIC[key]) : reply(404, { error: { code: "not_in_snapshot", message: "not part of the static snapshot" } });
+}
+const loc = () => {
+  if (!STATIC) return { pathname: location.pathname, search: location.search };
+  const raw = (location.hash || "#/").slice(1) || "/";
+  const i = raw.indexOf("?");
+  return { pathname: i < 0 ? raw : raw.slice(0, i), search: i < 0 ? "" : raw.slice(i) };
+};
+export const loadModule = (p) => (window.__atlasImport ? window.__atlasImport(p) : import(p));
 
 const api = createApi({
-  fetchImpl: (...a) => fetch(...a),
+  fetchImpl: STATIC ? staticFetch : (...a) => fetch(...a),
   cookie: () => document.cookie,
   onError: (err) => { if (![401, 403, 404, 409, 422].includes(err.status)) toast(err.message, { tone: "error", detail: err.code }); },
 });
-const store = createStore({ api, EventSourceImpl: typeof EventSource === "function" ? EventSource : null });
+const store = createStore({ api, EventSourceImpl: !STATIC && typeof EventSource === "function" ? EventSource : null });
 const table = createTable(ROUTES);
 const app = { me: null, kiosk: false, demo: false, workspaces: null, ws: "demo", view: null, ctl: null, idx: 0, seq: 0 };
 
 const world = createWorld(document.getElementById("world"));
 const view = document.getElementById("view");
 const live = document.getElementById("live");
-const top = makeStrip({ onSignOut: signOut, onWorkspace: (id) => switchWorkspace(id), kiosk: false });
+const top = makeStrip({ onSignOut: signOut, onWorkspace: (id) => switchWorkspace(id), kiosk: () => app.kiosk });
 document.getElementById("strip-slot").replaceWith(top);
 installTooltip();
 installToasts();
 
 function isInternal(a) {
+  if (a && STATIC) return a.getAttribute("href").startsWith("/") && !a.getAttribute("href").startsWith("/api/");
   return a && a.origin === location.origin && !a.hasAttribute("download") && (!a.target || a.target === "_self")
     && !a.getAttribute("href").startsWith("/api/") && !a.pathname.startsWith("/assets/") && a.dataset.external === undefined;
 }
 
 export function navigate(to, { replace = false } = {}) {
+  if (STATIC) {
+    const target = `#${to}`;
+    if (replace) history.replaceState({ idx: app.idx }, "", target); else history.pushState({ idx: ++app.idx }, "", target);
+    render(replace ? "replace" : "forward");
+    return;
+  }
   const url = new URL(to, location.origin);
   if (url.origin !== location.origin) { location.assign(url); return; }
   if (replace) history.replaceState({ idx: app.idx }, "", url.pathname + url.search + url.hash);
@@ -40,10 +65,11 @@ export function navigate(to, { replace = false } = {}) {
 }
 
 export function setQuery(patch) {
-  const q = new URLSearchParams(location.search);
+  const l = loc();
+  const q = new URLSearchParams(l.search);
   for (const [k, v] of Object.entries(patch)) { if (v === null || v === undefined || v === "") q.delete(k); else q.set(k, String(v)); }
   const qs = q.toString();
-  history.replaceState({ idx: app.idx }, "", location.pathname + (qs ? `?${qs}` : ""));
+  history.replaceState({ idx: app.idx }, "", (STATIC ? "#" : "") + l.pathname + (qs ? `?${qs}` : ""));
 }
 
 document.addEventListener("click", (e) => {
@@ -51,9 +77,12 @@ document.addEventListener("click", (e) => {
   const a = e.target instanceof Element ? e.target.closest("a[href]") : null;
   if (!isInternal(a)) return;
   e.preventDefault();
-  if (a.pathname + a.search === location.pathname + location.search) return;
-  navigate(a.pathname + a.search + a.hash);
+  const to = STATIC ? a.getAttribute("href") : a.pathname + a.search + a.hash;
+  const l = loc();
+  if (to === l.pathname + l.search) return;
+  navigate(to);
 });
+if (STATIC) addEventListener("hashchange", () => render("replace"));
 addEventListener("popstate", (e) => {
   const to = e.state && typeof e.state.idx === "number" ? e.state.idx : 0;
   const dir = direction(app.idx, to);
@@ -67,9 +96,10 @@ async function loadWorkspaces() {
 }
 
 function switchWorkspace(id) {
-  const m = location.pathname.match(/^\/w\/[^/]+\/([^/]+)/);
+  const l = loc();
+  const m = l.pathname.match(/^\/w\/[^/]+\/([^/]+)/);
   const sub = m ? (m[1] === "asset" ? "detect" : m[1]) : "pipeline";
-  navigate(`/w/${encodeURIComponent(id)}/${sub}${m && m[1] !== "asset" ? location.search : ""}`);
+  navigate(`/w/${encodeURIComponent(id)}/${sub}${m && m[1] !== "asset" ? l.search : ""}`);
 }
 
 async function signOut() {
@@ -90,9 +120,9 @@ function announce(text) { live.textContent = ""; requestAnimationFrame(() => { l
 
 async function render(dir = "replace") {
   const seq = ++app.seq;
-  const loc = { pathname: location.pathname, search: location.search };
-  let { route, params, decision } = resolve(table, loc, app.me);
-  if (decision.action === "redirect") { history.replaceState({ idx: app.idx }, "", decision.to); return render(dir); }
+  const here = loc();
+  let { route, params, decision } = resolve(table, here, app.me);
+  if (decision.action === "redirect") { history.replaceState({ idx: app.idx }, "", (STATIC ? "#" : "") + decision.to); return render(dir); }
   const forbidden = decision.action === "forbidden";
   const viewName = forbidden ? "forbidden" : route.view;
   if (params.ws) app.ws = params.ws;
@@ -104,17 +134,19 @@ async function render(dir = "replace") {
   if (app.view && app.view.unmount) { try { app.view.unmount(); } catch (e) { setTimeout(() => { throw e; }, 0); } }
   const ctl = new AbortController();
   app.ctl = ctl;
+  world.mount("none", null);
+  world.frameStage(null);
   world.go(forbidden ? "void" : route.camera, { direction: dir });
 
   let mod;
-  try { mod = await import(`./views/${viewName}.js`); }
-  catch (err) { mod = await import("./views/notfound.js"); }
+  try { mod = await loadModule(`/assets/js/views/${viewName}.js`); }
+  catch (err) { mod = await loadModule("/assets/js/views/notfound.js"); }
   if (seq !== app.seq) return;
   const root = h("div", { class: "view" });
   view.replaceChildren(root);
   const title = forbidden ? "Not allowed" : route.title;
   document.title = `${title}${params.ws ? ` · ${params.ws}` : ""} · Q-Shield Atlas`;
-  const ctx = { root, params, query: new URLSearchParams(location.search), me: app.me, kiosk: app.kiosk, demo: app.demo, api, store, world,
+  const ctx = { root, params, query: new URLSearchParams(here.search), static: !!STATIC, me: app.me, kiosk: app.kiosk, demo: app.demo, api, store, world,
     navigate, setQuery, signal: ctl.signal, ws: params.ws || app.ws, wsInfo, workspaces: app.workspaces, announce, need: decision.need, signedIn,
     refreshWorkspaces: async () => { await loadWorkspaces(); top.update({ me: app.me, workspaces: app.workspaces, wsId: app.ws, routeName: route.name, readOnly: wsInfo ? wsInfo.read_only : true }); } };
   try {
@@ -131,7 +163,8 @@ async function render(dir = "replace") {
 }
 
 async function boot() {
-  history.replaceState({ idx: 0 }, "", location.pathname + location.search + location.hash);
+  if (!STATIC) history.replaceState({ idx: 0 }, "", location.pathname + location.search + location.hash);
+  else if (!location.hash) history.replaceState({ idx: 0 }, "", "#/");
   try {
     const me = await api.get("/api/me", { quiet: true });
     app.me = me.user; app.kiosk = me.kiosk; app.demo = me.demo;

@@ -48,7 +48,9 @@ def test_own_assets_within_budget():
 def test_no_cdn_no_web_fonts_no_inline_script():
     for p in own_assets():
         text = p.read_text()
-        assert not re.search(r"https?://(?!www\.w3\.org)", text), f"external URL in {p}"
+        # no resource is loaded from another origin (example URLs in form placeholders are allowed)
+        assert not re.search(r"""(\bfrom\s*|\bimport\s*\(\s*|\bsrc\s*[=:]\s*|\bhref\s*[=:]\s*|url\(\s*|fetch\(\s*|EventSource\(\s*)["'`]?https?://""", text), \
+            f"external resource in {p}"
         assert "@font-face" not in text and "fonts.googleapis" not in text, p
     html = (STATIC / "index.html").read_text()
     assert re.search(r"<script(?![^>]*\bsrc=)[^>]*>", html) is None  # CSP script-src 'self': no inline scripts

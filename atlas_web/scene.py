@@ -9,6 +9,8 @@ presentation layout (config/atlas_web.json "presentation"), not data.
 import hashlib
 import json
 
+from contracts.manifest import sha256_json
+from detect.static_scan import iter_files
 from schedule.problem import exposure_years, problem_from_dicts
 
 from .config import settings
@@ -34,7 +36,32 @@ def _layout(nodes: list[dict], pres: dict) -> None:
             n["pos"] = [round((c - (cols - 1) / 2) * cell, 3), round(((rows - 1) / 2 - r) * cell, 3), round(-li * gap, 3)]
 
 
-def build_scene(ws_id: str, r: dict | None) -> dict:
+def scanned_files(src, detect: dict | None) -> dict:
+    """Every file the scanner would read (detect.static_scan.iter_files), with line counts and its findings.
+    `verified` is true only if the listing hashes to the tree_sha256 recorded by the detect run."""
+    if not detect or src is None or not src.exists():
+        return {"verified": False, "files": [], "status_text": "source tree not available"}
+    import hashlib
+
+    tree, files = [], []
+    by_file: dict = {}
+    for f in detect.get("findings", []):
+        by_file.setdefault(f["file"], []).append({"line": f["line"], "family": f["family"], "rule": f["rule"], "use": f["use"]})
+    drift = {p["service"] for p in detect.get("probes", []) if p.get("drift")}
+    for path in iter_files(src.resolve()):
+        rel = path.relative_to(src.resolve()).as_posix()
+        data = path.read_bytes()
+        tree.append([rel, hashlib.sha256(data).hexdigest()])
+        files.append({"path": rel, "lines": data.count(b"\n") + 1, "findings": by_file.get(rel, []),
+                      "service": rel.split("/")[1] if rel.startswith("services/") and rel.count("/") >= 2 else None})
+    for f in files:
+        f["drift"] = f["service"] in drift
+    ok = sha256_json(tree) == detect.get("tree_sha256")
+    return {"verified": ok, "files": files if ok else [],
+            "status_text": None if ok else "the source tree changed since the last scan; re-run detect to see it"}
+
+
+def build_scene(ws_id: str, r: dict | None, src=None) -> dict:
     if not r:
         return {"workspace": ws_id, "available": False, "status_text": "not yet run"}
     pres = settings()["presentation"]
@@ -83,6 +110,7 @@ def build_scene(ws_id: str, r: dict | None) -> dict:
         "weeks": list(range(len(next(iter(tower["optimized"].values()), [])))),
         "tower": tower,
         "waves": [{"week": w["week"], "assets": w["assets"], "status": w["status"]} for w in r.get("waves", [])],
+        "files": scanned_files(src, r.get("detect")),
         "lab_services": [{"service_id": s["service_id"], "group": s.get("negotiated_group"), "kex_class": s.get("kex_class"),
                           "auth_alg": s.get("auth_alg"), "label": s.get("label")} for s in he.get("sessions", [])],
         "ledger": {"entry_count": led.get("entry_count"), "root": led.get("root"),
@@ -94,6 +122,6 @@ def build_scene(ws_id: str, r: dict | None) -> dict:
     return scene
 
 
-def scene_bytes(ws_id: str, r: dict | None) -> tuple[bytes, str]:
-    body = json.dumps(build_scene(ws_id, r), separators=(",", ":")).encode()
+def scene_bytes(ws_id: str, r: dict | None, src=None) -> tuple[bytes, str]:
+    body = json.dumps(build_scene(ws_id, r, src), separators=(",", ":")).encode()
     return body, '"' + hashlib.sha256(body).hexdigest()[:32] + '"'

@@ -1,0 +1,18 @@
+/* QAOA route: claim, legend keys, 2D bars (no-WebGL fallback). */
+.qa-claim { border-top: var(--rule) solid var(--hairline-strong); padding-top: var(--s-4); }
+.qa-claim-text { margin: 0 0 var(--s-3); font-size: var(--fs-20); line-height: var(--lh-tight); letter-spacing: var(--track-tight); color: var(--text); font-weight: var(--weight-medium); }
+.qa-controls { margin-top: var(--s-4); }
+.qa-k::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: var(--s-2); border-radius: 50%; vertical-align: 0; }
+.qa-k.shell::before { background: var(--accent); }
+.qa-k.core::before { background: var(--pass); }
+.qa-k.out::before { background: var(--text-3); }
+.qa-bars { display: grid; gap: var(--s-5); padding: var(--s-4) 0; }
+.qa-bar { display: grid; gap: var(--s-2); }
+.qa-bar .eyebrow { margin: 0; }
+.qa-track { display: grid; grid-template-columns: minmax(0, 1fr) 18ch; gap: var(--s-3); align-items: center; }
+.qa-rail { height: 8px; background: var(--hairline); }
+.qa-fill { display: block; height: 100%; background: var(--accent); }
+.qa-fill.core { background: var(--pass); }
+.qa-legend { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin-top: var(--s-3); }
+.stage.flat ~ .qa-legend { display: none; }
+.stage.flat:has(> .qa-fb) > .stage-note { position: static; }

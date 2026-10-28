@@ -2,6 +2,7 @@
 python -m atlas_web create-user [--username NAME] --role viewer|operator|admin   (password via getpass)
 python -m atlas_web list-users
 python -m atlas_web delete-user NAME
+python -m atlas_web export                 (static read-only snapshot of the demo in atlas_web/dist/, works over file://)
 
 Binds 127.0.0.1 by default. There is no default user: create an admin first.
 """
@@ -39,6 +40,7 @@ def main(argv=None):
     sub.add_parser("list-users")
     d = sub.add_parser("delete-user")
     d.add_argument("username")
+    sub.add_parser("export")
     args = ap.parse_args(argv)
 
     if args.command == "create-user":
@@ -59,6 +61,12 @@ def main(argv=None):
             print(f"{u['username']:24} {u['role']}")
         if not users:
             print("no users yet: python -m atlas_web create-user --role admin")
+        return 0
+    if args.command == "export":
+        from .export import export
+
+        out = export()
+        print(f"static snapshot written to {out}/index.html (open it directly; no server needed)")
         return 0
     if args.command == "delete-user":
         if not _store().delete_user(args.username):
@@ -84,6 +92,7 @@ def main(argv=None):
     except KeyboardInterrupt:
         pass
     finally:
+        srv.app.runs.shutdown()
         srv.server_close()
     return 0
 

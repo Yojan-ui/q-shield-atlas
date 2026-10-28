@@ -5,12 +5,21 @@ import { chip } from "../components/chip.js";
 import { lines } from "../components/states.js";
 import { headlineAvoided, HNDL, num, QAOA_LABEL } from "../model.js";
 import { provAttr } from "../components/tooltip.js";
-import { dataView, honesty } from "./common.js";
+import { dataView, honesty, mountScene, stage } from "./common.js";
+import { buildLattice } from "../engine/lattice.js";
 
 export async function mount(ctx) {
   ctx.ws = "demo";
   let scenario = ctx.query.get("scenario");
   const aside = h("aside", { class: "start-9" }, lines(3));
+  let lattice = null;
+  const stageEl = stage(ctx, { label: "THE LATTICE: the demo inventory. Red flickering crystals rely on classical crypto; red beams rise with each asset's exposure-years in the selected Q-day scenario; cyan cells passed the lab gates.", tall: true });
+  ctx.store.get("demo", "scene", { signal: ctx.signal }).then((scene) => mountScene(ctx, "landing", scene, ({ THREE, world, group }) => {
+    lattice = buildLattice(THREE, group, scene, world.uniforms, { beamScale: 0.35 });
+    if (scenario) lattice.setScenario(scenario);
+    world.uniforms.uWeek.value = 0; // HARVEST: before any wave, everything is still classical
+    return { update(dt) { if (world.uniforms.uWeek.value < 1e3) world.uniforms.uWeek.value += dt * 0.6; } };
+  })).catch(() => {});
   const body = dataView(ctx, {
     keys: ["results", "scene"],
     skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton())),
@@ -28,7 +37,7 @@ export async function mount(ctx) {
           stat({ label: "QpiAI Opt plan vs first-come-first-served", cell: a.fcfs, unit: "exposure-years, unweighted", tone: "accent" }),
           h("p", { class: "fine" }, "vs greedy ", cellText(a.greedy), ". Small and honest: long shelf lives lock most exposure in."));
         dial.replaceChildren(...m.scenarios.map((x) => h("button", { class: `btn${x.name === scenario ? " primary" : ""}`, type: "button", role: "radio",
-          "aria-checked": String(x.name === scenario), onclick: () => { scenario = x.name; ctx.setQuery({ scenario }); drawFigure(); }, text: String(x.year) })));
+          "aria-checked": String(x.name === scenario), onclick: () => { scenario = x.name; ctx.setQuery({ scenario }); if (lattice) lattice.setScenario(scenario); drawFigure(); }, text: String(x.year) })));
         ctx.announce(`Scenario ${scenario}: ${a.fcfs.text} exposure-years avoided versus first-come-first-served.`);
       };
       drawFigure();
@@ -66,7 +75,7 @@ export async function mount(ctx) {
         h("div", { class: "span-12" }, honesty()));
     },
   });
-  ctx.root.append(h("div", { class: "grid", style: { marginBottom: "var(--s-6)" } }, hero(ctx), aside), body);
+  ctx.root.append(h("div", { class: "grid", style: { marginBottom: "var(--s-6)" } }, hero(ctx), aside, h("div", { class: "span-12" }, stageEl)), body);
 }
 
 function hero(ctx) {

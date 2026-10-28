@@ -26,7 +26,7 @@ export function strip({ onSignOut, onWorkspace, kiosk }) {
     user.replaceChildren(...(signedIn
       ? [h("span", { class: "who" }, h("b", { text: me.username }), ` · ${me.role}`),
          me.role === "admin" ? h("a", { class: "btn quiet users-link", href: "/settings/users", text: "Users" }) : null,
-         kiosk ? null : h("button", { class: "btn quiet", type: "button", onclick: onSignOut, text: "Sign out" })]
+         (typeof kiosk === "function" ? kiosk() : kiosk) ? null : h("button", { class: "btn quiet", type: "button", onclick: onSignOut, text: "Sign out" })]
       : [h("a", { class: "btn", href: "/signin", text: "Sign in" })]));
   };
   return el;

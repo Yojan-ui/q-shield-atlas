@@ -111,6 +111,40 @@ port; `keys/`, `.env.sh`, `runs/`, the ledger file and source files return 404. 
 static export are next. Every number comes from the API with a provenance tooltip; `?debug` shows fps
 and draw calls; `prefers-reduced-motion` gives a static camera.
 
+## Web app (`atlas_web/`)
+
+`python -m atlas_web` serves a login-protected, routed web app on 127.0.0.1 that drives the whole pipeline
+through the existing module CLIs (one subprocess per step, with workspace path flags) and shows the results in
+THE LATTICE, one persistent three.js world (vendored, hash-checked; 2D fallback without WebGL).
+
+```bash
+python -m atlas_web create-user --role admin     # no default user; password via getpass
+python -m atlas_web                              # 127.0.0.1, free port, opens the browser
+python -m atlas_web --demo --kiosk --port 8080   # venue mode: landing on the demo snapshot, no sign-out
+python -m atlas_web export                       # static read-only snapshot in atlas_web/dist/ (works over file://)
+```
+
+- **Workspaces:** `demo` is the repo's `out/` + `runs/`, read-only. Others live in git-ignored
+  `atlas_web/data/workspaces/<id>/{src,out,runs,config,keys}` with their own ML-DSA-65 key; the repo's `out/`,
+  `runs/` and `keys/` are never written (tested). All workspaces share `runs/platform_jobs.log`, so the paid-run
+  daily cap stays global.
+- **Real data:** .zip upload (absolute paths, `..`, symlinks and zip bombs rejected; nothing executed), shallow
+  clone of a public https repository, an `atlas-service.json` editor, live TLS probes behind an
+  "I own or am authorised to test these endpoints" confirmation that is stored with the run, an assumptions editor
+  and calibration ("calibrated from your measurements": medians of recorded engineer-days, never applied
+  automatically; applying re-plans and signs a `calibration.apply` entry with `python -m ledger append`).
+- **Roles:** viewer (read), operator (run, upload, calibrate), admin (users; paid QpiAI runs, which stay disabled in
+  `config/atlas_web.json` until the account issues are fixed). scrypt passwords, hashed session tokens, CSRF
+  double-submit, login rate limit.
+- **Honesty:** every number comes from results.json or the ledger with its run_id, solver, job_id (or the reason
+  there is none) and ledger index on hover/focus; missing data reads "not yet run". Positions in the 3D world are
+  layout; colours, beams, heights and pulses map to recorded fields (status, exposure-years, week, findings).
+  The tamper demo verifies an edited temporary copy; the real ledger's hash is checked unchanged.
+- **Checks:** `pytest` (API, auth, access matrix, zip safety, full pipeline and end-to-end runs in temp
+  workspaces, crash recovery), `node --test atlas_web/jstests/*.test.mjs`, `python tools/route_check.py`
+  (every route × 3 sizes × 4 roles in headless Chrome, plus the static export over file://, zero errors) and
+  `python tools/bench_api.py` (read API p95).
+
 ## Assumptions and limits
 
 - **Assumptions, not measurements:** shelf life and risk weight per data class, effort per asset

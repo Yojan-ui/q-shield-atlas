@@ -60,3 +60,24 @@ export function honesty() {
     h("span", { text: "simulator-scale QAOA, no quantum advantage claimed" }),
     h("span", { text: "risk, effort and shelf-life values are assumptions" }), h("span", { text: "no decryption performed or claimed" }));
 }
+
+// A transparent window onto THE LATTICE: the persistent renderer draws only inside this element.
+// Without WebGL it shows `fallback` (2D content) instead, so the route never goes blank.
+export function stage(ctx, { label, fallback = null, tall = false } = {}) {
+  const el = h("div", { class: `stage${tall ? " tall" : ""}`, "data-stage": "", role: "img", "aria-label": label });
+  ctx.world.frameStage(el);
+  ctx.world.ready.then((w) => {
+    if (!w.webgl && !ctx.signal.aborted) {
+      el.classList.add("flat");
+      el.replaceChildren(h("p", { class: "fine stage-note", text: "3D view unavailable (no WebGL in this browser); the same data is shown below." }), fallback);
+    }
+  });
+  return el;
+}
+
+// Mount a layer once the scene data and the engine are both ready. build({THREE, world, group, scene}) -> layer.
+export async function mountScene(ctx, name, scene, build) {
+  const w = await ctx.world.ready;
+  if (!w.webgl || ctx.signal.aborted || !scene || scene.available === false) return null;
+  return w.mount(name, (env) => build({ ...env, scene }));
+}

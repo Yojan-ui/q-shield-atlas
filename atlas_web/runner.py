@@ -231,12 +231,53 @@ def kill_orphaned_lab_servers(since: float) -> int:
     return n
 
 
+def _active_file() -> Path:
+    return data_dir() / "active_step.json"
+
+
 class RunManager:
     def __init__(self, store: Store):
         self.store = store
         self.lock = threading.Lock()
         self.active: Run | None = None
         self.runs: dict[str, Run] = {}
+        self.recover()
+
+    def recover(self) -> list[str]:
+        """After a crash or kill: stop the step that was running (its process group), kill orphaned lab
+        services, and close every run still marked running as INTERRUPTED with a final run_end event."""
+        f = _active_file()
+        if f.exists():
+            try:
+                kill_group(int(json.loads(f.read_text())["pgid"]))
+            except (ValueError, KeyError, OSError):
+                pass
+            f.unlink(missing_ok=True)
+        with self.store.db() as c:
+            stale = c.execute("SELECT id, started, detail FROM runs WHERE status='running'").fetchall()
+        if stale:
+            kill_orphaned_lab_servers(min(r["started"] for r in stale))
+        for r in stale:
+            tail = ["interrupted: the atlas_web server stopped during this run; nothing after the last completed step was recorded"]
+            log = data_dir() / "runlogs" / f"{r['id']}.jsonl"
+            seq = sum(1 for _ in log.open()) if log.exists() else 0
+            log.parent.mkdir(parents=True, exist_ok=True)
+            with log.open("a") as fh:
+                fh.write(json.dumps({"seq": seq, "type": "run_end", "ts": time.time(), "status": "INTERRUPTED", "summary": [], "tail": tail,
+                                     "orphans_killed": 0, "duration_s": None}) + "\n")
+            with self.store.db() as c:
+                c.execute("UPDATE runs SET finished=?, status='INTERRUPTED', detail=? WHERE id=?",
+                          (time.time(), json.dumps({**json.loads(r["detail"]), "tail": tail}), r["id"]))
+        return [r["id"] for r in stale]
+
+    def shutdown(self) -> None:
+        """Graceful stop (Ctrl+C): kill the running step's process group; recover() closes the run on next start."""
+        f = _active_file()
+        if f.exists():
+            try:
+                kill_group(int(json.loads(f.read_text())["pgid"]))
+            except (ValueError, KeyError, OSError):
+                pass
 
     def start(self, ws: Workspace, user: str, steps: list, kind: str, detail: dict, platform: bool,
               needs_keygen: bool) -> Run:
@@ -298,6 +339,7 @@ class RunManager:
         lines: list[str] = []
         proc = subprocess.Popen(argv, cwd=REPO, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True, bufsize=1, start_new_session=True)
+        _active_file().write_text(json.dumps({"run_id": run.id, "pgid": proc.pid, "step": name}))
         timer = threading.Timer(timeout, kill_group, args=(proc.pid,))
         timer.start()
         try:
@@ -309,6 +351,7 @@ class RunManager:
         finally:
             timer.cancel()
             kill_group(proc.pid)  # anything the step left behind in its process group (e.g. s_server)
+            _active_file().unlink(missing_ok=True)
         if code < 0 or (time.monotonic() - t0) >= timeout:
             lines.append(f"step {name} stopped (timeout {timeout} s or signal {-code if code < 0 else ''})")
             code = code or 124

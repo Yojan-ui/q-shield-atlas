@@ -1,0 +1,10 @@
+.dt-key{display:inline-block;width:8px;height:8px;margin-right:var(--s-2)}
+body[data-route=detect] .stage>.stage-note{position:absolute;left:0;top:var(--s-3);margin:0}
+body[data-route=detect] .stage>.stage-note:empty{display:none}
+.dt-form{display:grid;gap:var(--s-3);align-content:start}
+.dt-form h3{font-size:var(--fs-14);margin:var(--s-4) 0 0}
+.dt-msg{min-height:18px;margin:0}
+.dt-msg.bad{color:var(--exposure)}
+.field select[multiple]{height:auto;padding:var(--s-1)}
+.dt-form progress{width:160px;height:4px;accent-color:var(--accent)}
+.dt-form input[type=file]{font:var(--fs-12)/1.4 var(--font-mono);color:var(--text-2)}

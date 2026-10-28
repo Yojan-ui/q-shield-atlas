@@ -6,10 +6,29 @@ import { table, tableSkeleton } from "../components/table.js";
 import { emptyState } from "../components/states.js";
 import { provAttr } from "../components/tooltip.js";
 import { headlineAvoided } from "../model.js";
-import { dataView, header, honesty, notRun, section, wsEyebrow } from "./common.js";
+import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
+import { buildLattice } from "../engine/lattice.js";
 
 export async function mount(ctx) {
   let scenario = ctx.query.get("scenario");
+  let lattice = null;
+  const weekOut = h("output", { class: "num" });
+  const weekIn = h("input", { type: "range", min: "0", max: "0", step: "1", value: "0", "aria-label": "week" });
+  const stageEl = stage(ctx, { label: "The plan over time: scrub the week; a crystal turns cyan when its wave passed the lab gates, and its HNDL beam goes out." });
+  const setWeek = (wk) => { weekOut.textContent = `week ${wk}`; ctx.world.uniforms && (ctx.world.uniforms.uWeek.value = wk); };
+  weekIn.addEventListener("input", () => { setWeek(Number(weekIn.value)); ctx.setQuery({ week: weekIn.value }); }, { signal: ctx.signal });
+  ctx.store.get(ctx.ws, "scene", { signal: ctx.signal }).then((scene) => {
+    if (!scene.available) return;
+    weekIn.max = String(scene.weeks.length - 1);
+    const q = Number(ctx.query.get("week"));
+    weekIn.value = String(Number.isFinite(q) && ctx.query.get("week") !== null ? Math.min(q, scene.weeks.length - 1) : scene.weeks.length - 1);
+    return mountScene(ctx, "schedule", scene, ({ THREE, world, group }) => {
+      lattice = buildLattice(THREE, group, scene, world.uniforms);
+      if (scenario) lattice.setScenario(scenario);
+      setWeek(Number(weekIn.value));
+      return {};
+    });
+  }).catch(() => {});
   const body = dataView(ctx, {
     skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton()), h("div", { class: "span-12" }, tableSkeleton(4))),
     render: ({ model: m }) => {
@@ -27,7 +46,7 @@ export async function mount(ctx) {
           stat({ label: "remaining at week 0", cell: opt[0].cell, unit: "exposure-years, optimised plan", tone: "exposure" }),
           stat({ label: "weeks to migrate", cell: m.makespan, unit: "makespan of the optimised plan" }));
         picker.replaceChildren(...m.scenarios.map((s) => h("button", { class: `btn${s.name === scenario ? " primary" : ""}`, type: "button", role: "radio", "aria-checked": String(s.name === scenario),
-          onclick: () => { scenario = s.name; ctx.setQuery({ scenario }); draw(); }, text: `${s.name} · CRQC ${s.year}` })));
+          onclick: () => { scenario = s.name; ctx.setQuery({ scenario }); if (lattice) lattice.setScenario(scenario); draw(); }, text: `${s.name} · CRQC ${s.year}` })));
         ctx.announce(`Scenario ${scenario}: ${a.fcfs.text} exposure-years avoided versus FCFS, ${a.greedy.text} versus greedy.`);
       };
       draw();
@@ -49,5 +68,6 @@ export async function mount(ctx) {
   });
   ctx.root.append(h("div", { class: "grid" },
     h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Schedule", lede: "A migration plan in weekly waves that minimises harvest-now-decrypt-later exposure under several CRQC arrival scenarios, never worse than FCFS or greedy on the same data." })),
+    h("div", { class: "span-12" }, stageEl, h("label", { class: "sg-row week-scrub" }, h("span", { class: "eyebrow", style: { margin: 0 }, text: "week" }), weekIn, weekOut)),
     h("div", { class: "span-12" }, body), h("div", { class: "span-12" }, honesty())));
 }

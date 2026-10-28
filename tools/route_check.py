@@ -51,6 +51,13 @@ def expected_route(role, path):
     return "asset" if "/asset/" in p else p.rsplit("/", 1)[1]
 
 
+def driver_noise(entry):
+    """Headless Chrome's software GL (SwiftShader) logs 'GL Driver Message ... GPU stall due to ReadPixels' when the
+    compositor reads frames back; our code never calls readPixels. Only this exact driver message is ignored."""
+    t = entry.get("text", "")
+    return t.startswith("[.WebGL-") and "GL Driver Message" in t and "ReadPixels" in t
+
+
 def shot_name(path):
     s = path.strip("/").replace("/", "_").replace("?", "_q_").replace("=", "-") or "landing"
     return s
@@ -124,6 +131,9 @@ def check_page(browser, ctx_id, base, role, path, size, cookies, shots_dir):
             overflowX: document.documentElement.scrollWidth > innerWidth + 1,
             fcp: (performance.getEntriesByName('first-contentful-paint')[0]||{}).startTime || null,
             readyAt: Number(document.body.dataset.readyAt || 0), path: location.pathname + location.search}))()""")
+        if size == "1440x900" and role == "admin":
+            time.sleep(1.2)  # let the engine report a full second of frames
+        eng = page.eval("(() => { const w = window.__atlasWorld; return w ? {webgl: w.webgl, layer: w.layer && w.layer.name, ...w.stats} : null; })()") or {}
         if not info["h1"]:
             problems.append("no h1")
         if info["focused"] != "H1":
@@ -140,7 +150,7 @@ def check_page(browser, ctx_id, base, role, path, size, cookies, shots_dir):
             elif m == "Runtime.exceptionThrown":
                 d = p["exceptionDetails"]
                 problems.append(f"exception: {(d.get('exception') or {}).get('description', d.get('text'))[:200]}")
-            elif m == "Log.entryAdded" and p["entry"]["level"] in ("error", "warning"):
+            elif m == "Log.entryAdded" and p["entry"]["level"] in ("error", "warning") and not driver_noise(p["entry"]):
                 problems.append(f"log.{p['entry']['level']}: {p['entry'].get('text', '')[:200]} {p['entry'].get('url', '')}")
             elif m == "Network.requestWillBeSent":
                 reqs[p["requestId"]] = p["request"]["url"]
@@ -152,7 +162,9 @@ def check_page(browser, ctx_id, base, role, path, size, cookies, shots_dir):
         if shots_dir is not None:
             page.screenshot(shots_dir / size / f"{role}__{shot_name(path)}.png")
         return {"role": role, "path": path, "size": size, "route": route, "problems": problems, "load_s": round(load_s, 3),
-                "fcp_ms": info["fcp"], "ready_ms": info["readyAt"], "api": api_calls, "title": info["title"]}
+                "fcp_ms": info["fcp"], "ready_ms": info["readyAt"], "api": api_calls, "title": info["title"],
+                "webgl": eng.get("webgl"), "layer": eng.get("layer"), "fps": eng.get("fps") or None,
+                "worst_frame_ms": eng.get("worstFrameMs") or None, "draw_calls": eng.get("drawCalls")}
     finally:
         page.close()
 
@@ -196,16 +208,64 @@ def flows(browser, base, cookies):
         page.close()
 
 
+def export_check(browser, size="1440x900"):
+    """The static export (atlas_web/dist) over file://: every demo route, zero errors and zero failed requests."""
+    dist = REPO / "atlas_web" / "dist" / "index.html"
+    if not dist.exists():
+        return [{"path": "dist", "problems": ["atlas_web/dist/index.html missing: run python -m atlas_web export"]}]
+    out = []
+    for path in ["/", *[f"/w/demo/{r}" for r in WS_ROUTES], "/w/demo/asset/web-gw", "/no/such/place"]:
+        w, h, mobile = SIZES[size]
+        page = browser.new_page(browser.new_context())
+        problems = []
+        try:
+            for d in ("Runtime", "Log", "Network", "Page"):
+                page.send(f"{d}.enable")
+            page.send("Emulation.setDeviceMetricsOverride", {"width": w, "height": h, "deviceScaleFactor": 1, "mobile": mobile})
+            page.send("Page.navigate", {"url": dist.as_uri() + "#" + path})
+            if not page.wait_for("document.body && document.body.dataset.ready === '1' && !!document.body.dataset.route", 20):
+                problems.append("never ready")
+            time.sleep(1.0)
+            want = "landing" if path == "/" else "notfound" if path.startswith("/no/") else ("asset" if "/asset/" in path else path.rsplit("/", 1)[1])
+            route = page.eval("document.body.dataset.route")
+            if route != want:
+                problems.append(f"route {route!r}, expected {want!r}")
+            problems += [f"app error: {e}" for e in page.eval("window.__atlasErrors || []")]
+            for m, p in page.events:
+                if m == "Runtime.consoleAPICalled" and p["type"] in ("error", "warning"):
+                    problems.append(f"console.{p['type']}: {' '.join(str(a.get('value', a.get('description', ''))) for a in p['args'])[:200]}")
+                elif m == "Runtime.exceptionThrown":
+                    problems.append(f"exception: {(p['exceptionDetails'].get('exception') or {}).get('description', p['exceptionDetails'].get('text'))[:200]}")
+                elif m == "Log.entryAdded" and p["entry"]["level"] in ("error", "warning") and not driver_noise(p["entry"]):
+                    problems.append(f"log: {p['entry'].get('text', '')[:200]} {p['entry'].get('url', '')}")
+                elif m == "Network.loadingFailed" and not p.get("canceled"):
+                    problems.append(f"request failed: {p.get('errorText')}")
+        finally:
+            page.close()
+        out.append({"path": path, "problems": problems})
+        print(f"{'ok ' if not problems else 'ERR'} export   {path:40}" + ("" if not problems else "\n      " + "\n      ".join(problems)), flush=True)
+    return out
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--stage", default="stage3")
     ap.add_argument("--no-shots", action="store_true")
     ap.add_argument("--only", choices=ROLES)
+    ap.add_argument("--export-only", action="store_true", help="only check the static export over file://")
+    ap.add_argument("--flags", default="", help="extra Chrome flags, e.g. --disable-gpu")
     args = ap.parse_args(argv)
     data = Path(tempfile.mkdtemp(prefix="atlas-routecheck-"))
     srv = start_app(data)
     base = f"http://127.0.0.1:{srv.server_address[1]}"
-    browser = Browser()
+    browser = Browser(extra_flags=[f for f in args.flags.split() if f])
+    if args.export_only:
+        try:
+            res = export_check(browser)
+        finally:
+            browser.close()
+            srv.shutdown()
+        return 1 if any(r["problems"] for r in res) else 0
     shots = None if args.no_shots else REPO / "atlas_web" / "screenshots" / args.stage
     results = []
     try:
@@ -223,12 +283,17 @@ def main(argv=None):
                     print(f"{mark} {role:8} {size:8} {path:40} -> {res['route']:10} {res['load_s']:.2f}s"
                           + ("" if not res["problems"] else "\n      " + "\n      ".join(res["problems"])), flush=True)
         flow_problems = flows(browser, base, jars["admin"])
+        export_res = export_check(browser) if not args.only else []
+        flow_problems += [f"export {r['path']}: {p}" for r in export_res for p in r["problems"]]
     finally:
         browser.close()
         srv.shutdown()
     bad = [r for r in results if r["problems"]]
     landing = [r["fcp_ms"] for r in results if r["path"] == "/" and r["fcp_ms"]]
-    summary = {"chrome": browser.version, "pages": len(results), "pages_with_problems": len(bad), "flow_problems": flow_problems,
+    fps = [r["fps"] for r in results if r.get("fps")]
+    summary = {"chrome": browser.version, "fps_min": min(fps) if fps else None,
+               "worst_frame_ms": max((r["worst_frame_ms"] for r in results if r.get("worst_frame_ms")), default=None),
+               "draw_calls_max": max((r["draw_calls"] or 0 for r in results), default=None), "pages": len(results), "pages_with_problems": len(bad), "flow_problems": flow_problems,
                "landing_fcp_ms_max": max(landing) if landing else None, "ready_ms_max": max(r["ready_ms"] for r in results),
                "load_s_p95": sorted(r["load_s"] for r in results)[int(len(results) * 0.95) - 1]}
     out = REPO / "atlas_web" / "screenshots" / args.stage / "route_check.json"

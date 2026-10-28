@@ -7,7 +7,8 @@ import { toast } from "../components/toast.js";
 import { provAttr } from "../components/tooltip.js";
 import { confirmDialog } from "../components/dialog.js";
 import { num, missing, solverLabel, source, STEPS, stationsModel } from "../model.js";
-import { header, honesty, section, wsEyebrow } from "./common.js";
+import { header, honesty, mountScene, section, stage, wsEyebrow } from "./common.js";
+import { buildLattice } from "../engine/lattice.js";
 
 export async function mount(ctx) {
   const ro = !ctx.wsInfo || ctx.wsInfo.read_only;
@@ -44,8 +45,8 @@ export async function mount(ctx) {
       status.replaceChildren(r ? chip("recorded", `snapshot from ./run_demo.sh, results.json ${r.generated_at}`) : chip("not yet run"));
     } else {
       drawStations(stationsModel(runs));
-      status.replaceChildren(last ? chip(last.status === "PASS" ? "PASS" : last.status === "running" ? "running" : "FAIL", `${last.kind} run ${last.id} · ${last.status}`) : chip("not yet run", "no run in this workspace yet"));
-      if (last && last.status === "FAIL" && last.detail.tail) showTail(last.detail.tail);
+      status.replaceChildren(last ? chip(["PASS", "running", "INTERRUPTED"].includes(last.status) ? last.status : "FAIL", `${last.kind} run ${last.id} · ${last.status}`) : chip("not yet run", "no run in this workspace yet"));
+      if (last && !["PASS", "running"].includes(last.status) && last.detail.tail) showTail(last.detail.tail);
       if (runs.active) follow(runs.active);
     }
   };
@@ -102,9 +103,14 @@ export async function mount(ctx) {
     } catch (err) { if (err.code !== "aborted") pre.replaceChildren(h("p", { class: "fine", text: `preflight unavailable: ${err.message}` })); }
   };
 
+  const stageEl = stage(ctx, { label: "The workspace's services in THE LATTICE; the world reflects the latest results of this workspace." });
+  ctx.store.get(ctx.ws, "scene", { signal: ctx.signal }).then((scene) => mountScene(ctx, "pipeline", scene, ({ THREE, world, group }) => {
+    buildLattice(THREE, group, scene, world.uniforms); world.uniforms.uWeek.value = 1e6; return {};
+  })).catch(() => {});
   ctx.root.append(h("div", { class: "grid" },
     h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Pipeline", lede: "The eleven steps of run_demo.sh, run as the existing module CLIs with this workspace's paths. Each station lights when its step completes.",
       aside: h("div", { class: "hero-figure" }, h("p", { class: "eyebrow", text: "schedule solver" }), solverEl, why), actions: [runBtn, status] })),
+    h("div", { class: "span-12" }, stageEl),
     section("Stations", stationsEl),
     h("div", { class: "span-8" }, section("Output", h("div", {}, log, tail))),
     h("div", { class: "start-9" }, section("Preflight", pre)),

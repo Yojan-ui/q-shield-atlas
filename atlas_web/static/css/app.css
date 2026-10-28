@@ -284,3 +284,15 @@ dialog.confirm .actions { display: flex; justify-content: flex-end; gap: var(--s
   .cta { grid-template-columns: 1fr; }
   .signin-aside { padding-top: 0; }
 }
+
+/* ---------- 3D stage window + debug HUD ---------- */
+.stage { position: relative; height: clamp(260px, 50vh, 540px); border-top: var(--rule) solid var(--hairline); border-bottom: var(--rule) solid var(--hairline); cursor: default; }
+.stage.tall { height: clamp(320px, 64vh, 680px); }
+.stage.flat { height: auto; border: 0; }
+.stage .stage-note { padding: var(--s-3) 0; }
+.stage-legend { position: absolute; left: 0; bottom: var(--s-3); display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); font-size: var(--fs-12); color: var(--text-2); pointer-events: none; }
+.stage-tip { position: absolute; z-index: 2; pointer-events: none; padding: var(--s-2) var(--s-3); background: var(--surface-raised); border: var(--rule) solid var(--hairline-strong); border-radius: var(--r-surface); font: var(--fs-12)/1.4 var(--font-mono); color: var(--text); white-space: nowrap; }
+.debug-hud { position: fixed; left: var(--s-3); bottom: var(--s-3); z-index: var(--z-toast); padding: var(--s-1) var(--s-2); background: var(--surface-raised); border: var(--rule) solid var(--hairline-strong); font: var(--fs-11) var(--font-mono); color: var(--accent); }
+@media (max-width: 760px) { .stage { height: 46vh; } .debug-hud { bottom: calc(var(--rail-h) + var(--s-2)); } }
+.week-scrub { margin-top: var(--s-3); }
+.week-scrub input[type="range"] { flex: 1; max-width: 480px; accent-color: var(--accent); }
