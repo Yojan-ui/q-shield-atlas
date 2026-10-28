@@ -20,6 +20,7 @@ from schedule.platform_guard import DAILY_LIMIT, PlatformBudget
 
 from . import local_sim, metrics, qcloud_run
 from .qubo import build, exact_optimum
+from .table import build_table
 
 REPO = Path(__file__).resolve().parent.parent
 LABEL = ("QAOA on simulators. A measured cross-check against the exact optimum. "
@@ -118,11 +119,14 @@ def main(argv=None):
     ex = section["exact"]
     print(f"exact optimum (brute force): objective {ex['objective']:.6f}, assets {ex['assets']}, bitstring {ex['bitstring']}")
     print(f"\n{'p':>2} {'source':7} {'shots':>5} {'feasible':>8} {'best feas':>10} {'approx':>7} {'E ratio':>8} {'P(opt)':>7} {'P(opt set)':>10}  job_ids")
-    for r in sorted(section["runs"], key=lambda r: (r["p"] or 0, r["source"])):
+    for r in build_table(section):
+        if r["status"] != "ok":
+            print(f"{r['p']:>2} {r['source']:7} {r['status_text']}")
+            continue
         m = r["metrics"]
         ar = f"{m['approximation_ratio']:.3f}" if m["approximation_ratio"] is not None else "n/a"
         bf = f"{m['best_feasible_objective']:.4f}" if m["best_feasible_objective"] is not None else "n/a"
-        print(f"{r['p'] if r['p'] is not None else '-':>2} {r['source']:7} {m['shots']:>5} {m['feasible_fraction']:>8.3f} {bf:>10} "
+        print(f"{r['p'] if r['p'] is not None else '-':>2} {r['source']:7} {r['shots']:>5} {m['feasible_fraction']:>8.3f} {bf:>10} "
               f"{ar:>7} {m['energy_ratio']:>8.4f} {m['p_optimal']:>7.4f} {m['p_optimal_assets']:>10.4f}  {r['job_ids']}")
     for c in section["comparisons"]:
         print(f"p={c['p']} local vs QCloud: {c['note']}; z={ {k: round(v, 2) for k, v in c['z_scores'].items()} }")

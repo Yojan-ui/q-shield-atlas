@@ -99,7 +99,16 @@
             "pubkey_fp": {"$ref": "#/$defs/sha256"},
             "alg": {"const": "ML-DSA-65"},
             "backend": {"type": "string"},
-            "ledger_ref": {"type": "string"}
+            "ledger_ref": {"type": "string"},
+            "entries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["index", "type", "payload_ref"],
+                "properties": {"index": {"type": "integer", "minimum": 0}, "type": {"type": "string"}, "payload_ref": {"type": "string"}}
+              }
+            }
           }
         }
       ]
@@ -123,8 +132,36 @@
     },
     "qaoa": {
       "type": "object",
-      "required": ["label", "run_id", "ts", "problem", "exact", "runs", "comparisons", "qcloud"],
+      "required": ["label", "run_id", "ts", "problem", "exact", "runs", "comparisons", "qcloud", "table", "ledger_index"],
       "properties": {
+        "ledger_index": {"type": ["integer", "null"], "minimum": 0},
+        "table": {
+          "description": "One row per (p, source) for display. Non-ok rows have metrics null and a status_text; never blanks or zeros.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["p", "source", "status", "status_text", "backend", "shots", "job_ids", "metrics"],
+            "properties": {
+              "p": {"type": ["integer", "null"]},
+              "source": {"enum": ["local", "qcloud", "random"]},
+              "status": {"enum": ["ok", "failed", "skipped", "not_requested"]},
+              "status_text": {"type": ["string", "null"]},
+              "backend": {"type": "string"},
+              "shots": {"type": ["integer", "null"]},
+              "job_ids": {"type": "array", "items": {"type": "string"}},
+              "metrics": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/qaoa_metrics"}]}
+            },
+            "allOf": [
+              {"if": {"properties": {"status": {"const": "ok"}}},
+               "then": {"properties": {"metrics": {"type": "object"}, "status_text": {"type": "null"}}},
+               "else": {"properties": {"metrics": {"type": "null"}, "status_text": {"type": "string", "minLength": 1}}}},
+              {"if": {"properties": {"source": {"const": "qcloud"}, "status": {"const": "ok"}}, "required": ["source", "status"]},
+               "then": {"properties": {"job_ids": {"minItems": 1}}}}
+            ]
+          }
+        },
         "label": {"type": "string", "pattern": "No quantum advantage claimed"},
         "run_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
         "problem": {

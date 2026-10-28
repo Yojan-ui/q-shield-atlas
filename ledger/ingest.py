@@ -50,6 +50,7 @@ def ledger_summary(ledger: Ledger, repo_root: Path) -> dict:
         "alg": "ML-DSA-65",
         "backend": ledger.backend.label,
         "ledger_ref": ledger.path.resolve().relative_to(repo_root.resolve()).as_posix(),
+        "entries": [{"index": e["index"], "type": e["type"], "payload_ref": e["payload_ref"]} for e in entries],
     }
 
 

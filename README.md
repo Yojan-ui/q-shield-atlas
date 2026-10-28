@@ -184,6 +184,12 @@ the anchor in `results.json` is only as trustworthy as wherever results.json is 
 - **Metrics** (`qaoa/metrics.py`): feasible fraction; best feasible objective; approximation ratio =
   best_feasible / exact_optimum (both <= 0, so 1 = optimum found); energy ratio
   (E_max - mean E)/(E_max - E_min); probability of the exact optimal bitstring and of the optimal asset set.
+- **Display table** (`results.json` `qaoa.table`, built by `qaoa/table.py` at assembly): one row per
+  (p, local/QCloud) plus the random baseline. Rows that did not run have `metrics: null` and a
+  `status_text` derived from the logged error and the ledger entry, e.g.
+  `skipped: no QCloud subscription (attempt logged, ledger #7)`; never blanks or zeros (the schema
+  enforces this). A later successful `--qcloud` run yields `ok` rows with metrics and job IDs through
+  the same path, so viewers need no code change.
 - **Reading the results:** at this size the approximation ratio saturates at 1 even for random sampling
   (2048 shots over 2^14 states hit the optimum by chance), so feasible fraction, energy ratio and
   P(optimal set) are the informative comparisons. The QAOA run is signed into the ledger (`qaoa.run`).

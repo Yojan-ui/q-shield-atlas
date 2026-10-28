@@ -32,6 +32,14 @@ def assemble(out_dir: Path = OUT) -> dict:
     ledger = out_dir / "ledger.json"
     results["ledger"] = json.loads(ledger.read_text()) if ledger.exists() else None
     results["ledger_root"] = results["ledger"]["root"] if results["ledger"] else None
+    if results["qaoa"] is not None:
+        from qaoa.table import build_table
+
+        ref = f"runs/{results['qaoa']['run_id']}/manifest.json"
+        entries = (results["ledger"] or {}).get("entries", [])
+        idx = next((e["index"] for e in entries if e["payload_ref"] == ref and e["type"] == "qaoa.run"), None)
+        results["qaoa"]["ledger_index"] = idx
+        results["qaoa"]["table"] = build_table(results["qaoa"], idx)
     validate("results", results)
     return results
 
