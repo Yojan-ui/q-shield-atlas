@@ -103,6 +103,14 @@ Report exposure-years avoided vs both baselines on the same data.
   lives in git-ignored keys/ (0600); never print it, never commit it.
 - Real-repo scans are read-only; clones live in git-ignored `.cache/repos/`.
 
+## atlas_web (user, 2026-10-28; supersedes site/, which stays untouched)
+- `python -m atlas_web`: login-protected full-stack UI that runs the pipeline CLIs as subprocesses in
+  workspaces under git-ignored atlas_web/data/workspaces/<id>/{src,out,runs,config,keys}. The output freeze
+  above protects only the repo snapshot: workspace runs are allowed; the `demo` workspace (repo out/ + runs/)
+  is read-only. Workspace runs share runs/platform_jobs.log (--platform-log) so the daily cap stays global.
+- Platform/QCloud controls are admin-only and disabled (blocker text shown) until the user flips the switch
+  in config/atlas_web.json. Clones go to the workspace src/.
+
 ## Workflow
 - Build order is fixed: schedule → detect → capture (handshake evidence) → gates → ledger → qaoa → viz → run_demo.
   Do not skip ahead.

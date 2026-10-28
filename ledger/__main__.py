@@ -7,6 +7,7 @@ ingest  append ML-DSA-65-signed run manifests to out/ledger.jsonl, write out/led
         re-assemble out/results.json (ledger_root, entry_count, pubkey_fp anchored there)
 verify  re-hash payloads, check chain, signatures and the root anchored in results.json
 proof   print and check an RFC 6962 inclusion proof for one entry
+append  sign one payload file (under --root) as entry --type, then re-anchor results.json
 
 Path flags (defaults = the repo layout): --root is the directory payload_ref / ledger_ref are
 relative to (it must contain --runs and the ledger), --keys-dir holds the signing key pair.
@@ -40,8 +41,9 @@ def default_public_key(keys_dir: Path | None = None) -> Path:
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("command", choices=["keygen", "ingest", "verify", "proof"])
-    ap.add_argument("index", nargs="?", type=int)
+    ap.add_argument("command", choices=["keygen", "ingest", "verify", "proof", "append"])
+    ap.add_argument("index", nargs="?", help="proof: entry index; append: payload file")
+    ap.add_argument("--type", help="append: entry type, e.g. calibration.apply")
     ap.add_argument("--ledger", type=Path, default=LEDGER)
     ap.add_argument("--public-key", type=Path, default=None, help="default: keys/ledger_mldsa65.pub.pem, else the committed key")
     ap.add_argument("--out-dir", type=Path, default=REPO / "out")
@@ -65,6 +67,21 @@ def main(argv=None):
         return 0
     if args.public_key is None:
         args.public_key = default_public_key(args.keys_dir)
+
+    if args.command == "append":
+        if not private_key.exists():
+            sys.exit(f"no signing key at {private_key}; generate one (see README) - keys are never committed")
+        if not args.type or not args.index:
+            sys.exit("usage: python -m ledger append PAYLOAD --type TYPE")
+        from .ingest import ledger_summary
+
+        ledger = Ledger(args.ledger, backend, private_key, args.public_key, args.root)
+        entry = ledger.append(args.type, Path(args.index).resolve())
+        (args.out_dir / "ledger.json").write_text(json.dumps(ledger_summary(ledger, args.root), indent=1))
+        (args.out_dir / "ledger_verify.json").unlink(missing_ok=True)  # any earlier verification is stale now
+        (args.out_dir / "results.json").write_text(json.dumps(assemble(args.out_dir), indent=1))
+        print(f"appended #{entry['index']} {entry['type']} {entry['payload_ref']} payload {entry['payload_hash'][:16]}")
+        return 0
 
     if args.command == "ingest":
         if not private_key.exists():
@@ -101,7 +118,7 @@ def main(argv=None):
     entries = read_entries(args.ledger)
     items = [canonical(e) for e in entries]
     tree = MerkleTree(items)
-    i = args.index if args.index is not None else len(entries) - 1
+    i = int(args.index) if args.index is not None else len(entries) - 1
     proof = tree.inclusion_proof(i)
     ok = verify_proof(items[i], i, len(items), proof, tree.root())
     print(json.dumps({"index": i, "type": entries[i]["type"], "tree_size": len(items), "root": tree.root(),

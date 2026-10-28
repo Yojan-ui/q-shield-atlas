@@ -210,3 +210,20 @@ def test_platform_log_flag_sets_the_shared_cap_log(module, tmp_path, monkeypatch
     with pytest.raises(PlatformRefused):
         mod.main([flag, "--runs", str(tmp_path / "runs"), *extra])
     assert seen == [tmp_path / "runs" / "platform_jobs.log"]  # default unchanged
+
+
+def test_ledger_append_signs_a_workspace_payload(workspace, repo_untouched):
+    ws, out, runs, keys = workspace, workspace / "out", workspace / "runs", workspace / "keys"
+    flags = ["--ledger", str(out / "ledger.jsonl"), "--out-dir", str(out), "--runs", str(runs), "--root", str(ws),
+             "--keys-dir", str(keys)]
+    cli("-m", "ledger", "keygen", "--keys-dir", str(keys))
+    cli("-m", "ledger", "ingest", *flags)
+    payload = runs / "calib" / "manifest.json"
+    payload.parent.mkdir()
+    payload.write_text(json.dumps({"change": "test"}))
+    cli("-m", "ledger", "append", str(payload), "--type", "calibration.apply", *flags)
+    results = json.loads((out / "results.json").read_text())
+    last = results["ledger"]["entries"][-1]
+    assert (last["type"], last["payload_ref"]) == ("calibration.apply", "runs/calib/manifest.json")
+    assert cli("-m", "ledger", "verify", *flags).stdout.startswith("OK:")
+    assert cli("-m", "ledger", "append", str(payload), *flags, check=False).returncode != 0  # --type required
