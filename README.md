@@ -4,9 +4,9 @@ PQC track, problem statement PQC-01. Find vulnerable RSA/ECC in a system, schedu
 optimally with QpiAI Opt, verify every wave, prove it with signed evidence, and show it in a 3D
 exposure tower (2D fallback).
 
-**Status:** build steps 1-5 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
-evidence, `gates/` with compatibility, rollback and the wave runner, `ledger/`). Later modules
-(qaoa, viz) are not built yet; their sections in `results.json` are `null`.
+**Status:** build steps 1-6 of 8 (`schedule/`, JSON contracts, `detect/`, `capture/` handshake
+evidence, `gates/` with compatibility, rollback and the wave runner, `ledger/`, `qaoa/`). `viz/` and
+`run_demo.sh` are not built yet.
 
 **Scope decision:** this project performs no key recovery, factoring or decryption. Quantum
 exposure is shown with real TLS 1.3 handshake evidence: sessions that rely on classical key
@@ -21,6 +21,7 @@ source .env.sh                # exports QPIAI_OPT_API_KEY (and QCLOUD_API_KEY); 
 python -m detect --probe web-gw=HOST:PORT   # -> out/detect.json, out/inventory.json (probe optional)
 python -m capture             # lab TLS 1.3 handshakes -> out/capture.json, out/gates.json, out/handshake_evidence.json
 python -m gates               # compat matrix, wave runner, one forced rollback -> out/gates.json, out/wave_status.json
+python -m qaoa                # QAOA cross-check on local simulators -> out/qaoa.json (add --qcloud: paid, guarded)
 python -m ledger ingest       # sign run manifests (ML-DSA-65) -> out/ledger.jsonl, root anchored in results.json
 python -m ledger verify       # re-hash payloads, check chain, signatures and anchored root
 python -m schedule --inventory out/inventory.json  # local solves -> out/schedule.json, logs in runs/<run_id>/
@@ -151,6 +152,36 @@ passed the gates in that mode, not that the real system was migrated. Lab certif
 
 Limits: a local test ledger with one signing key; no external timestamping or transparency log, so
 the anchor in `results.json` is only as trustworthy as wherever results.json is published.
+
+## QAOA cross-check (`qaoa/`)
+
+> **QAOA on simulators. A measured cross-check against the exact optimum. No quantum advantage
+> claimed; the problem is small enough for brute force.**
+
+- **QUBO** (`qaoa/qubo.py`): one week of the latest schedule. Candidates are assets not migrated
+  before that week; at most 10 assets + ceil(log2(C+1)) slack bits, at most 16 variables. The candidate set is
+  shrunk by value per effort day together with each asset's unmet dependencies, and every drop is logged.
+  Value a_i is the scenario-weighted exposure-years avoided by migrating in that week rather than one week
+  later (same Mosca data as the MILP); objective minimises -sum r_i a_i x_i. Capacity uses binary slack with
+  penalty A(sum w_i x_i + s - C)^2; dependency i needs j uses B x_i (1 - x_j); A = B = 1 + sum|c_i|, so every
+  infeasible state costs more than the empty selection. The exact optimum is brute force over all subsets,
+  and tests check the QUBO minimum equals it.
+- **Bit order:** variable k = qubit k = bit k of the basis index; counts strings have qubit 0 rightmost.
+  Verified against the QpiAI SDK's in-process simulator (gate conventions too: the QCloud circuit
+  reproduces the numpy QAOA state with overlap 1.0).
+- **Local QAOA** (`qaoa/local_sim.py`): numpy statevector, p = 1, 2, 3, angles from scipy COBYLA on the
+  expected energy, 5 seeded restarts; samples drawn with a fixed seed. Baseline: the same number of
+  uniformly random bitstrings.
+- **QCloud** (`qaoa/qcloud_run.py`, opt-in `python -m qaoa --qcloud`): submits only the final circuit per p
+  (2048 shots, at most 3 jobs) to `QpiAI-QSV-Simulator` (usage rate 1; QPU `QpiAI-Indus-1` refused),
+  through the same guard as the scheduler (announce, log, 10 jobs/UTC day shared, refused under pytest).
+  Local and QCloud statistics are compared with z-scores; large differences are reported, both kept.
+- **Metrics** (`qaoa/metrics.py`): feasible fraction; best feasible objective; approximation ratio =
+  best_feasible / exact_optimum (both <= 0, so 1 = optimum found); energy ratio
+  (E_max - mean E)/(E_max - E_min); probability of the exact optimal bitstring and of the optimal asset set.
+- **Reading the results:** at this size the approximation ratio saturates at 1 even for random sampling
+  (2048 shots over 2^14 states hit the optimum by chance), so feasible fraction, energy ratio and
+  P(optimal set) are the informative comparisons. The QAOA run is signed into the ledger (`qaoa.run`).
 
 ## Scheduling model (`schedule/`)
 

@@ -84,7 +84,7 @@
     "detect": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/detect"}]},
     "handshake_evidence": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/handshake_evidence"}]},
     "gates": {"type": ["object", "null"]},
-    "qaoa": {"type": ["object", "null"]},
+    "qaoa": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/qaoa"}]},
     "ledger_root": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
     "ledger": {
       "oneOf": [
@@ -107,6 +107,66 @@
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "qaoa_metrics": {
+      "type": "object",
+      "required": ["shots", "feasible_fraction", "best_feasible_objective", "approximation_ratio", "mean_energy", "energy_ratio", "p_optimal", "p_optimal_assets"],
+      "properties": {
+        "shots": {"type": "integer", "minimum": 1},
+        "feasible_fraction": {"type": "number", "minimum": 0, "maximum": 1},
+        "best_feasible_objective": {"type": ["number", "null"]},
+        "approximation_ratio": {"type": ["number", "null"], "minimum": 0, "maximum": 1.000001},
+        "mean_energy": {"type": "number"},
+        "energy_ratio": {"type": ["number", "null"]},
+        "p_optimal": {"type": "number", "minimum": 0, "maximum": 1},
+        "p_optimal_assets": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "qaoa": {
+      "type": "object",
+      "required": ["label", "run_id", "ts", "problem", "exact", "runs", "comparisons", "qcloud"],
+      "properties": {
+        "label": {"type": "string", "pattern": "No quantum advantage claimed"},
+        "run_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+        "problem": {
+          "type": "object",
+          "required": ["week", "assets", "n_variables", "slack_bits", "A", "B", "bit_order", "shrink_log"],
+          "properties": {"n_variables": {"type": "integer", "maximum": 16}}
+        },
+        "exact": {
+          "type": "object",
+          "required": ["objective", "assets", "bitstring", "method", "run_id"],
+          "properties": {"bitstring": {"type": "string", "pattern": "^[01]+$"}}
+        },
+        "runs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["p", "source", "backend", "shots", "angles", "job_ids", "metrics"],
+            "properties": {
+              "p": {"type": ["integer", "null"], "minimum": 1},
+              "source": {"enum": ["local", "qcloud", "random"]},
+              "backend": {"type": "string"},
+              "shots": {"type": "integer", "minimum": 1},
+              "angles": {
+                "oneOf": [
+                  {"type": "null"},
+                  {"type": "object", "required": ["gammas", "betas"],
+                   "properties": {"gammas": {"type": "array", "items": {"type": "number"}}, "betas": {"type": "array", "items": {"type": "number"}}}}
+                ]
+              },
+              "job_ids": {"type": "array", "items": {"type": "string"}},
+              "metrics": {"$ref": "#/$defs/qaoa_metrics"}
+            },
+            "allOf": [
+              {"if": {"properties": {"source": {"const": "qcloud"}}}, "then": {"properties": {"job_ids": {"minItems": 1}}}}
+            ]
+          }
+        },
+        "comparisons": {"type": "array"},
+        "qcloud": {"type": "object", "required": ["requested"]}
+      }
+    },
     "handshake_evidence": {
       "type": "object",
       "description": "Real TLS 1.3 handshake metadata from capture/. No decryption is performed or claimed.",

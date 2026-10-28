@@ -6,6 +6,7 @@ Payloads are the immutable per-run files under runs/<run_id>/:
   capture.run          runs/<id>/manifest.json   full capture.json (transcript hashes) + gate results
   gates.run            runs/<id>/manifest.json   compat matrix summary, wave counts
   gates.wave_run       runs/<id>/wave_runner.json per-wave status, config and transcript hashes
+  qaoa.run             runs/<id>/manifest.json   QUBO, exact optimum, angles, metrics, QCloud job IDs
 A payload already in the ledger (same type and SHA-256) is not appended again.
 """
 
@@ -32,6 +33,8 @@ def run_manifests(out_dir: Path, runs_dir: Path) -> list[tuple[str, Path]]:
     if gates := load("gates.json"):
         items.append(("gates.run", runs_dir / gates["run_id"] / "manifest.json"))
         items.append(("gates.wave_run", runs_dir / gates["wave_run_id"] / "wave_runner.json"))
+    if qaoa := load("qaoa.json"):
+        items.append(("qaoa.run", runs_dir / qaoa["run_id"] / "manifest.json"))
     missing = [str(p) for _, p in items if not p.exists()]
     if missing:
         raise FileNotFoundError(f"run manifests referenced by out/ are missing: {missing}")

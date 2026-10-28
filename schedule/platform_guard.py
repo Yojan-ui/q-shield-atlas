@@ -1,4 +1,6 @@
-"""Guardrails for paid QpiAI Opt platform submissions.
+"""Guardrails for paid QpiAI platform submissions (QpiAI Opt MILP jobs and QCloud circuit jobs).
+
+Both kinds share one log and one daily cap.
 
 - Platform mode is opt-in (`python -m schedule --platform`); the default is local.
 - QSHIELD_FORBID_PLATFORM=1 (set by pytest and run_demo.sh) refuses every submission.
@@ -60,9 +62,9 @@ class PlatformBudget:
         with self.log_path.open("a") as fh:
             fh.write(json.dumps(event) + "\n")
 
-    def reserve(self, n: int, run_id: str, stage: str, run_dir: Path) -> None:
+    def reserve(self, n: int, run_id: str, stage: str, run_dir: Path, kind: str = "QpiAI") -> None:
         self.check(n)
-        message = f"Submitting {n} QpiAI jobs (run_id={run_id}, stage={stage})"
+        message = f"Submitting {n} {kind} jobs (run_id={run_id}, stage={stage})"
         print(message, flush=True)
         run_dir.mkdir(parents=True, exist_ok=True)
         with (run_dir / "platform_submit.log").open("a") as fh:
