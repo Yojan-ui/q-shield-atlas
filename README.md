@@ -1,0 +1,85 @@
+# Q-Shield Atlas
+
+PQC track, problem statement PQC-01. Find vulnerable RSA/ECC in a system, schedule the migration
+optimally with QpiAI Opt, verify every wave, prove it with signed evidence, and show it in a 3D
+exposure tower (2D fallback).
+
+**Status:** build step 1 of 8 (`schedule/` + JSON contracts). Later modules (detect, capture,
+attack, gates, ledger, qaoa, viz) are not built yet; their sections in `results.json` are `null`.
+
+## Rerun
+
+```bash
+conda activate pqc            # Python 3.12; the base env lacks qpiai-opt
+source .env.sh                # exports QPIAI_OPT_API_KEY (and QCLOUD_API_KEY); git-ignored
+python -m schedule            # -> out/schedule.json, raw solver logs in runs/<run_id>/
+python -m contracts.assemble  # -> out/results.json, validated against contracts/results.schema.json
+pytest                        # solver tests skip if QPIAI_OPT_API_KEY is absent
+```
+
+No numbers are quoted in this README: they live in `out/results.json`, each traceable to a
+solver run in `runs/`.
+
+## Scheduling model (`schedule/`)
+
+Per asset i: shelf life X_i (years), effort w_i (engineer-days), risk weight r_i, dependencies.
+Each asset is assigned to one week k (wave); completion time t_i = k/52 years after `start_year`.
+For each CRQC scenario year Z (default 2030, 2032, 2035), exposure is
+e_i = max(0, X_i + t_i − (Z − start_year)) years (Mosca's inequality).
+
+- Constraints: each asset migrates exactly once; weekly effort ≤ capacity; a dependency
+  migrates no later than its dependents.
+- `objective: "expected"` minimises the scenario-weighted sum of r_i·e_i;
+  `"robust"` minimises the worst case across scenarios.
+- Solved lexicographically with QpiAI Opt (local MILP, `mip_rel_gap=0`): primary objective,
+  then (robust only) the expected objective, then a tie-break Σ r_i·t_i that pulls high-risk
+  assets earlier when exposure is already zero. Each stage fixes the previous optimum.
+  A stage that does not report `termination=optimal` aborts the run.
+- Baselines on the same data: **FCFS** (inventory/discovery order) and **greedy**
+  (highest r_i/w_i first). Both are list schedulers that respect dependencies and capacity.
+- Every plan, including the MILP's, is re-scored by an independent evaluator
+  (`schedule/problem.py:evaluate`) and re-checked for feasibility; solver objectives are not trusted.
+- The MILP horizon is extended to cover both baseline plans, so both baselines are feasible MILP
+  solutions and a proven optimum cannot be worse. Tests check this on the demo data, random
+  instances, and against brute-force enumeration on a small instance.
+
+### Solver job IDs: documented fallback
+
+QpiAI Opt **local** solves (`mode="local"`, free) do not issue a platform job ID. Each solver
+stage is therefore logged with `job_id: null` and a `job_id_reason` string, plus:
+our own `run_id` (UUID4), a UTC timestamp, SHA-256 of the exact inputs (problem data, stage,
+fixed objective bounds and the LP text) and SHA-256 of the full solver output.
+Files: `runs/<run_id>/{inputs.json, solver_output.json, manifest.json}`.
+The schema rejects a null `job_id` without a reason. Platform mode (which issues job IDs but can
+consume credits) is not used for scheduling.
+
+The local QpiAI Opt MILP runtime reports HiGHS status strings, i.e. it is HiGHS-based.
+
+## Assumptions (all in `config/assumptions.json`)
+
+These are illustrative planning values, **not measurements**:
+- shelf life and risk weight per data class; effort per asset kind;
+- weekly capacity (engineer-days), start year, CRQC scenario years and weights;
+- each asset fits within one week of capacity (larger assets must be split in the inventory).
+
+The demo inventory (`schedule/data/mock_bank_assets.json`) is a fictional mock bank; it will be
+replaced by `detect/` output in step 2.
+
+Sensitivity: shelf life, risk weight and effort are each scaled by 0.8 and 1.2 (one at a time);
+MILP and baselines are re-run on the scaled data and recorded in `results.json["sensitivity"]`.
+`tests/test_sensitivity.py` checks the optimum stays no worse than both baselines and that
+optimal exposure is monotone in shelf life.
+
+## Limits (so far)
+
+- Exposure is linear in completion time. When shelf lives are long relative to time-to-CRQC,
+  most exposure is structural (it exists whatever the order), so the schedule can only shave the
+  part that depends on finishing earlier. `avoided` reports exactly that difference.
+- Week granularity; no partial or multi-week assets; single shared capacity pool.
+
+## Contracts (`contracts/`)
+
+- `capture.schema.json`: service id, handshake bytes, ciphertext (base64).
+- `results.schema.json`: assets, waves, status, exposure per scenario, baselines, avoided,
+  solver runs, sensitivity, and module sections (detect, attack, gates, qaoa, ledger_root).
+- `ledger_entry.schema.json`: `{index, type, payload_hash, prev_hash, sig_mldsa, ts}`.

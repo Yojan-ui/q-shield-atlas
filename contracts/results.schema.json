@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://q-shield-atlas.local/contracts/results.schema.json",
+  "title": "Q-Shield Atlas results",
+  "description": "Single document the viz reads. Every number must come from a logged run listed in solver_runs (or later module sections). Sections owned by modules not yet built are null.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "generated_at", "assumptions", "scenarios", "assets", "waves",
+    "exposure", "baselines", "avoided", "solver_runs",
+    "detect", "attack", "gates", "qaoa", "ledger_root"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "assumptions": {
+      "type": "object",
+      "description": "Copy of the assumption config used (shelf lives, risk weights, effort, capacity, scenarios). These are assumptions, not measurements.",
+      "required": ["label", "sha256"],
+      "properties": {
+        "label": {"type": "string"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "year", "weight"],
+        "properties": {
+          "name": {"type": "string"},
+          "year": {"type": "number"},
+          "weight": {"type": "number", "minimum": 0}
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "algorithm", "shelf_life_years", "effort_days", "risk_weight", "depends_on", "status", "planned_week"],
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "kind": {"type": "string"},
+          "data_class": {"type": "string"},
+          "algorithm": {"type": "string"},
+          "shelf_life_years": {"type": "number", "minimum": 0},
+          "effort_days": {"type": "number", "exclusiveMinimum": 0},
+          "risk_weight": {"type": "number", "minimum": 0},
+          "depends_on": {"type": "array", "items": {"type": "string"}},
+          "status": {"$ref": "#/$defs/status"},
+          "planned_week": {"type": "integer", "minimum": 1},
+          "evidence": {"type": "array"}
+        }
+      }
+    },
+    "waves": {"$ref": "#/$defs/waves"},
+    "exposure": {"$ref": "#/$defs/plan_summary"},
+    "baselines": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fcfs", "greedy"],
+      "properties": {
+        "fcfs": {"$ref": "#/$defs/plan_summary"},
+        "greedy": {"$ref": "#/$defs/plan_summary"}
+      }
+    },
+    "avoided": {
+      "type": "object",
+      "description": "Baseline minus optimized, per scenario, on the same data.",
+      "additionalProperties": false,
+      "required": ["vs_fcfs", "vs_greedy"],
+      "properties": {
+        "vs_fcfs": {"$ref": "#/$defs/avoided_list"},
+        "vs_greedy": {"$ref": "#/$defs/avoided_list"}
+      }
+    },
+    "solver_runs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/solver_run"}},
+    "sensitivity": {"type": ["array", "null"]},
+    "detect": {"type": ["object", "null"]},
+    "attack": {"type": ["object", "null"]},
+    "gates": {"type": ["object", "null"]},
+    "qaoa": {"type": ["object", "null"]},
+    "ledger_root": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "status": {"enum": ["planned", "migrated", "failed", "rolled_back"]},
+    "waves": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["week", "assets", "effort_days", "status"],
+        "properties": {
+          "week": {"type": "integer", "minimum": 1},
+          "assets": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "effort_days": {"type": "number", "minimum": 0},
+          "status": {"$ref": "#/$defs/status"}
+        }
+      }
+    },
+    "scenario_exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario", "year", "exposure_years", "weighted_exposure"],
+      "properties": {
+        "scenario": {"type": "string"},
+        "year": {"type": "number"},
+        "exposure_years": {"type": "number", "minimum": 0},
+        "weighted_exposure": {"type": "number", "minimum": 0}
+      }
+    },
+    "plan_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "completion_week", "per_scenario", "expected_weighted", "worst_case_weighted", "makespan_weeks"],
+      "properties": {
+        "method": {"type": "string"},
+        "objective": {"enum": ["expected", "robust"]},
+        "completion_week": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}},
+        "waves": {"$ref": "#/$defs/waves"},
+        "per_scenario": {"type": "array", "items": {"$ref": "#/$defs/scenario_exposure"}},
+        "expected_weighted": {"type": "number", "minimum": 0},
+        "worst_case_weighted": {"type": "number", "minimum": 0},
+        "makespan_weeks": {"type": "integer", "minimum": 0}
+      }
+    },
+    "avoided_list": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario", "exposure_years_avoided", "weighted_avoided"],
+        "properties": {
+          "scenario": {"type": "string"},
+          "exposure_years_avoided": {"type": "number"},
+          "weighted_avoided": {"type": "number"}
+        }
+      }
+    },
+    "solver_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "ts", "stage", "provider", "package_version", "mode", "job_id", "job_id_reason", "status", "inputs_sha256", "output_sha256"],
+      "properties": {
+        "run_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+        "ts": {"type": "string", "format": "date-time"},
+        "stage": {"type": "string"},
+        "provider": {"type": "string"},
+        "package_version": {"type": "string"},
+        "mode": {"enum": ["local", "platform"]},
+        "device": {"type": ["string", "null"]},
+        "job_id": {"type": ["string", "null"]},
+        "job_id_reason": {"type": ["string", "null"]},
+        "status": {"type": "string"},
+        "termination": {"type": ["string", "null"]},
+        "guarantee": {"type": ["string", "null"]},
+        "objective": {"type": ["number", "null"]},
+        "solver_time_s": {"type": ["number", "null"]},
+        "inputs_sha256": {"$ref": "#/$defs/sha256"},
+        "output_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"job_id": {"type": "null"}}},
+          "then": {"properties": {"job_id_reason": {"type": "string", "minLength": 10}}}
+        }
+      ]
+    }
+  }
+}

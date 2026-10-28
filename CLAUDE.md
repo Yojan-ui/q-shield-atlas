@@ -28,6 +28,14 @@ verify every wave, prove it with signed evidence, show it in a 3D exposure tower
 7. Platform modes (`mode="platform"`) can consume credits. Use local modes by default;
    platform runs only behind an explicit flag.
 
+## Locked decisions (user, 2026-10-28)
+- Scheduling MILP runs with free local QpiAI Opt solves. Local solves issue no job ID, so each
+  solver run records `job_id: null`, a `job_id_reason` string, our own `run_id`, and SHA-256
+  hashes of inputs and outputs. The README must document this fallback.
+- QAOA: tune on the free local simulator first; then run a strictly capped number of cloud jobs
+  on `QpiAI-QSV-Simulator` and log the real job IDs. Code must enforce a simulator device
+  (reject `QpiAI-Indus-1` / unset device) before any platform call.
+
 ## Architecture
 Modules communicate only through the JSON contracts in `contracts/` (validated in tests).
 - `capture/`  lab TLS-like service with a deliberately small RSA key (64–128 bit) + capture

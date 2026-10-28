@@ -4,3 +4,5 @@
 *_backup_*.py
 __pycache__/
 .pytest_cache/
+out/
+runs/

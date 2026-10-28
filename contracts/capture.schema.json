@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://q-shield-atlas.local/contracts/capture.schema.json",
+  "title": "Captured lab handshake and payload",
+  "description": "Produced by capture/, consumed by attack/. Lab traffic only: the legacy service uses a deliberately tiny RSA key as a toy stand-in for what a CRQC would do to RSA-2048.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "service_id", "captured_at", "handshake_b64", "ciphertext_b64"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "service_id": {"type": "string", "minLength": 1},
+    "captured_at": {"type": "string", "format": "date-time"},
+    "kex": {"type": "string", "description": "Key-establishment mode observed, e.g. rsa-toy or hybrid-x25519-mlkem768."},
+    "handshake_b64": {"type": "string", "pattern": "^[A-Za-z0-9+/]*={0,2}$"},
+    "ciphertext_b64": {"type": "string", "pattern": "^[A-Za-z0-9+/]*={0,2}$"},
+    "notes": {"type": "string"}
+  }
+}

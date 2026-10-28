@@ -1,0 +1,21 @@
+{
+  "label": "Fictional mock-bank inventory used until detect/ produces a real one. All names are invented.",
+  "assets": [
+    {"id": "web-gw",       "name": "Public web TLS gateway",        "kind": "tls_gateway",  "data_class": "customer_pii",       "algorithm": "ECDHE-P256 / RSA-2048 cert", "depends_on": ["root-ca"]},
+    {"id": "cdn",          "name": "Marketing CDN edge",            "kind": "cdn_edge",     "data_class": "public_content",     "algorithm": "ECDHE-P256",                 "depends_on": []},
+    {"id": "root-ca",      "name": "Internal root CA",              "kind": "root_ca",      "data_class": "regulatory_records", "algorithm": "RSA-4096",                   "depends_on": ["hsm"]},
+    {"id": "hsm",          "name": "Payments HSM cluster",          "kind": "hsm",          "data_class": "payments",           "algorithm": "RSA-2048",                   "depends_on": []},
+    {"id": "auth",         "name": "Auth / session service",        "kind": "service_mtls", "data_class": "auth_session",       "algorithm": "ECDSA-P256 JWT",             "depends_on": ["root-ca"]},
+    {"id": "payments-api", "name": "Payments API",                  "kind": "service_mtls", "data_class": "payments",           "algorithm": "RSA-2048 mTLS",              "depends_on": ["hsm", "root-ca"]},
+    {"id": "ledger-db",    "name": "Core ledger database link",     "kind": "database_tls", "data_class": "payments",           "algorithm": "RSA-2048 TLS",               "depends_on": ["root-ca"]},
+    {"id": "kyc-db",       "name": "KYC document store",            "kind": "database_tls", "data_class": "customer_pii",       "algorithm": "ECDHE-P384",                 "depends_on": ["root-ca"]},
+    {"id": "backup",       "name": "Encrypted backup vault",        "kind": "batch_sftp",   "data_class": "archive_backup",     "algorithm": "RSA-3072 key wrap",          "depends_on": []},
+    {"id": "vpn",          "name": "Branch site-to-site VPN",       "kind": "vpn",          "data_class": "internal_ops",       "algorithm": "IKEv2 ECDH-P256",            "depends_on": []},
+    {"id": "bus",          "name": "Internal message bus",          "kind": "message_bus",  "data_class": "trade_secrets",      "algorithm": "RSA-2048 mTLS",              "depends_on": ["root-ca"]},
+    {"id": "sftp-reg",     "name": "Regulator SFTP drop",           "kind": "batch_sftp",   "data_class": "regulatory_records", "algorithm": "RSA-2048 SSH host key",      "depends_on": []},
+    {"id": "crm",          "name": "CRM integration",               "kind": "service_mtls", "data_class": "customer_pii",       "algorithm": "RSA-2048 mTLS",              "depends_on": ["bus"]},
+    {"id": "risk-engine",  "name": "Risk model service",            "kind": "service_mtls", "data_class": "trade_secrets",      "algorithm": "ECDHE-P256",                 "depends_on": ["bus"]},
+    {"id": "statements",   "name": "Statement archive export",      "kind": "batch_sftp",   "data_class": "archive_backup",     "algorithm": "RSA-2048 PGP",               "depends_on": ["backup"]},
+    {"id": "ops-dash",     "name": "Ops dashboard",                 "kind": "tls_gateway",  "data_class": "internal_ops",       "algorithm": "ECDHE-P256",                 "depends_on": ["root-ca"]}
+  ]
+}

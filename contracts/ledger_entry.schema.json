@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://q-shield-atlas.local/contracts/ledger_entry.schema.json",
+  "title": "Ledger entry",
+  "description": "One row of the SHA-256 Merkle log. sig_mldsa is an ML-DSA signature (base64) over the canonical entry without sig_mldsa.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["index", "type", "payload_hash", "prev_hash", "sig_mldsa", "ts"],
+  "properties": {
+    "index": {"type": "integer", "minimum": 0},
+    "type": {"type": "string", "minLength": 1},
+    "payload_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "prev_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "sig_mldsa": {"type": "string", "pattern": "^[A-Za-z0-9+/]+={0,2}$"},
+    "ts": {"type": "string", "format": "date-time"}
+  }
+}

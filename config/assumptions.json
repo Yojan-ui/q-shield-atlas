@@ -1,0 +1,39 @@
+{
+  "label": "ASSUMPTIONS - illustrative planning values, not measurements. Shelf lives, risk weights, efforts, capacity and CRQC scenario years are inputs to be replaced by the asset owner; see tests/test_sensitivity.py.",
+  "start_year": 2027.0,
+  "weeks_per_year": 52,
+  "capacity_days_per_week": 10,
+  "horizon_weeks": 26,
+  "objective": "expected",
+  "scenarios": [
+    {"name": "Z2030", "year": 2030, "weight": 0.3},
+    {"name": "Z2032", "year": 2032, "weight": 0.4},
+    {"name": "Z2035", "year": 2035, "weight": 0.3}
+  ],
+  "data_classes": {
+    "archive_backup":     {"shelf_life_years": 25,  "risk_weight": 9},
+    "customer_pii":       {"shelf_life_years": 10,  "risk_weight": 8},
+    "payments":           {"shelf_life_years": 7,   "risk_weight": 10},
+    "regulatory_records": {"shelf_life_years": 7,   "risk_weight": 6},
+    "trade_secrets":      {"shelf_life_years": 5,   "risk_weight": 7},
+    "internal_ops":       {"shelf_life_years": 3,   "risk_weight": 3},
+    "auth_session":       {"shelf_life_years": 0.5, "risk_weight": 5},
+    "public_content":     {"shelf_life_years": 0.1, "risk_weight": 1}
+  },
+  "effort_days_by_kind": {
+    "root_ca": 8,
+    "hsm": 7,
+    "tls_gateway": 3,
+    "service_mtls": 4,
+    "database_tls": 5,
+    "vpn": 6,
+    "message_bus": 4,
+    "batch_sftp": 3,
+    "cdn_edge": 2
+  },
+  "sensitivity": {
+    "shelf_life_factors": [0.8, 1.0, 1.2],
+    "risk_weight_factors": [0.8, 1.0, 1.2],
+    "effort_factors": [0.8, 1.0, 1.2]
+  }
+}
