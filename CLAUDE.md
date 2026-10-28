@@ -80,8 +80,11 @@ a dependency migrates no later than its dependents.
 Report exposure-years avoided vs both baselines on the same data.
 
 ## Progress
-- Steps 1-7 done (schedule, detect, capture, gates, ML-DSA-65 ledger, qaoa, viz). Next: step 8
-  (run_demo.sh + pinned requirements).
+- All 8 steps done; tagged v1.0-hackathon. One command: ./run_demo.sh (local only by default;
+  --platform / --qcloud opt-in). Launch screen: ./announce.sh [--fast] [--json].
+- Pins: requirements.txt (direct imports), requirements-lock.txt, environment.yml; OpenSSL path in
+  config/lab.json ("openssl"), override with QSHIELD_OPENSSL.
+- Fresh-clone rule: running the demo must never modify tracked files (keys go to git-ignored keys/).
 - viz serves only viz/ and out/results.json (never the repo: keys/ must stay unreachable). QCloud QAOA runs need the user's go-ahead (`python -m qaoa --qcloud`).
 - viz/ must render qaoa.table rows generically: metrics when status == "ok", otherwise status_text.
   Never invent or zero-fill QCloud numbers.
