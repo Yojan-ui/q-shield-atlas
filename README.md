@@ -73,8 +73,10 @@ flowchart TB
 - [Honesty and safety rules](#honesty-and-safety-rules)
 - [Testing](#testing)
 - [Repo layout](#repo-layout)
-- [Team / hackathon](#team--hackathon)
+- [Team](#team)
 - [License](#license)
+
+QpiAI / QCloud usage log (plain text): [docs/QPIAI_QCLOUD.txt](docs/QPIAI_QCLOUD.txt)
 
 More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/BACKEND.md](docs/BACKEND.md) ·
 [docs/API.md](docs/API.md) · [docs/QUANTUM.md](docs/QUANTUM.md) · [docs/REFERENCE.md](docs/REFERENCE.md) (module internals,
@@ -327,9 +329,9 @@ viz/          earlier 2D/3D exposure viz (vendored three.js lives here)
 pqc_*.py      early QpiAI Opt prototype scripts
 ```
 
-## Team / hackathon
+## Team
 
-Team Q-Shield Atlas, built for the NITTE hackathon, Post-Quantum Cryptography track, problem statement PQC-01.
+Team Q-Shield Atlas. Built for the NITTE hackathon, Post-Quantum Cryptography track, problem statement PQC-01.
 Repository: https://github.com/Yojan-ui/q-shield-atlas
 
 ## License
