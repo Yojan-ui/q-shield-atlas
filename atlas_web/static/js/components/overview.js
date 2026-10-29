@@ -43,7 +43,8 @@ export function flowFacts(r, reviews) {
     f.ledger = { num: String(r.ledger.entry_count), mean: `signed records · ${v && v.ok ? "chain verified" : "not verified"}`, backend: `${r.ledger.alg} · ${r.ledger.backend}` };
     const first = (r.ledger.entries || []).find((e) => e.type === "detect.run");
     f.proof_open = { num: first ? `#${first.index}` : String(r.ledger.entry_count), mean: first ? "the Detect evidence was signed first (detect.run)" : "signed records", backend: f.ledger.backend };
-    f.proof_verified = { num: String(r.ledger.entry_count), mean: `signed records · ${v && v.ok ? "every signature and hash re-verified" : "not verified"}`, backend: f.ledger.backend };
+    const mlkem = ((r.handshake_evidence || {}).sessions || []).some((x) => /MLKEM/i.test(x.negotiated_group || ""));
+    f.proof_verified = { num: String(r.ledger.entry_count), mean: !(v && v.ok) ? "signed records · not verified" : mlkem ? "signatures verified · X25519MLKEM768 handshake evidence signed" : "signatures verified; no post-quantum handshake recorded", backend: f.ledger.backend };
   }
   const items = (reviews && reviews.items) || [];
   if (items.length) {

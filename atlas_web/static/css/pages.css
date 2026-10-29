@@ -125,3 +125,5 @@ table.data td.n{white-space:nowrap}
 .mv-how{margin:0;color:var(--text-2);font-size:var(--fs-16);max-width:110ch}
 .mv-h2{margin:0;font-size:var(--fs-28)}
 .mv-note{margin:0;color:var(--text-2);font-size:var(--fs-16)}
+.rail a.sub { padding-left: calc(var(--s-3) + 1.4em); } .rail a.sub .r-num { min-width: 0; }
+.rail a .full { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }

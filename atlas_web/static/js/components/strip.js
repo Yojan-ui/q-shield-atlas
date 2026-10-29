@@ -1,6 +1,7 @@
 // Top strip: wordmark, workspace switcher, Beginner/Expert toggle, user menu; the route rail is the left sidebar
 // (pipeline order, step numbers, status ticks) on wide screens and a bar elsewhere.
 import { h, icon } from "../dom.js";
+import { FLOW } from "../flow.js";
 import { sound } from "../sound.js";
 import { backendBadge } from "./quantum.js";
 import { RAIL } from "../routes.js";
@@ -51,9 +52,21 @@ export function strip({ api, store, onSignOut, onWorkspace, kiosk }) {
       h("span", { class: "r-num", text: r.stepText || (r.step ? String(r.step) : "") }),
       h("span", { class: "full", text: r.label }), h("span", { class: "short", text: r.short }),
       done ? h("span", { class: "r-tick", "aria-label": "done" }, icon("check")) : null);
+    // the 7 pipeline steps, each number once (Inventory & drift is a sub-item of 1); steps 2 and 6 open their Ledger section
+    const sec = new URLSearchParams(location.search || (location.hash.split("?")[1] || "")).get("section") || "2";
+    const flowLinks = (done) => FLOW.flatMap((f, i) => {
+      const cur = f.route === routeName && (!f.section || f.section === sec);
+      const a = h("a", { href: href(`/w/:ws/${f.route}`, { ws: wsId }) + (f.section ? `?section=${f.section}` : ""), "aria-current": cur ? "page" : null, title: f.label, class: done[f.id] ? "done" : null },
+        h("span", { class: "r-num", text: String(i + 1) }), h("span", { class: "full", text: f.label }), h("span", { class: "short", text: f.label.split(":")[0] }),
+        done[f.id] ? h("span", { class: "r-tick", "aria-label": "done" }, icon("check")) : null);
+      if (f.id !== "detect") return [a];
+      const inv = RAIL.find((r) => r.name === "inventory");
+      return [a, h("a", { href: href(inv.path, { ws: wsId }), class: `sub${done.inventory ? " done" : ""}`, "aria-current": routeName === "inventory" ? "page" : null, title: inv.title },
+        h("span", { class: "r-num", text: "" }), h("span", { class: "full", text: inv.label }), h("span", { class: "short", text: inv.short }), done.inventory ? h("span", { class: "r-tick", "aria-label": "done" }, icon("check")) : null)];
+    });
     const draw = (done = {}) => rail.replaceChildren(
       ...RAIL.filter((r) => r.group === "start").map((r) => link(r, false)),
-      h("p", { class: "r-group", text: "Pipeline" }), ...RAIL.filter((r) => r.group === "flow").map((r) => link(r, done[r.name])),
+      h("p", { class: "r-group", text: "Pipeline" }), ...flowLinks(done),
       h("p", { class: "r-group", text: "More" }), ...RAIL.filter((r) => r.group === "more").map((r) => link(r, false)));
     draw();
     if (signedIn && store && wsId) {  // status ticks: a step is done when its recorded output exists in results.json
@@ -96,7 +109,8 @@ export function wsLine(w) {
 export function stepsDone(r, reviews) {
   if (!r) return {};
   const items = (reviews && reviews.items) || [];
-  return { detect: !!r.detect, inventory: !!(r.detect && r.detect.inventory), schedule: !!r.exposure, qaoa: !!r.qaoa,
+  const signed = ((r.ledger && r.ledger.entries) || []).some((e) => e.type === "detect.run");
+  return { proof_open: signed, proof_verified: !!(r.ledger_verification && r.ledger_verification.ok), gates: !!r.gates, waves: !!r.qaoa, detect: !!r.detect, inventory: !!(r.detect && r.detect.inventory), schedule: !!r.exposure, qaoa: !!r.qaoa,
     handshakes: !!r.gates, ledger: !!(r.ledger_verification && r.ledger_verification.ok),
     review: items.length > 0 && items.every((i) => i.status !== "pending") };
 }

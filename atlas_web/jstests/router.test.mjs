@@ -60,6 +60,6 @@ test("href, direction, rail", () => {
   assert.equal(direction(2, 3), "forward");
   assert.equal(direction(2, 2), "replace");
   assert.deepEqual(RAIL.map((r) => r.rail), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
-  assert.deepEqual(RAIL.filter((r) => r.step).map((r) => r.step), [1, 1, 2, 3, 4, 5, 7]);  // sidebar follows the 7-step flow (Inventory is part of 1, Proof chain is 2 and 6)
+  assert.deepEqual(RAIL.filter((r) => r.step).map((r) => r.step), [1, 2, 3, 4, 5, 7]);  // route steps; the sidebar itself is built from flow.js (2 and 6 both open Ledger)
   assert.ok(ROUTES.every((r) => r.title && r.view && r.camera));
 });

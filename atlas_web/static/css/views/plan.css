@@ -33,3 +33,5 @@
 .sv-why{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-4)}.sv-why b{font-size:18px}.sv-why p{margin:var(--s-1) 0 0}
 .sv-opt{max-width:980px}.sv-wrap{display:grid;gap:var(--s-4)}
 @media (max-width:760px){.sv-why{grid-template-columns:1fr}.sv-row{grid-template-columns:minmax(0,1fr) 70px;}.sv-row .sv-bar{grid-column:1/-1;grid-row:2}.sv-gap,.sv-row .chip{grid-column:2}}
+.lc-proofs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-4);margin:var(--s-5) 0}.lc-proof{border:var(--rule) solid var(--hairline);padding:var(--s-4);display:grid;gap:var(--s-2);align-content:start;scroll-margin-top:calc(var(--strip-h) + var(--s-4))}
+.lc-proof-k{margin:0}@media (max-width:760px){.lc-proofs{grid-template-columns:1fr}}
