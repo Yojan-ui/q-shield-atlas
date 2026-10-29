@@ -1,4 +1,4 @@
-"""Migration time estimate from the inputs, and the user's time threshold.
+"""Migration time estimate from the inputs (total and per wave), and the user's time threshold.
 
 estimate      the optimised plan's makespan (weeks until the last wave), from schedule/ (MILP)
 lower_bound   ceil(total assumed effort / weekly capacity): no plan can finish sooner under the capacity
@@ -28,6 +28,8 @@ def estimate(results: dict | None, threshold_weeks=None) -> dict:
         "lower_bound_weeks": math.ceil(effort / cap - 1e-9),
         "total_effort_days": effort,
         "capacity_days_per_week": cap,
+        "per_wave": [{"week": w["week"], "systems": len(w["assets"]), "effort_days": w["effort_days"],
+                      "capacity_days": cap, "status": w["status"]} for w in results.get("waves", [])],
         "baselines_weeks": {k: v["makespan_weeks"] for k, v in (results.get("baselines") or {}).items()},
         "basis": "makespan of the optimised plan (QpiAI Opt MILP); lower bound = total assumed effort / weekly capacity",
         "label": "assumption-based: efforts and capacity are assumptions in config/assumptions.json",

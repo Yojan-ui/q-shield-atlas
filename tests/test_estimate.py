@@ -19,6 +19,8 @@ def test_estimate_comes_from_the_plan_and_the_assumptions():
     assert e["lower_bound_weeks"] == math.ceil(sum(a["effort_days"] for a in SAMPLE["assets"]) / cap - 1e-9)
     assert e["lower_bound_weeks"] <= e["estimate_weeks"]  # no plan beats the capacity bound
     assert "assumption" in e["label"] and e["exceeded"] is None
+    assert [w["week"] for w in e["per_wave"]] == [w["week"] for w in SAMPLE["waves"]]
+    assert all(w["effort_days"] <= w["capacity_days"] + 1e-9 for w in e["per_wave"])  # the plan respects weekly capacity
 
 
 def test_threshold_flags():
