@@ -9,7 +9,7 @@ import { toast } from "../components/toast.js";
 import { confirmDialog } from "../components/dialog.js";
 import { dataView, honesty, mountScene, stage, viewCss } from "./common.js";
 import { buildPillars } from "../scenes/pillars.js";
-import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 import { qualityBlock } from "../components/solvers.js";
 
@@ -93,8 +93,7 @@ function cryptoTab(ctx, P) {
   const src = { run_id: c.run_id, solver: c.openssl, ts: c.ts };
   const sec = (a) => (prim[a] && prim[a].security) || {};
   const extra = H.hybrid && H["classical-ecdsa"] ? H.hybrid.handshake_bytes.total - H["classical-ecdsa"].handshake_bytes.total : null;
-  return h("div", {},
-    h("p", { class: "fine", text: c.label }),
+  return h("div", {}, dd({ source: c.label }),
     keyStats([
       { label: "extra bytes for hybrid", cell: cell(extra, 0, src), unit: "bytes per handshake vs X25519 + ECDSA", mean: "What post-quantum protection of recorded traffic costs on the wire: a few kilobytes once per connection." },
       { label: "hybrid handshake time", cell: cell(H.hybrid.handshake_ms_median, 1, src), unit: `ms median vs ${H["classical-ecdsa"].handshake_ms_median.toFixed(1)} ms classical`, mean: "Measured end to end on this machine, including starting the client; compare rows, not absolute values." },
@@ -105,17 +104,13 @@ function cryptoTab(ctx, P) {
       { label: "client → server (B)", numeric: true, sort: (r) => r.handshake_bytes.client_to_server, render: (r) => n0(r.handshake_bytes.client_to_server) },
       { label: "server → client (B)", numeric: true, sort: (r) => r.handshake_bytes.server_to_client, render: (r) => n0(r.handshake_bytes.server_to_client) },
       { label: "total (B)", numeric: true, sort: (r) => r.handshake_bytes.total, render: (r) => n0(r.handshake_bytes.total) },
-      { label: "median (ms)", numeric: true, sort: (r) => r.handshake_ms_median, render: (r) => r.handshake_ms_median.toFixed(1) },
-      { label: "against a quantum computer", render: (r) => (r.family === "classical" ? chip("HNDL-exposed", "breakable (Shor)") : chip("PASS", r.family === "hybrid" ? "protected (ML-KEM part)" : "protected")) }] }),
+      { label: "median (ms)", numeric: true, optional: true, sort: (r) => r.handshake_ms_median, render: (r) => r.handshake_ms_median.toFixed(1) }] }),
       { title: "Handshakes: bytes on the wire and time" }),
     main(table({ caption: "Algorithms: sizes and speed", rows: Object.entries(prim).map(([a, v]) => ({ a, ...v })), columns: [
       { label: "algorithm", render: (r) => h("span", { class: "mono", text: r.a }) },
-      { label: "public key (B, DER)", numeric: true, sort: (r) => r.public_key_der_bytes ?? -1, render: (r) => n0(r.public_key_der_bytes) },
-      { label: "signature / ciphertext (B)", numeric: true, sort: (r) => r.signature_bytes ?? r.ciphertext_bytes ?? -1, render: (r) => n0(r.signature_bytes ?? r.ciphertext_bytes) },
-      { label: "operations / s", numeric: true, render: (r) => (r.speed ? Object.entries(r.speed.ops_per_s).map(([k, v]) => `${k.replace("/s", "")} ${n0(v)}`).join(" · ") : "not measured") },
-      { label: "classical security (bits)", numeric: true, render: (r) => (sec(r.a).classical_bits ? String(sec(r.a).classical_bits) : "–") },
-      { label: "quantum security", render: (r) => sec(r.a).quantum || "–" },
-      { label: "reference", optional: true, render: (r) => sec(r.a).ref || "–" }] }), { title: "Algorithms: key and signature sizes, speed, security level" }),
+      { label: "quantum", render: (r) => (/Shor/.test(sec(r.a).quantum || "") ? chip("HNDL-exposed", "breakable") : chip("PASS", "safe")) },
+      { label: "public key (B)", numeric: true, sort: (r) => r.public_key_der_bytes ?? -1, render: (r) => n0(r.public_key_der_bytes) },
+      { label: "sig / ct (B)", numeric: true, optional: true, sort: (r) => r.signature_bytes ?? r.ciphertext_bytes ?? -1, render: (r) => n0(r.signature_bytes ?? r.ciphertext_bytes) }] }), { title: "Algorithms: key and signature sizes, speed, security level" }),
     detailsList([
       { title: "How it works", summary: "Four lab servers, one per configuration; each handshake is recorded and timed.", body: bullets([c.method.split("\n").map((x) => x.trim()).filter(Boolean).join(" ")]) },
       { title: "Why this method", summary: "Real handshakes on the same machine make the configurations directly comparable.", body: bullets([
@@ -152,7 +147,7 @@ function optimizerTab(ctx, P) {
       { label: "status", render: (r) => (r.status === "ok" ? chip("ok", "measured") : h("span", { class: "fine", text: r.status_text })) }] }), { title: "Scheduling the whole migration" }) : null,
     main(h("div", {}, runtimeChart(b.rows, b.instances), h("ul", { class: "bn-legend", "aria-label": "Chart legend" }, SERIES.map((s) =>
       h("li", {}, h("svg", { viewBox: "0 0 24 8", class: "bn-key", "aria-hidden": "true" }, h("line", { ns: "svg", x1: 0, y1: 4, x2: 24, y2: 4, stroke: s.color, "stroke-width": 2, "stroke-dasharray": s.dash })), `${s.label} · ${s.family}`))),
-      h("p", { class: "mv-how", text: "How to read this: each line is one solver; it shows the measured runtime (log scale) as the problem grows. Lower is faster. Simulator QAOA is a cross-check, not a speed claim." }),
+      dd({ read: "each line is one solver; it shows the measured runtime (log scale) as the problem grows. Lower is faster. Simulator QAOA is a cross-check, not a speed claim." }),
       table({ caption: "Wave-selection instances", rows: b.rows, columns: [
         { label: "instance", key: "instance", mono: true },
         { label: "variables", numeric: true, render: (r) => String(r.n_variables) },
@@ -176,14 +171,14 @@ function optimizerTab(ctx, P) {
 
 export async function mount(ctx) {
   await Promise.all([viewCss("pillars"), viewCss("plan")]);
-  const labels3d = h("div", { class: "gr-labels", "aria-hidden": "true" }), note3d = h("p", { class: "mv-how" });
+  const labels3d = h("div", { class: "gr-labels", "aria-hidden": "true" }), note3d = h("div");
   const stageEl = stage(ctx, { label: "Measured benchmark values as bars", fallback: h("span") });
   stageEl.append(labels3d);
   const show3d = (P, tab) => {
     const items = benchItems(P, tab);
-    note3d.textContent = !items ? (tab === "crypto" ? "3D bars: key and signature sizes not yet run (python -m bench.crypto)." : "3D bars: optimizer timings not yet run (python -m bench).")
-      : tab === "crypto" ? "How to read this: one bar per primitive, height = measured public key plus signature (or ciphertext) bytes."
-      : `How to read this: one bar per solver on the largest instance (${P.bench.instances.at(-1).n_variables} variables), height = measured runtime on a log scale. Taller is slower; a wireframe solver was not run.`;
+    note3d.replaceChildren(!items ? h("p", { class: "mv-note", text: tab === "crypto" ? "Key and signature sizes: not yet run (python -m bench.crypto)." : "Optimizer timings: not yet run (python -m bench)." })
+      : dd(tab === "crypto" ? { shows: "One bar per primitive.", read: "Height is the measured public key plus signature (or ciphertext) bytes." }
+        : { shows: `One bar per solver on the largest instance (${P.bench.instances.at(-1).n_variables} variables).`, read: "Height is the measured runtime on a log scale; taller is slower; a wireframe solver was not run." }));
     stageEl.hidden = !items;
     if (!items) { ctx.world.mount("bench", null); return; }
     mountScene(ctx, "bench", { available: true }, (env) => buildPillars(env, items, { labelsEl: labels3d, stageEl, reduced: ctx.world.reduced })).catch(() => {});

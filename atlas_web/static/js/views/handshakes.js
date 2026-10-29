@@ -8,7 +8,7 @@ import { provAttr } from "../components/tooltip.js";
 import { HNDL, NOT_YET_RUN as NR, num, source } from "../model.js";
 import { dataView, honesty, mountScene, notRun, section, stage } from "./common.js";
 import { buildHandshakes, rowsOf } from "../scenes/handshakes.js";
-import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 
 const res = (x) => (x && x.result) || NR;
@@ -70,9 +70,7 @@ export async function mount(ctx) {
           { label: "week", numeric: true, render: ({ w, e }) => num(w.week, src(w.evidence.run_id, "gates: lab wave", e.finished_at || w.evidence.ts)) },
           { label: "lab service", render: ({ e }) => two(mono(e.lab_service), sub(`${e.from_mode} → ${e.to_mode} · ${(e.assets || []).join(", ")}`)) },
           { label: "status", render: ({ e }) => chip(e.status || NR) },
-          { label: "pq_handshake", render: ({ p }) => two(chip(res(p)), p ? sub(p.negotiated_group || "") : null) },
-          { label: "config", render: ({ e }) => hash(e.applied_config_sha256, "applied config hash") },
-          { label: "transcript", optional: true, render: ({ p }) => tx(p && p.transcript_sha256) }] }));
+          { label: "pq handshake", render: ({ p }) => chip(res(p)) }] }));
       const rollT = section("Tested rollback", fr ? kv(["service", mono(`${fr.service_id}: ${fr.from_mode} → ${fr.to_mode}`)], ["outcome", chip(fr.status || NR)],
           ["snapshot", hash(fr.snapshot_sha256, "snapshot hash")],
           ["restored", two(hash(fr.restored_config_sha256, "restored hash"),
@@ -88,7 +86,7 @@ export async function mount(ctx) {
           { label: "waves passed every gate", cell: num(passed, gsrc), unit: `of ${(r.waves || []).length} waves`, mean: "A wave counts only when its handshake, downgrade, compatibility and rollback gates all pass." },
           { label: "rollback tested", cell: num(fr && fr.restored_config_sha256 === fr.snapshot_sha256 ? 1 : 0, gsrc), unit: fr ? `${fr.status}` : "not run", mean: "A forced failure was rolled back and the exact previous configuration was restored." },
         ]),
-        main(h("div", {}, el, h("p", { class: "mv-how", text: "How to read this: each strand is one recorded lab handshake. A single red strand is classical key exchange (HNDL-exposed); a braid is hybrid X25519 + ML-KEM-768; a wall means a classical-only client was refused." }), wavesT, labT), { title: "Gates per wave" }),
+        main(h("div", {}, el, dd({ read: "each strand is one recorded lab handshake. A single red strand is classical key exchange (HNDL-exposed); a braid is hybrid X25519 + ML-KEM-768; a wall means a classical-only client was refused." }), wavesT, labT), { title: "Gates per wave" }),
         detailsList([
           { title: "How it works", summary: "Each wave is switched on real TLS 1.3 lab services and checked four ways.", body: bullets([
             ["Post-quantum handshake: the server must negotiate ", term("hybrid", "hybrid key exchange"), " (X25519MLKEM768)."],

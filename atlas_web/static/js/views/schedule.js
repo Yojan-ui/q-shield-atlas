@@ -10,7 +10,7 @@ import { dataView, honesty, mountScene, notRun, section, stage, viewCss } from "
 import { buildLattice } from "../engine/lattice.js";
 import { sound } from "../sound.js";
 import { estimateBlock } from "../components/estimate.js";
-import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 import { otherOptions, qualityBlock, whyMilp } from "../components/solvers.js";
 import { runtimeChart } from "./bench.js";
@@ -104,7 +104,7 @@ function curves(r, scenario) {
         h("tspan", { ns: "svg", x: X(end) + 20, dy: 24, text: "(identical plan)" })) : h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y }, s.label));
   });
   const makespan = r.exposure && r.exposure.makespan_weeks;
-  return h("div", {}, svg, h("p", { class: "mv-note", text: `All systems migrated by week ${makespan ?? "–"} (optimised plan). Exposure still ahead reaches 0 by week ${zero}; the axis stops at week ${end}, after which no line changes.` }));
+  return h("div", {}, svg, dd({ shows: `All systems migrated by week ${makespan ?? "–"} (optimised plan); exposure still ahead reaches 0 by week ${zero}.`, read: `The axis stops at week ${end}, after which no line changes.` }));
 }
 
 // the optimisation itself: per-wave effort against the weekly capacity (results.waves + assumptions), and the
@@ -125,7 +125,7 @@ function optimisation(r) {
   svg.append(h("line", { ns: "svg", class: "pl-cap", x1: L, x2: W - R, y1: Y(cap), y2: Y(cap) }), h("text", { ns: "svg", class: "pl-lab", x: W - R, y: Y(cap) - 8, "text-anchor": "end" }, `capacity ${cap} engineer-days / week (assumption)`),
     h("text", { ns: "svg", x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle" }, "wave (week) · bar = assumed effort of the systems in it"));
   return h("div", {}, objectiveChart(r), h("h3", { class: "pl-h3", text: "Effort per wave vs team capacity (the real plan)" }), svg,
-    h("p", { class: "mv-how", text: "How to read this: each bar is one weekly wave of the optimised plan; no bar may exceed the capacity line, and a system never moves before what it depends on." }));
+    dd({ read: "each bar is one weekly wave of the optimised plan; no bar may exceed the capacity line, and a system never moves before what it depends on." }));
 }
 
 // the objective the MILP minimises (risk- and scenario-weighted exposure), per Q-Day scenario, for MILP / FCFS / Greedy
@@ -159,7 +159,7 @@ function objectiveChart(r) {
     });
     svg.append(h("text", { ns: "svg", class: "pl-lab", x: L + gi * gw + gw / 2, y: H - 8, "text-anchor": "middle" }, `Q-Day ${g.year}`));
   });
-  return h("div", {}, svg, h("p", { class: "mv-how", text: "How to read this: bar height is the objective the MILP minimises (risk- and scenario-weighted exposure-years) for each Q-Day year; lower is better. Inside each FCFS / Greedy bar: how much lower (in %) the MILP's value is than that plan's." }));
+  return h("div", {}, svg, dd({ read: "bar height is the objective the MILP minimises (risk- and scenario-weighted exposure-years) for each Q-Day year; lower is better. Inside each FCFS / Greedy bar: how much lower (in %) the MILP's value is than that plan's." }));
 }
 
 export async function mount(ctx) {
@@ -220,7 +220,7 @@ export async function mount(ctx) {
           h("p", { class: "pl-solver mono" }, solverLine(m.results), benchLink),
           h("h2", { class: "mv-h2", text: "Comparison: exposure still ahead, week by week" }),
           curves(m.results, scenario),
-          h("p", { class: "mv-how", text: "How to read this: each line is how much exposure (years that data stays readable after Q-Day) is still ahead at each week. Lower is better; the gap at week 0 is the total avoided. Lines are unweighted exposure-years; the optimiser minimises the risk- and scenario-weighted total, so lines can cross." }));
+          dd({ read: "each line is how much exposure (years that data stays readable after Q-Day) is still ahead at each week. Lower is better; the gap at week 0 is the total avoided. Lines are unweighted exposure-years; the optimiser minimises the risk- and scenario-weighted total, so lines can cross." }));
         heroEl.append(h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Optimisation: the objective by Q-Day scenario" }), optimisation(m.results)),
           h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Why MILP, and how the solvers compare" }), whyMilp(m.results), solversEl, otherOptions()));
         statsEl.replaceChildren(keyStats([

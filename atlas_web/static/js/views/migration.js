@@ -14,7 +14,7 @@ import { authName, buildChannel, fmtBytes, packetsOf, pickLanes, sessionProv, tr
 import { clusterOf } from "../scenes/graph.js";
 import { dataView, honesty, mountScene, notRun, stage, viewCss } from "./common.js";
 import { buildLanes3d } from "../scenes/lanes3d.js";
-import { bullets, detailsList, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, nextStep, pageHead, dd } from "../components/page.js";
 
 export const LANES = [
   { id: "classical", title: "Still on old encryption", sub: "quantum-exposed (RSA / ECC)", tone: "exposed" },
@@ -114,7 +114,7 @@ export async function mount(ctx) {
         const authBox = authRows.length ? h("div", { class: "mv-auth" }, authRows.map(({ s, gate, cert, cv, tot, pass }) => h("div", { class: "mv-auth-row", tabindex: "0", "data-prov": sessionProv(mv, s, `${s.service_id}: server authentication`) },
           h("p", { class: "mv-auth-h" }, h("span", { class: "mono", text: `${authName(s)}` }), ` · ${s.service_id} · `, chip(gate ? gate.result : "NOT_RUN", `pq_auth ${gate ? gate.result : "not run"}`)),
           h("div", { class: "mv-auth-bar" }, h("span", { class: pass ? "ok" : "exp", style: { width: `${(tot / maxAuth) * 100}%` } })),
-          h("p", { class: "mv-note", text: `Certificate ${cert ? fmtBytes(cert.bytes) : "n/a"} + CertificateVerify ${cv ? fmtBytes(cv.bytes) : "n/a"} = ${fmtBytes(tot)}. ${gate ? gate.reason : "no pq_auth gate recorded"}` })))) : h("p", { class: "mv-note", text: "not run" });
+          h("span", { class: "num", text: fmtBytes(tot) }), dd({ shows: `Certificate ${cert ? fmtBytes(cert.bytes) : "n/a"} + CertificateVerify ${cv ? fmtBytes(cv.bytes) : "n/a"} = ${fmtBytes(tot)}.`, read: gate ? gate.reason : "no pq_auth gate recorded" })))) : h("p", { class: "mv-note", text: "not run" });
         return { L, lanes, ch, lists, authBox };
       };
       let S = sceneOf(mv, g, false);
@@ -163,7 +163,7 @@ export async function mount(ctx) {
               : h("tr", {}, h("td", { colspan: String(2 + GATES.length), text: "no lab stand-in in this wave: not verified in lab" })))),
           g.forced_rollback ? h("p", { class: "mv-note" }, chip(g.forced_rollback.status || "NOT_RUN"), ` tested rollback (gates run ${g.run_id}): forced failure on ${g.forced_rollback.service_id}, ${g.forced_rollback.restored_config_sha256 && g.forced_rollback.restored_config_sha256 === g.forced_rollback.snapshot_sha256 ? "restored config hash equals the snapshot" : "config not restored"}`) : null,
                     noLab.length ? h("p", { class: "mv-note" }, chip("not_verified_in_lab"), ` no lab stand-in for this kind: ${noLab.join(", ")}`) : null,
-          bankMode ? h("p", { class: "mv-note", text: "Bank endpoints are only observed (one recorded handshake each) and planned. The gate results above belong to the lab stand-in on 127.0.0.1, not to any bank." }) : null);
+          bankMode ? h("p", {}, chip("assumption", "simulation: lab stand-in, not the bank"), dd({ read: "Bank endpoints are only observed (one recorded handshake each) and planned. The gate results above belong to the lab stand-in on 127.0.0.1, not to any bank." })) : null);
       };
       const drawPlan = () => {
         const A = shown();
@@ -278,10 +278,10 @@ export async function mount(ctx) {
           h("div", { class: "mv-controls" }, playBtn, stepBtn, h("label", { class: "mv-lab" }, "speed", speed),
             h("label", { class: "mv-lab week-scrub" }, "week", range, wk), bankSel ? h("label", { class: "mv-lab" }, "bank", bankSel) : null, motionBtn)),
         h("section", { class: "ch-stage", "aria-label": "Replay of recorded handshakes" }, h("div", { class: "mv-fresh" }, freshBtn, backBtn, freshNote), stage3d, stageBox,
-          h("p", { class: "mv-how", text: "How to read this: each block is one recorded TLS message, as wide as its real size. Same client, two servers: red uses classical X25519, green uses hybrid X25519MLKEM768 (its key share is the dark inner block). The bottom lane is a client that offers only classical groups." })),
+          dd({ read: "each block is one recorded TLS message, as wide as its real size. Same client, two servers: red uses classical X25519, green uses hybrid X25519MLKEM768 (its key share is the dark inner block). The bottom lane is a client that offers only classical groups." })),
         tlsBox,
         h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: "Who the receiver is: server authentication" }), authWrap,
-          h("p", { class: "mv-how", text: "How to read this: bar length is the recorded certificate plus signature size. Key exchange protects recorded traffic; the signature proves the server's identity and must be replaced before a quantum computer exists." })),
+          dd({ read: "bar length is the recorded certificate plus signature size. Key exchange protects recorded traffic; the signature proves the server's identity and must be replaced before a quantum computer exists." })),
         h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: "This week's wave: gate results" }), mean, gatesBox),
         h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: bank ? `Systems: ${bank}` : "Systems" }),
           h("div", { class: "mg-lanes" }, LANES.map((l) => h("section", { class: `mg-lane ${l.tone}`, "aria-label": l.title },

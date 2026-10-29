@@ -11,7 +11,7 @@ import { buildGraph, classicalSig, CLASSES, graphModel, layout, VULN } from "../
 import { provAttr } from "../components/tooltip.js";
 import { prefersReducedMotion } from "../motion.js";
 import { num } from "../model.js";
-import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 import { dataView, honesty, mountScene, notRun, section, stage, viewCss } from "./common.js";
 
@@ -92,7 +92,7 @@ function graphHero(ctx, r, observed, inventory) {
     h("li", {}, h("span", { class: "lg-ring", "aria-hidden": "true" }), "White ring: drift (static scan and live handshake disagree) ", h("span", { class: "num", text: String(G.nodes.filter((x) => x.drift).length) })));
   return h("section", { class: "gr" }, legend,
     h("div", { class: "gr-body" }, h("div", { class: "gr-view" }, el, flatWrap), panel),
-    h("div", { class: "gr-bar" }, h("p", { class: "mv-how", text: `How to read this: ${G.nodes.length} systems from the inventory, ${G.edges.length} declared dependencies (lines). Node size is the risk weight (an assumption). ${G.bank ? "Clusters are banks." : "Clusters are system kinds."} Drag to turn, ⌥-scroll to zoom.` }),
+    h("div", { class: "gr-bar" }, dd({ read: `${G.nodes.length} systems from the inventory, ${G.edges.length} declared dependencies (lines). Node size is the risk weight (an assumption). ${G.bank ? "Clusters are banks." : "Clusters are system kinds."} Drag to turn, ⌥-scroll to zoom.` }),
       h("div", { class: "sg-row" }, resetBtn, modeBtn)));
 }
 

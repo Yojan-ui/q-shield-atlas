@@ -3,6 +3,7 @@
 import { h } from "../dom.js";
 import { chip } from "./chip.js";
 import { toast } from "./toast.js";
+import { dd } from "./dd.js";
 
 const KEY = (ws) => `atlas.deadline.${ws}`;
 const local = { get: (ws) => { try { return localStorage.getItem(KEY(ws)); } catch { return null; } },
@@ -43,7 +44,7 @@ export function estimateBlock(ctx) {
       h("div", { class: "est-main" },
         h("p", { class: "eyebrow", id: "est-h", text: "How long will it take?" }),
         h("p", { class: "est-num" }, h("span", { class: "num", text: String(e.estimate_weeks) }), h("span", { class: "est-unit", text: ` weeks (≈ ${e.estimate_years.toFixed(2)} years)` })),
-        h("p", { class: "fine", text: `What this means: at ${e.capacity_days_per_week} engineer-days a week, the optimised plan finishes its last wave in week ${e.estimate_weeks}. It cannot be faster than ${e.lower_bound_weeks} weeks (${e.total_effort_days} engineer-days in total ÷ ${e.capacity_days_per_week} a week). Simple plans: ${b} weeks.` }),
+        dd({ read: `At ${e.capacity_days_per_week} engineer-days a week, the optimised plan finishes its last wave in week ${e.estimate_weeks}. It cannot be faster than ${e.lower_bound_weeks} weeks (${e.total_effort_days} engineer-days in total ÷ ${e.capacity_days_per_week} a week). Simple plans: ${b} weeks.` }),
         chip("assumption", "efforts and capacity are assumptions")),
       h("div", { class: "est-set" },
         h("label", { for: "est-in", class: "eyebrow", text: "Your deadline (weeks)" }),

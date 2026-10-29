@@ -8,7 +8,7 @@ import { num, QAOA_LABEL } from "../model.js";
 import { dataView, honesty, mountScene, notRun, stage } from "./common.js";
 import { buildQaoaCloud } from "../scenes/qaoa.js";
 import { quantumPanel } from "../components/quantum.js";
-import { bullets, detailsList, main, nextStep, pageHead, whyBlock } from "../components/page.js";
+import { bullets, detailsList, main, nextStep, pageHead, whyBlock, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 
 const pct = (x) => `${(x * 100).toFixed(2)} %`;
@@ -66,7 +66,7 @@ export async function mount(ctx) {
           pm(sF, "Share of QAOA's answers that respect the weekly capacity and dependencies."),
           pm(sO, "Share of answers that are exactly the best choice; compare with the random baseline below it.")),
         main(h("div", {}, ctx.wsInfo && !ctx.wsInfo.read_only || ctx.ws === "demo" ? quantumPanel(ctx) : null, stageWrap,
-          h("p", { class: "mv-how", text: "How to read this: left is QAOA on the simulator, right a uniform random guess. The bigger the shell, the more shots met the constraints; the bigger the core, the more shots hit the exact optimum." })), { title: "QAOA against the exact answer" }),
+          dd({ read: "left is QAOA on the simulator, right a uniform random guess. The bigger the shell, the more shots met the constraints; the bigger the core, the more shots hit the exact optimum." })), { title: "QAOA against the exact answer" }),
         detailsList([
           { title: "How it works", summary: "One week's choice becomes a small yes/no problem that QAOA samples.", body: bullets([
             ["The choice is written as a ", term("qubo", "QUBO"), " (at most 16 variables): value of migrating now, minus penalties for breaking capacity or dependencies."],
@@ -82,7 +82,7 @@ export async function mount(ctx) {
             ...q.columns.map(([k, label]) => ({ label, numeric: true, render: (r) => (r.cells ? r.cells[k] : nr(r)) })),
             { label: "status", render: (r) => (r.cells ? h("span", {}, chip("ok", "measured"), h("span", { class: "sub", text: r.raw.job_ids.length ? `job ${r.raw.job_ids.join(", ")}` : "no job ID (local)" }))
               : h("span", { class: "fine", text: r.status_cell.text })) }] }),
-            h("p", { class: "fine", text: `Particle allocation encodes each run's measured feasible fraction and P(optimal set) (${n} particles per cloud); positions are layout.` })) },
+            dd({ read: `Particle allocation encodes each run's measured feasible fraction and P(optimal set) (${n} particles per cloud); positions are layout.` })) },
           { title: "Limits", summary: "Simulators only, 16 qubits at most; no quantum advantage is claimed.", body: bullets([
             QAOA_LABEL, "QpiAI Cloud: awaiting account activation; QpiAI-Indus-1 hardware is never used."]) }]),
         nextStep(ctx, "qaoa"));

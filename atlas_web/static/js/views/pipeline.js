@@ -13,7 +13,7 @@ import { FLOW } from "../flow.js";
 import { buildPillars } from "../scenes/pillars.js";
 import { guidedRun } from "../components/guided.js";
 import { flowCards, flowFacts } from "../components/overview.js";
-import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 
 // station model (step -> status) -> one state per flow step: fail > running > ok (all steps ok) > idle
@@ -173,7 +173,7 @@ export async function mount(ctx) {
   ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
     pageHead(ctx, { route: "pipeline", title: "Overview", headline: "Where does each system stand on its way to post-quantum encryption, and what happens next?", actions: [runBtn, replayBtn, status] }),
     guided ? guided.el : null,
-    stageEl, h("p", { class: "mv-how", text: "How to read this: one column per pipeline step, lit from this workspace's real run status: green done, red failed, white pulsing while it runs, grey not run. Click a column to open that step." }),
+    stageEl, dd({ read: "one column per pipeline step, lit from this workspace's real run status: green done, red failed, white pulsing while it runs, grey not run. Click a column to open that step." }),
     ovEl, runDetails, nextStep(ctx, "pipeline", { route: "detect", text: "Start: 1 Detect" }), honesty())));
   drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: "idle", duration: missing("…") })));
   try { await load(); } catch (err) { if (err.code !== "aborted") status.replaceChildren(chip("FAIL", err.message)); }

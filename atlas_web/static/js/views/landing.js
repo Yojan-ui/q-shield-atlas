@@ -8,6 +8,7 @@ import { FLOW } from "../flow.js";
 import { rollNumber } from "../motion.js";
 import { buildLattice } from "../engine/lattice.js";
 import { placeLabels } from "../scenes/labels.js";
+import { dd } from "../components/dd.js";
 
 export async function mount(ctx) {
   await Promise.all([viewCss("landing"), viewCss("pillars")]);
@@ -80,7 +81,7 @@ export async function mount(ctx) {
         big(a.fcfs, 3, "exposure-years avoided", `vs first-come-first-served, Q-Day ${(m.scenarios.find((x) => x.name === scenario) || {}).year || ""}`),
         big(l.available ? l.entries : num(null), 0, "signed proof records", verified ? "ML-DSA-65, all verified" : "ML-DSA-65 · not verified"));
       return h("div", { class: "ld-below" }, ...sections(ctx, go),
-        h("p", { class: "mv-note", text: `${HNDL}. Data: demo snapshot, results.json generated ${r.generated_at}.` }), honesty(),
+        dd({ read: `${HNDL}.`, source: `demo snapshot, results.json generated ${r.generated_at}` }), honesty(),
         h("footer", { class: "ld-foot" }, h("a", { href: REPO_URL, rel: "noopener", text: "github.com/Yojan-ui/q-shield-atlas" }),
           h("span", { text: "Team Q-Shield Atlas" }), h("span", { text: "Built for NITTE hackathon, PQC-01" })));
     },

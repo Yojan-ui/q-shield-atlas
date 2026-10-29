@@ -12,7 +12,7 @@ import { num } from "../model.js";
 import { prefersReducedMotion } from "../motion.js";
 import { buildLedger, TAMPER } from "../scenes/ledger.js";
 import { dataView, honesty, mountScene, notRun, stage, viewCss } from "./common.js";
-import { bullets, detailsList, main, nextStep, pageHead, whyBlock } from "../components/page.js";
+import { bullets, detailsList, main, nextStep, pageHead, whyBlock, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 
 const kv = (...pairs) => h("dl", { class: "kv" }, pairs.flatMap(([k, v]) => [h("dt", { text: k }), h("dd", {}, v)]));
@@ -113,7 +113,7 @@ export async function mount(ctx) {
         h("section", { class: "lc" }, h("h2", { class: "mv-h2", text: "Hash chain: every block links to the one before" }), chainNote,
           h("div", { class: "sg-row" }, tamper, h("p", { id: "lg-hold", class: "mv-note", text: "Edits one record in a temporary copy and runs the read-only verifier on it. The real ledger is never touched; nothing is recorded." })), out,
           h("ol", { class: "lc-list" }, blocks),
-          h("p", { class: "mv-how", text: "How to read this: each block is one signed record (scan, plan, gate, review…). Green = its ML-DSA-65 signature and its link to the previous block were re-checked when this page loaded. Edit any block and every block after it turns red." })),
+          dd({ read: "each block is one signed record (scan, plan, gate, review…). Green = its ML-DSA-65 signature and its link to the previous block were re-checked when this page loaded. Edit any block and every block after it turns red." })),
         main(h("div", { class: "grid" },
           h("div", { class: "span-8 lg-stage" }, stageEl, h("div", { class: "stage-legend" }, h("span", { text: `${L.entry_count} records as leaves · root on top` }))),
           h("aside", { class: "span-4 lg-side" },

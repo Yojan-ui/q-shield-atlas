@@ -79,3 +79,5 @@ export function nextStep(ctx, route, label = null) {
 export function main(node, { title = null } = {}) {
   return h("section", { class: "pg-main" }, title ? h("h2", { class: "pg-h2", text: title }) : null, node);
 }
+
+export { dd } from "./dd.js";
