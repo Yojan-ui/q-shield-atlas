@@ -36,7 +36,8 @@ h1[tabindex="-1"]:focus, main[tabindex="-1"]:focus { outline: none; } /* route h
 .ws-switch { display: flex; align-items: center; gap: var(--s-2); color: var(--text-2); font-size: var(--fs-12); }
 .ws-switch select { background: transparent; border: var(--rule) solid var(--hairline); border-radius: var(--r-chip); padding: var(--s-1) var(--s-2); color: var(--text); width: 180px; text-overflow: ellipsis; }
 .ws-switch select option { background: var(--surface-solid); }
-.rail { display: flex; justify-content: center; gap: var(--s-1); min-width: 0; }
+.rail { display: flex; justify-content: safe center; gap: var(--s-1); min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.rail::-webkit-scrollbar { display: none; }
 .rail a {
   position: relative; display: flex; align-items: baseline; gap: var(--s-2); padding: var(--s-2) var(--s-3);
   text-decoration: none; color: var(--text-2); font-size: var(--fs-14); border-radius: var(--r-chip); white-space: nowrap;
@@ -238,7 +239,17 @@ dialog.confirm .actions { display: flex; justify-content: flex-end; gap: var(--s
 }
 
 /* ---------- responsive: rail becomes a bottom bar ---------- */
+@media (max-width: 1720px) {  /* nine routes: short labels so the rail never runs under the user menu */
+  .rail .full { display: none; }
+  .rail .short { display: inline; }
+  .rail a kbd { display: none; }
+  .strip { gap: var(--s-3); }
+  .rail { gap: 0; }
+  .rail a { padding: var(--s-2) var(--s-2); }
+}
 @media (max-width: 1360px) {
+  .ws-switch select { width: 140px; }
+  .user .who { display: none; }
   .rail a kbd { display: none; }
   .ws-switch .ws-label { display: none; }
 }
