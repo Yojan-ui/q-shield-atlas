@@ -33,7 +33,7 @@ export async function mount(ctx) {
   const ro = !ctx.wsInfo || ctx.wsInfo.read_only;
   const canRun = ctx.me.role !== "viewer" && !ro;
   const runBtn = h("button", { class: "btn primary", type: "button", disabled: !canRun }, icon("play"), "Run pipeline");
-  const why = h("p", { class: "fine", text: ro ? "The demo workspace is the read-only DEMO.md snapshot. Create a workspace to run on your own data."
+  const why = h("p", { class: "fine", text: ro ? "Read-only snapshot - pick a real workspace to run."
     : ctx.me.role === "viewer" ? "Viewers can watch runs; an operator starts them." : "Local only: no QpiAI platform or QCloud jobs are submitted." });
   const stationsEl = h("ol", { class: "stations", "aria-label": "Pipeline stations" });
   const solverEl = h("p", { class: "mono", style: { margin: 0 } });

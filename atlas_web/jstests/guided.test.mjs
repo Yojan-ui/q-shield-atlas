@@ -23,8 +23,9 @@ test("live: each step lights only from its own SSE step events", () => {
   const at = (id) => st[FLOW.findIndex((f) => f.id === id)];
   assert.equal(at("detect"), "ok");
   assert.equal(at("schedule"), "running");
-  assert.equal(at("ledger"), "partial");  // ledger_open done, its seal steps (ledger_ingest/verify) not reached yet
+  assert.equal(at("proof_open"), "ok");  // ledger_open: its own step
+  assert.equal(at("proof_verified"), "pending");  // ledger_ingest / ledger_verify not reached yet
   assert.equal(at("gates"), "pending");
   assert.equal(at("review"), "pending");
-  assert.equal(liveStates({ ledger_open: "ok", ledger_ingest: "ok", ledger_verify: "ok" })[FLOW.findIndex((f) => f.id === "ledger")], "ok");
+  assert.equal(liveStates({ ledger_ingest: "ok", ledger_verify: "ok" })[FLOW.findIndex((f) => f.id === "proof_verified")], "ok");
 });

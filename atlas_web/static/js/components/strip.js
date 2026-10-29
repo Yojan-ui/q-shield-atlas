@@ -48,7 +48,7 @@ export function strip({ api, store, onSignOut, onWorkspace, kiosk }) {
     if (qbadge) qbadge.hidden = !signedIn;
     const link = (r, done) => h("a", { href: href(r.path, { ws: wsId }), "aria-current": r.name === routeName ? "page" : null,
       "aria-keyshortcuts": r.rail <= 9 ? String(r.rail) : null, title: r.rail <= 9 ? `${r.title} (key ${r.rail})` : r.title, class: done ? "done" : null },
-      h("span", { class: "r-num", text: r.step ? String(r.step) : "" }),
+      h("span", { class: "r-num", text: r.stepText || (r.step ? String(r.step) : "") }),
       h("span", { class: "full", text: r.label }), h("span", { class: "short", text: r.short }),
       done ? h("span", { class: "r-tick", "aria-label": "done" }, icon("check")) : null);
     const draw = (done = {}) => rail.replaceChildren(

@@ -22,6 +22,7 @@ const n0 = (x) => Number(x).toLocaleString("en-US");
 
 // step id -> { headline, build(env) | null } from real data only (d = {results, ledger, move, inventory, reviews})
 export function stepScene(id, d, { labelsEl, stageEl, reduced }) {
+  if (id === "proof_open" || id === "proof_verified") id = "ledger";  // both proof steps show the Proof Chain
   const r = d.results, nyr = { headline: "not yet run", build: null };
   const P = (items, opts = {}) => (env) => buildPillars(env, items, { labelsEl, stageEl, reduced, ...opts });
   if (id === "detect") {
@@ -85,6 +86,7 @@ export function stepScene(id, d, { labelsEl, stageEl, reduced }) {
 
 // the run that produced a step's recorded data (results.json), so a replay names its real source
 export function stepRunId(id, d) {
+  if (id === "proof_open" || id === "proof_verified") id = "ledger";
   const r = d.results || {};
   return { detect: r.detect && r.detect.run_id, inventory: r.detect && r.detect.run_id, schedule: r.solver_runs && r.solver_runs[0] && r.solver_runs[0].run_id,
     waves: r.qaoa && r.qaoa.run_id, gates: r.gates && r.gates.run_id, ledger: d.ledger && d.ledger.root && `ledger root ${d.ledger.root.slice(0, 12)}`,

@@ -24,6 +24,7 @@ export function flowFacts(r, reviews) {
     f.detect = { num: String(r.detect.summary.vulnerable_findings), mean: `places in code, config and certificates use RSA / ECC (${r.detect.files_scanned} files scanned)`, backend: "static scan + OpenSSL 3.6.5 live probes" };
     const drift = (r.detect.probes || []).reduce((n, p) => n + (p.drift || []).length, 0);
     f.inventory = { num: String(r.assets.length), mean: `to migrate · ${pl(drift, "drift alert", "drift alerts")}`, backend: "atlas-service.json manifests + scan" };
+    f.detect = { num: `${r.detect.summary.vulnerable_findings} → ${r.assets.length}`, mean: `findings → systems · ${pl(drift, "drift alert", "drift alerts")} (${r.detect.files_scanned} files scanned)`, backend: f.detect.backend };
   }
   if (r.exposure) f.schedule = { num: `${r.exposure.makespan_weeks} wk`, mean: `to migrate everything in ${pl(r.waves.length, "wave", "waves")} at the assumed capacity`, backend: solverLabel(r) };
   if (r.qaoa) {
@@ -40,6 +41,9 @@ export function flowFacts(r, reviews) {
   if (r.ledger) {
     const v = r.ledger_verification;
     f.ledger = { num: String(r.ledger.entry_count), mean: `signed records · ${v && v.ok ? "chain verified" : "not verified"}`, backend: `${r.ledger.alg} · ${r.ledger.backend}` };
+    const first = (r.ledger.entries || []).find((e) => e.type === "detect.run");
+    f.proof_open = { num: first ? `#${first.index}` : String(r.ledger.entry_count), mean: first ? "the Detect evidence was signed first (detect.run)" : "signed records", backend: f.ledger.backend };
+    f.proof_verified = { num: String(r.ledger.entry_count), mean: `signed records · ${v && v.ok ? "every signature and hash re-verified" : "not verified"}`, backend: f.ledger.backend };
   }
   const items = (reviews && reviews.items) || [];
   if (items.length) {

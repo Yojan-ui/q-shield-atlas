@@ -39,6 +39,20 @@ def default_public_key(keys_dir: Path | None = None) -> Path:
     return local if local.exists() else PROJECT_PUBLIC_KEY
 
 
+def check_chain_before_append(ledger_path: Path, public_key: Path, backend, root: Path) -> None:
+    """Verify the existing chain (hashes, links, signatures) before anything new is signed onto it.
+    A missing or empty ledger is fine (first append). Any failure stops the caller: nothing is appended."""
+    if not ledger_path.exists() or not ledger_path.read_text().strip():
+        print("chain empty: nothing to verify before the first append")
+        return
+    rep = verify(ledger_path, public_key, backend, root, None)  # no root anchor: results.json can lag after a failed run
+    if not rep["ok"]:
+        f = rep.get("first_failure") or {}
+        sys.exit(f"Proof Chain verification FAILED at #{f.get('index')}: {f.get('reason')}. Refusing to append; nothing was signed. "
+                 "Restore the ledger from a good copy or start a new workspace.")
+    print(f"chain verified ({rep['entries_checked']} entries) before append")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("command", choices=["keygen", "ingest", "verify", "proof", "append"])
@@ -76,6 +90,7 @@ def main(argv=None):
             sys.exit("usage: python -m ledger append PAYLOAD --type TYPE")
         from .ingest import ledger_summary
 
+        check_chain_before_append(args.ledger, args.public_key, backend, args.root)
         ledger = Ledger(args.ledger, backend, private_key, args.public_key, args.root)
         entry = ledger.append(args.type, Path(args.index).resolve())
         (args.out_dir / "ledger.json").write_text(json.dumps(ledger_summary(ledger, args.root), indent=1))
@@ -87,6 +102,7 @@ def main(argv=None):
     if args.command == "ingest":
         if not private_key.exists():
             sys.exit(f"no signing key at {private_key}; generate one (see README) - keys are never committed")
+        check_chain_before_append(args.ledger, args.public_key, backend, args.root)
         ledger = Ledger(args.ledger, backend, private_key, args.public_key, args.root)
         only = set(args.only.split(",")) if args.only else None
         appended, summary = ingest(ledger, args.out_dir, args.runs, only)

@@ -61,18 +61,19 @@ test("3D packets are as long as their recorded byte size", () => {
 
 import { FLOW as BACKEND } from "../static/js/stages.js";
 import { ROUTES } from "../static/js/routes.js";
-test("display order: Detect, Inventory, Ledger, Schedule, Wave selection, Gates, Review; same steps as the backend", () => {
-  assert.deepEqual(FLOW.map((f) => f.id), ["detect", "inventory", "ledger", "schedule", "waves", "gates", "review"]);
-  assert.deepEqual([...FLOW].sort((a, b) => a.id.localeCompare(b.id)), [...BACKEND].sort((a, b) => a.id.localeCompare(b.id)));
-  const byStep = ROUTES.filter((r) => r.step).sort((a, b) => a.step - b.step).map((r) => r.name);
-  assert.deepEqual(byStep, FLOW.map((f) => f.route));  // sidebar step numbers follow the same order
+test("display order follows the backend run order; every backend stage lights exactly one step", () => {
+  assert.deepEqual(FLOW.map((f) => f.label), ["Detect", "Proof chain opened", "Plan", "Handshake gates", "Wave selection", "Proof verified", "Review"]);
+  const order = STEPS.map((st) => STAGE_OF[st].id).filter((id, i, a) => a.indexOf(id) === i && id !== "report");
+  assert.deepEqual(FLOW.flatMap((f) => f.stages), order);  // detect, ledger, schedule, capture, gates, qaoa, seal
+  const byStep = ROUTES.filter((r) => r.step).sort((a, b) => a.step - b.step || a.rail - b.rail).map((r) => r.name);
+  assert.deepEqual(byStep, ["detect", "inventory", "ledger", "schedule", "handshakes", "qaoa", "review"]);
 });
 
 test("a step lights only from its own stages, not its position", () => {
-  const ledgerOnly = model((s) => (STAGE_OF[s].id === "seal" ? "running" : "idle"));
-  const st = flowStates(ledgerOnly);
-  assert.equal(st[FLOW.findIndex((f) => f.id === "ledger")], "running");
-  assert.ok(st.every((x, i) => FLOW[i].id === "ledger" || x !== "running"));
+  const sealOnly = model((s) => (STAGE_OF[s].id === "seal" ? "running" : "idle"));
+  const st = flowStates(sealOnly);
+  assert.equal(st[FLOW.findIndex((f) => f.id === "proof_verified")], "running");
+  assert.ok(st.every((x, i) => FLOW[i].id === "proof_verified" || x !== "running"));
 });
 
 import { axisEnd, mergeIdentical, spreadLabels } from "../static/js/views/schedule.js";
