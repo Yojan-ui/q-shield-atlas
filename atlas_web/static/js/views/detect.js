@@ -221,12 +221,12 @@ export async function mount(ctx) {
             { label: "files scanned", cell: d.files, unit: "code, configs, certificates", mean: "Everything in the source tree was read; nothing was run." },
             { label: "live connections probed", cell: num(d.probes.length, d.files.source), unit: "one TLS handshake each", mean: d.probes.length ? "Real handshakes show what a service actually negotiates." : "No live probe in this run." },
           ]),
-          main(h("div", {}, table({ caption: "Static findings", rows: d.findings, signal: ctx.signal, columns: [
-            { label: "file:line", render: (f) => `${f.file}:${f.line}`, mono: true }, { label: "algorithm family", key: "family" }, { label: "used for", key: "use" },
-            { label: "rule", key: "rule", mono: true, optional: true }, { label: "snippet", optional: true, render: (f) => h("span", { class: "mono fine", text: (f.snippet || "").slice(0, 80) }) }] })), { title: "Findings" }),
-          d.probes.length ? main(table({ caption: "Live TLS probes", rows: d.probes, columns: [
-            { label: "service", key: "service" }, { label: "endpoint", key: "endpoint", mono: true }, { label: "key exchange", render: (p) => p.ok ? p.group : chip("FAIL", "no handshake") },
-            { label: "certificate", key: "cert", mono: true }, { label: "drift", render: (p) => p.drift.length ? h("span", {}, p.drift.map((k) => chip("HNDL-exposed", k))) : chip("PASS", "none") }] }), { title: "Live connections" }) : null,
+          main(h("div", {}, table({ caption: "Static findings", rows: d.findings, signal: ctx.signal,
+            expand: (f) => ({ why: `${f.family} used for ${f.use}: quantum-breakable.`, technical: h("span", { class: "mono", text: `${f.file}:${f.line} · rule ${f.rule} · ${(f.snippet || "").slice(0, 160)}` }) }), columns: [
+            { label: "file", render: (f) => `${f.file.split("/").pop()}:${f.line}`, mono: true }, { label: "family", render: (f) => chip("HNDL-exposed", f.family) }, { label: "used for", render: (f) => chip("recorded", f.use) }] })), { title: "Findings" }),
+          d.probes.length ? main(table({ caption: "Live TLS probes", rows: d.probes, expand: (p) => ({ why: p.drift.length ? `Drift: ${p.drift.join(", ")}` : "Live handshake matches the configuration.", technical: h("span", { class: "mono", text: `${p.endpoint} · cert ${p.cert}` }) }), columns: [
+            { label: "service", key: "service" }, { label: "key exchange", render: (p) => p.ok ? chip(/MLKEM/i.test(p.group) ? "hybrid" : "HNDL-exposed", p.group) : chip("FAIL", "no handshake") },
+            { label: "drift", render: (p) => p.drift.length ? chip("HNDL-exposed", `${p.drift.length} drift`) : chip("PASS", "none") }] }), { title: "Live connections" }) : null,
           detailsList([
             { title: "How it works", summary: "Pattern rules read code, configs, dependencies and certificates; probes do one handshake.", body: bullets([
               "Every finding has a file, a line and the rule that matched.",

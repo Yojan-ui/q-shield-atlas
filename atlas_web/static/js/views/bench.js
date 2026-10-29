@@ -98,15 +98,17 @@ function cryptoTab(ctx, P) {
       { label: "extra bytes for hybrid", cell: cell(extra, 0, src), unit: "bytes per handshake vs X25519 + ECDSA", mean: "What post-quantum protection of recorded traffic costs on the wire: a few kilobytes once per connection." },
       { label: "hybrid handshake time", cell: cell(H.hybrid.handshake_ms_median, 1, src), unit: `ms median vs ${H["classical-ecdsa"].handshake_ms_median.toFixed(1)} ms classical`, mean: "Measured end to end on this machine, including starting the client; compare rows, not absolute values." },
       { label: "ML-DSA-65 signature", cell: cell(prim["ML-DSA-65"].signature_bytes, 0, src), unit: `bytes vs ${prim["ECDSA P-256"].signature_bytes} for ECDSA P-256`, mean: "Post-quantum signatures are much larger; that is why hybrid key exchange comes first and certificates later." }]),
-    main(table({ caption: "TLS 1.3 handshakes on lab services", rows: c.handshakes, columns: [
-      { label: "configuration", render: (r) => h("span", {}, r.label, h("span", { class: "sub", text: r.family })) },
-      { label: "negotiated", render: (r) => (r.established ? h("span", { class: "mono", text: r.negotiated_group }) : chip("NOT_RUN", "not measured")) },
-      { label: "client → server (B)", numeric: true, sort: (r) => r.handshake_bytes.client_to_server, render: (r) => n0(r.handshake_bytes.client_to_server) },
-      { label: "server → client (B)", numeric: true, sort: (r) => r.handshake_bytes.server_to_client, render: (r) => n0(r.handshake_bytes.server_to_client) },
+    main(table({ caption: "TLS 1.3 handshakes on lab services", rows: c.handshakes,
+      expand: (r) => ({ why: `Client → server ${n0(r.handshake_bytes.client_to_server)} B, server → client ${n0(r.handshake_bytes.server_to_client)} B; median of ${r.n} handshakes.`, hash: r.transcript_sha256, run_id: c.run_id, ts: c.ts,
+        technical: `negotiated ${r.established ? r.negotiated_group : "not measured"} · ${c.openssl}` }), columns: [
+      { label: "configuration", render: (r) => r.label.split(": ")[1] || r.label },
+      { label: "quantum", render: (r) => (r.family === "classical" ? chip("HNDL-exposed", "breakable") : chip("PASS", "protected")) },
       { label: "total (B)", numeric: true, sort: (r) => r.handshake_bytes.total, render: (r) => n0(r.handshake_bytes.total) },
       { label: "median (ms)", numeric: true, optional: true, sort: (r) => r.handshake_ms_median, render: (r) => r.handshake_ms_median.toFixed(1) }] }),
       { title: "Handshakes: bytes on the wire and time" }),
-    main(table({ caption: "Algorithms: sizes and speed", rows: Object.entries(prim).map(([a, v]) => ({ a, ...v })), columns: [
+    main(table({ caption: "Algorithms: sizes and speed", rows: Object.entries(prim).map(([a, v]) => ({ a, ...v })),
+      expand: (r) => ({ why: `Quantum security: ${sec(r.a).quantum || "–"}; classical ${sec(r.a).classical_bits ? `${sec(r.a).classical_bits} bits` : "–"} (cited: ${sec(r.a).ref || "–"}).`, run_id: c.run_id, ts: c.ts,
+        technical: r.speed ? `${Object.entries(r.speed.ops_per_s).map(([k, v]) => `${k} ${n0(v)}`).join(" · ")} (${r.speed.command})` : "speed not measured" }), columns: [
       { label: "algorithm", render: (r) => h("span", { class: "mono", text: r.a }) },
       { label: "quantum", render: (r) => (/Shor/.test(sec(r.a).quantum || "") ? chip("HNDL-exposed", "breakable") : chip("PASS", "safe")) },
       { label: "public key (B)", numeric: true, sort: (r) => r.public_key_der_bytes ?? -1, render: (r) => n0(r.public_key_der_bytes) },

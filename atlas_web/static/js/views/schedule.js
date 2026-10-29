@@ -235,11 +235,13 @@ export async function mount(ctx) {
       const a = m.results.assumptions;
       return h("div", {},
         h("div", { class: "pg-actions", style: { marginTop: 0, marginBottom: "var(--s-4)" } }, h("span", { class: "fine", text: "Q-Day assumption:" }), picker), heroEl, statsEl,
-        main(h("div", {}, estimateBlock(ctx), table({ caption: "Migration waves", rows: m.waves, columns: [
-          { label: "week", render: (w) => h("span", { class: "num", tabindex: "0", "data-prov": provAttr(w.source, `wave week ${w.week}`), text: String(w.week) }), numeric: true },
-          { label: "systems", render: (w) => h("span", {}, w.assets.map((id, i) => [i ? ", " : "", h("a", { href: `/w/${ctx.ws}/asset/${encodeURIComponent(id)}`, text: id })])) },
-          { label: "effort (engineer-days)", numeric: true, render: (w) => String((m.results.waves.find((x) => x.week === w.week) || {}).effort_days ?? "–") },
-          { label: "gate result", render: (w) => chip(w.status) }] })), { title: "The plan, week by week" }),
+        main(h("div", {}, estimateBlock(ctx), table({ caption: "Migration waves", rows: m.waves,
+          expand: (w) => ({ why: h("span", {}, "Systems: ", w.assets.map((id, i) => [i ? ", " : "", h("a", { href: `/w/${ctx.ws}/asset/${encodeURIComponent(id)}`, text: id })]), `. Placed in week ${w.week} to cut weighted exposure fastest within capacity.`),
+            run_id: w.source && w.source.run_id, ts: w.source && w.source.ts, technical: w.source && w.source.solver }), columns: [
+          { label: "week", numeric: true, render: (w) => String(w.week) },
+          { label: "systems", numeric: true, render: (w) => String(w.assets.length) },
+          { label: "effort (days)", numeric: true, optional: true, render: (w) => String((m.results.waves.find((x) => x.week === w.week) || {}).effort_days ?? "–") },
+          { label: "gate", render: (w) => chip(w.status) }] })), { title: "The plan, week by week" }),
         stageWrap,
         detailsList([
           { title: "How it works", summary: "An exact optimiser places every system in a week, within capacity and dependencies.", body: bullets([

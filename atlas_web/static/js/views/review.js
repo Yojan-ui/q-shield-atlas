@@ -73,8 +73,8 @@ export async function mount(ctx) {
         main(pending.length ? h("ul", { class: "rv-list" }, pending.map((i) => h("li", { class: `rv-item${focus === i.id ? " hl" : ""}`, id: `item-${i.id.replace(/[^a-z0-9-]/gi, "-")}` },
           h("div", {}, h("p", { class: "rv-title" }, chip("pending", "awaiting review"), ` ${i.title}`), h("p", { class: "fine", text: i.summary }), why3(i), proof(ctx, i)),
           R.can_decide ? decisionForm(ctx, i, refresh) : null))) : h("p", { class: "fine", text: "Nothing is waiting: every result of the latest run has a decision." }), { title: "Awaiting review" }),
-        done.length ? main(table({ caption: "Review decisions", rows: done, columns: [
-          { label: "item", render: (i) => h("span", {}, i.title, h("span", { class: "sub", text: i.summary })) },
+        done.length ? main(table({ caption: "Review decisions", rows: done, expand: (i) => ({ why: `${i.decision.reason} (${i.decision.by})`, hash: i.evidence_sha256, run_id: i.run_id, ts: i.decision.ts, technical: i.summary }), columns: [
+          { label: "item", key: "title" },
           { label: "decision", render: (i) => chip(...STATUS[i.status]) },
           { label: "signature", render: (i) => chip(i.signature === "verified" ? "verified" : "NOT_RUN", i.signature) },
           { label: "record", numeric: true, render: (i) => h("a", { href: `/w/${ctx.ws}/ledger`, text: `#${i.decision.ledger_index}` }) }] }), { title: "Decided" }) : null,

@@ -126,9 +126,10 @@ export async function mount(ctx) {
           { title: "Why this method", summary: "Evidence that cannot be quietly edited, and stays safe after Q-Day.", body: bullets([
             "Changing one byte breaks verification at exactly that record.", "A post-quantum signature means the proof itself is not quantum-breakable."]) },
           { title: "Evidence & sources", summary: `Merkle root ${L.root.slice(0, 16)}… · ${L.backend}`, body: h("div", {}, st("Merkle root (RFC 6962)", hc(L.root, "Merkle root", 16)),
-            table({ caption: "Proof Chain entries", rows: L.entries, signal: ctx.signal, onRow: (e) => select(e.index), columns: [
-              { label: "#", key: "index", numeric: true }, { label: "type", key: "type", mono: true }, { label: "payload", key: "payload_ref", mono: true, optional: true },
-              { label: "payload SHA-256", render: (e) => hc(e.payload_hash, "payload hash", 8) }, { label: "time", key: "ts", mono: true, optional: true }] })) },
+            table({ caption: "Proof Chain entries", rows: L.entries, signal: ctx.signal, expand: (e) => ({ why: `Signed record of ${e.type}.`, hash: e.payload_hash, ts: e.ts, technical: h("span", { class: "mono", text: e.payload_ref }) }), columns: [
+              { label: "#", key: "index", numeric: true }, { label: "type", key: "type", mono: true },
+              { label: "signature", render: () => chip(v.ok === true ? "verified" : v.ok === false ? "FAIL" : "NOT_RUN", v.ok === true ? "verified" : v.ok === false ? "failed" : "not verified") },
+              { label: "show", sortable: false, render: (e) => h("button", { class: "btn", type: "button", onclick: () => select(e.index), text: "proof" }) }] })) },
           { title: "Limits", summary: "A local, single-key test ledger: no external timestamping or second witness.", body: bullets([
             "The signing key lives on this machine (keys/, never committed).", "The tamper demo edits a temporary copy only; its result is not recorded."]) }]),
         nextStep(ctx, "ledger"));

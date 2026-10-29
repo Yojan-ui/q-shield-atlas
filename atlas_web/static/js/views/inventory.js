@@ -24,16 +24,16 @@ export async function mount(ctx) {
           { label: "already safe", cell: num((inv.not_vulnerable || []).length, src), unit: "no vulnerable crypto found", mean: "Services where the scan found nothing to replace." },
           { label: "drift alerts", cell: num(drift.length, src), unit: "live ≠ config", mean: drift.length ? "A live connection behaves differently from what its configuration says." : "Live connections match their configuration." },
         ]),
-        main(table({ caption: "Inventory of systems to migrate", rows: r.assets, rowHref: (a) => `/w/${ctx.ws}/asset/${encodeURIComponent(a.id)}`, columns: [
-          { label: "system", render: (a) => h("span", {}, a.name, h("span", { class: "sub", text: a.id })) },
-          { label: "crypto found", key: "algorithm", mono: true },
-          { label: "protects", render: (a) => a.data_class.replaceAll("_", " ") },
-          { label: "evidence (lines)", numeric: true, render: (a) => String((a.evidence || []).length) },
-          { label: "depends on", optional: true, render: (a) => a.depends_on.join(", ") || "–" }] }), { title: "Systems to migrate" }),
-        drift.length ? main(table({ caption: "Drift", rows: drift, columns: [
-          { label: "service", key: "service", mono: true },
-          { label: "severity", render: (d) => chip(d.severity === "high" ? "FAIL" : "partially_verified", d.severity) },
-          { label: "what differs", key: "detail" }] }), { title: "Drift: live connection vs configuration" }) : null,
+        main(table({ caption: "Inventory of systems to migrate", rows: r.assets, rowHref: (a) => `/w/${ctx.ws}/asset/${encodeURIComponent(a.id)}`,
+          expand: (a) => ({ why: `Risk weight ${a.risk_weight}, data shelf life ${a.shelf_life_years} years, effort ${a.effort_days} engineer-days (assumptions).`,
+            run_id: r.detect.run_id, ts: r.detect.ts, technical: `${a.id} · ${a.kind} · ${(a.evidence || []).length} evidence lines · depends on ${a.depends_on.join(", ") || "nothing"}` }), columns: [
+          { label: "system", key: "name" },
+          { label: "crypto", render: (a) => chip("HNDL-exposed", a.algorithm) },
+          { label: "protects", render: (a) => chip("recorded", a.data_class.replaceAll("_", " ")) },
+          { label: "findings", numeric: true, optional: true, render: (a) => String((a.evidence || []).length) }] }), { title: "Systems to migrate" }),
+        drift.length ? main(table({ caption: "Drift", rows: drift, expand: (d) => ({ why: d.detail }), columns: [
+          { label: "service", key: "service" },
+          { label: "severity", render: (d) => chip(d.severity === "high" ? "FAIL" : "partially_verified", d.severity) }] }), { title: "Drift: live vs configuration" }) : null,
         detailsList([
           { title: "How it works", summary: "Findings are grouped by the service that owns the file.", body: bullets([
             "Each service folder declares its owner facts in atlas-service.json: name, kind, the data it protects, dependencies.",

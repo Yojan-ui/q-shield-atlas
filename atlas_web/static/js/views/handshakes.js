@@ -42,22 +42,19 @@ export async function mount(ctx) {
       const clients = [...new Set((g.compat_matrix || []).flatMap((c) => (c.cells || []).map((x) => x.client)))];
       const waves = (r.waves || []).flatMap((w) => ((w.evidence && w.evidence.lab_services) || []).map((e) => ({ w, e, p: (e.gates || {}).pq_handshake })));
       const kv = (...pairs) => h("dl", { class: "kv hs-kv" }, pairs.map(([k, v]) => [h("dt", { text: k }), h("dd", {}, v)]));
-      const liveT = section("Live endpoints", table({ caption: "Live TLS probes", rows: rows.filter((x) => x.live), empty: "no live probe in this run", columns: [
-          { label: "service", render: ({ s, probe }) => h("span", { class: "num", tabindex: "0", text: s.service_id,
-            "data-prov": provAttr(src(r.detect.run_id, `live probe, ${probe.live.openssl}`, probe.live.ts, `transcript ${s.transcript_sha256}`), s.service_id) }) },
-          { label: "endpoint", render: ({ s }) => mono(s.endpoint) },
-          { label: "key exchange", render: ({ s, classical }) => two(mono(s.negotiated_group), classical ? sub(HNDL, "exp") : sub("hybrid: X25519 + ML-KEM-768")) },
-          { label: "certificate", render: ({ s }) => mono(s.auth_alg || NR) },
-          { label: "drift", render: ({ probe }) => (probe.drift.length ? h("span", {}, probe.drift.map((d) => chip("NOT_RUN", d.kind))) : chip("PASS", "none")) },
-          { label: "transcript", optional: true, render: ({ s }) => tx(s.transcript_sha256) }] }));
-      const labT = section("Lab services", table({ caption: "TLS 1.3 handshake sessions", rows: rows.filter((x) => !x.live), empty: NR, columns: [
-          { label: "service", render: ({ s }) => h("span", { class: "num", tabindex: "0", text: s.service_id,
-            "data-prov": provAttr(src(he.run_id, he.openssl_version, he.ts, `transcript ${s.transcript_sha256}`), s.service_id) }) },
-          { label: "key exchange", render: ({ s, classical }) => two(mono(s.negotiated_group), classical ? sub(HNDL, "exp") : null) },
-          { label: "pq_handshake", render: ({ kex }) => chip(res(kex)) },
-          { label: "auth", render: ({ s, auth }) => two(chip(res(auth)), sub(s.auth_alg || NR)) },
-          { label: "classical-only client", render: ({ down }) => two(chip(res(down), refused(down)), down ? sub(down.reason) : null) },
-          { label: "transcript", optional: true, render: ({ s }) => tx(s.transcript_sha256) }] }),
+      const liveT = section("Live endpoints", table({ caption: "Live TLS probes", rows: rows.filter((x) => x.live), empty: "no live probe in this run",
+          expand: ({ s, probe, classical }) => ({ why: classical ? HNDL : "Hybrid: X25519 + ML-KEM-768.", hash: s.transcript_sha256, run_id: r.detect.run_id, ts: probe.live.ts,
+            technical: h("span", { class: "mono", text: `${s.endpoint} · ${s.negotiated_group} · cert ${s.auth_alg || NR} · ${probe.live.openssl}` }) }), columns: [
+          { label: "service", render: ({ s }) => s.service_id },
+          { label: "key exchange", render: ({ s, classical }) => chip(classical ? "HNDL-exposed" : "hybrid", s.negotiated_group) },
+          { label: "drift", render: ({ probe }) => (probe.drift.length ? chip("NOT_RUN", `${probe.drift.length} drift`) : chip("PASS", "none")) }] }));
+      const labT = section("Lab services", table({ caption: "TLS 1.3 handshake sessions", rows: rows.filter((x) => !x.live), empty: NR,
+          expand: ({ s, classical, down }) => ({ why: classical ? HNDL : `Negotiated ${s.negotiated_group}.${down ? ` Classical-only client: ${down.reason}` : ""}`, hash: s.transcript_sha256, run_id: he.run_id, ts: he.ts,
+            technical: h("span", { class: "mono", text: `${s.negotiated_group} · cert ${s.auth_alg || NR} · ${he.openssl_version || ""}` }) }), columns: [
+          { label: "service", render: ({ s }) => s.service_id },
+          { label: "pq handshake", render: ({ kex }) => chip(res(kex)) },
+          { label: "auth", optional: true, render: ({ auth }) => chip(res(auth)) },
+          { label: "downgrade", render: ({ down }) => chip(res(down), refused(down)) }] }),
         { aside: h("span", { class: "fine mono", text: he.openssl_version || "" }) });
       const compatT = section("Compatibility", table({ caption: "Modes by client", rows: g.compat_matrix || [], empty: NR, columns: [
           { label: "mode", render: (c) => two(mono(c.mode), sub(`gate ${c.result}`)) },
@@ -66,9 +63,11 @@ export async function mount(ctx) {
             return x ? h("span", { tabindex: "0", "data-prov": provAttr(src(g.run_id, "compat gate", x.timestamp, x.reason), `${c.mode} · ${cl}`) },
               chip(x.result), sub((x.actual && (x.actual.negotiated_group || x.actual.error)) || "")) : h("span", { class: "fine", text: "not tested" });
           } }))] }));
-      const wavesT = section("Wave gates", table({ caption: "Lab services per wave", rows: waves, empty: "no wave is mapped to a lab service", columns: [
-          { label: "week", numeric: true, render: ({ w, e }) => num(w.week, src(w.evidence.run_id, "gates: lab wave", e.finished_at || w.evidence.ts)) },
-          { label: "lab service", render: ({ e }) => two(mono(e.lab_service), sub(`${e.from_mode} → ${e.to_mode} · ${(e.assets || []).join(", ")}`)) },
+      const wavesT = section("Wave gates", table({ caption: "Lab services per wave", rows: waves, empty: "no wave is mapped to a lab service",
+          expand: ({ w, e, p }) => ({ why: `${e.from_mode} → ${e.to_mode} for ${(e.assets || []).join(", ")}${p ? `; negotiated ${p.negotiated_group || "nothing"}` : ""}.`,
+            hash: e.applied_config_sha256, run_id: w.evidence.run_id, ts: e.finished_at || w.evidence.ts, technical: p && p.transcript_sha256 ? h("span", { class: "mono", text: `transcript ${p.transcript_sha256}` }) : null }), columns: [
+          { label: "week", numeric: true, render: ({ w }) => String(w.week) },
+          { label: "lab service", render: ({ e }) => e.lab_service },
           { label: "status", render: ({ e }) => chip(e.status || NR) },
           { label: "pq handshake", render: ({ p }) => chip(res(p)) }] }));
       const rollT = section("Tested rollback", fr ? kv(["service", mono(`${fr.service_id}: ${fr.from_mode} → ${fr.to_mode}`)], ["outcome", chip(fr.status || NR)],
