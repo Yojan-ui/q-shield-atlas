@@ -24,15 +24,16 @@ export function createWorld(host) {
     go, mount, focus, frameStage, onPick, uniforms: null, reduced: prefersReducedMotion(), shake() {}, lift() {},
   };
   window.__atlasWorld = w;
-  if (!hasWebGL() || new URLSearchParams(location.search).has("no3d")) { w.ready = Promise.resolve(w); return w; }
-  // three.js (~690 KB) is fetched only when a page first opens a 3D stage or mounts a layer, never on 2D-only pages
+  // three.js (~690 KB) is fetched only when a page first opens a 3D stage or mounts a layer, never on 2D-only pages.
+  // Without WebGL (or with ?no3d) it is never fetched and `ready` resolves at once, so the 2D fallbacks render.
   let started = false, resolveReady;
   w.ready = new Promise((r) => { resolveReady = r; });
-  const start = () => {
+  function start() {
     if (started) return;
     started = true;
     (window.__atlasImport ? window.__atlasImport(THREE_URL) : import(THREE_URL)).then((THREE) => init(w, THREE)).catch((err) => { w.webgl = false; w.error = String(err); return w; }).then(resolveReady);
-  };
+  }
+  if (!hasWebGL() || new URLSearchParams(location.search).has("no3d")) { started = true; resolveReady(w); return w; }
   function go(name, opts) { w._go = [name, opts]; if (w._init) w._go2(name, opts); }
   function mount(name, factory) { w._mount = [name, factory]; if (factory) start(); if (w._init) return w._mount2(name, factory); return null; }
   function focus(v, d) { if (w._init) w._focus2(v, d); }
