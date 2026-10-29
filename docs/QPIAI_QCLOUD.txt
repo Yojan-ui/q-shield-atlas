@@ -1,5 +1,6 @@
 Q-SHIELD ATLAS - QpiAI OPT, QSV-LOCAL AND QCLOUD
-Values copied from logged runs: out/results.json, runs/<run_id>/manifest.json, runs/platform_jobs.log.
+Values copied from logged runs: out/results.json, runs/<run_id>/manifest.json, runs/platform_jobs.log,
+atlas_web/data/workspaces/*/runs/*/manifest.json and the web app's run records (atlas_web/data/atlas.db).
 Full detail: docs/QUANTUM.md
 
 QPIAI OPT (scheduling MILP, local solve)
@@ -28,14 +29,57 @@ QPIAI QSV-LOCAL (QAOA wave selection, qpiai-quantum 0.3.0 in-process simulator)
   random baseline: feasible share 0.00341796875, P(optimal set) 0.0009765625
   job_id          null ("local SDK simulation issues no job ID")
 
-QPIAI QCLOUD
-  login           works (QpiAIQuantumAuth.login; device list readable)
-  submission      2026-10-28T15:29:50Z, run a7985b93f3a5490aaa3636c969dcc1c3, device QpiAI-QSV-Simulator
-  recorded error  Bad Request (400) when submitting job.
-                  Server response: {'error': 'Failed to create job: an active subscription is required to run jobs'}
-  result          no QCloud job was created, so no QCloud job ID exists.
-                  QCloud runs stay disabled (config/atlas_web.json qcloud_enabled: false).
-                  QpiAI-Indus-1 (QPU) is refused by code in every mode.
+QCLOUD USAGE LOG (time order: timestamp - action - result)
+  2026-10-28 - SDK: qpiai-quantum 0.3.0 (import qpiai_quantum), pinned in requirements.txt - installed in env pqc
+  2026-10-28 - QCloud login: QpiAIQuantumAuth.login(QCLOUD_API_KEY) - ok (recorded in docs/qpiai_api_notes.md)
+  2026-10-28 - devices listed: JobManager().list_compute_resources() - 6 devices: QpiAI-QSV-Simulator, QpiAI-QDM-Simulator, QpiAI-QTN-Simulator, QpiAI-QSV-Lite, QpiAI-QDM-Lite (active); QpiAI-Indus-1 QPU (maintenance)
+  2026-10-28T13:48:20Z - QpiAI Opt platform submit, schedule.milp.expected.expected, 1 job (run 1a10396e6657...) - rejected: "APIError: no active storage quota found for organization"
+  2026-10-28T13:48:22Z - QpiAI Opt platform submit, schedule.milp.expected.tiebreak, 1 job (run 029482259c39...) - rejected: "APIError: no active storage quota found for organization"
+  2026-10-28T15:28:55Z - QCloud submit, qaoa.qcloud.p1 on QpiAI-QSV-Simulator, 1 job (run e3baac4cf6d24a59b6949db08b0cd78d) - rejected: "Experiment 'qshield-qaoa-crosscheck' not found. Please create the experiment first."
+  2026-10-28T15:29:50Z - QCloud submit, qaoa.qcloud.p1 on QpiAI-QSV-Simulator, 1 job (run a7985b93f3a5490aaa3636c969dcc1c3) - rejected: "Bad Request (400) when submitting job. Server response: {'error': 'Failed to create job: an active subscription is required to run jobs'}"; p=2 and p=3 skipped after the first failure; job_id null, credits_used null
+  2026-10-28 - daily cap (runs/platform_jobs.log): 4 submissions logged that UTC day (2 QpiAI Opt, 2 QCloud), cap 10 per UTC day; no submission since
+  2026-10-29T01:52:20Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run f8bf1b797021460d96be5efbb1a84acb, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
+  2026-10-29T02:10:35Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.38 s
+  2026-10-29T02:10:48Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 353de4c35b924affa23de5534b1ce252, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T02:10:54Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace otel-demo, step duration 1.33 s
+  2026-10-29T05:13:57Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.06 s
+  2026-10-29T05:14:16Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 3aaabc2dec794577a7c6c68aa53cff3f, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T05:49:33Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.17 s
+  2026-10-29T05:49:51Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 809add1d1290466db4e60b01a789f9a3, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T05:55:17Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.83 s
+  2026-10-29T05:55:39Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 5a0ef665a20246938e52933a963bfffc, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T08:56:39Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.3 s
+  2026-10-29T08:56:57Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 0e7b779fb92f4ac7ad86394a0ade4e4e, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T10:27:29Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 12.45 s
+  2026-10-29T10:28:07Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run d87ec03db6084984bbbe4d5df74ef55b, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
+  2026-10-29T12:14:24Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 12.56 s
+  2026-10-29T12:14:49Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run f1aeb3d1adaa4f0d86f27c9f24232c97, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
+  2026-10-29T12:15:04Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.72 s
+  2026-10-29T12:15:29Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run c82fe083d5ca4842935b985238428e48, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T12:15:39Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace otel-demo, step duration 1.69 s
+  2026-10-29T13:10:15Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 12.92 s
+  2026-10-29T13:10:53Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run 4ace92d6eed64a01b662760f1e0d5ec5, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
+  2026-10-29T13:44:14Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 15.34 s
+  2026-10-29T13:44:41Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run 6ffa2b8a7d4440899610c449549d8c4c, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
+  2026-10-29T13:58:03Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.72 s
+  2026-10-29T13:58:17Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run dbdec6b75c48494aa2e144bb9872939e, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T15:04:35Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.78 s
+  2026-10-29T15:04:47Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run d955dd55742f4d649981bb9b3a11141f, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T15:09:29Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.28 s
+  2026-10-29T15:09:42Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 7f6bed277f3a4875aba4bafc47b25dca, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T15:25:14Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.77 s
+  2026-10-29T15:25:27Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run c9189a4691f04810b941762f70b9dac4, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
+  2026-10-29T15:34:42Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 16.32 s
+  2026-10-29T15:35:13Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run d4e268e9e88346f0bbfc2822c6f3f3be, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
+  2026-10-29T19:47:23Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run c81de008123b4c158c622e66bbccd9df, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
+  2026-10-29T19:49:37Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run b7cbce9bd04642dba8c48910fa83e8bb, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
+  2026-10-29T19:49:39Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run 35518c4fc6bd447e96c18166f7bcc743, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
+  2026-10-29T20:11:12Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run e411a528a8f346eda588711d3d338b69, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
+  2026-10-29T20:11:14Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run 47f50f4f1bae455394c406105f60d8ae, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
+  2026-10-30 - web app GET /api/quantum/status during the UI check - login ok, 5 devices active, jobs disabled (live check; the status cache is in memory, not persisted)
+
+STATUS
+  QCloud SDK and login used; QAOA executed on the QpiAI-QSV-Local simulator through the SDK; cloud job submission rejected (no active subscription), so no QCloud hardware/cloud job ID exists.
 
 HONESTY
   No quantum advantage claimed. QAOA is a measured cross-check against the exact optimum, which
