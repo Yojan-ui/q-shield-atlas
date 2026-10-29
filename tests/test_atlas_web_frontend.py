@@ -57,7 +57,12 @@ def test_first_load_within_budget():
             walk((p.parent / m).resolve())
 
     walk((STATIC / "js" / "main.js").resolve())
-    total = sum(f.stat().st_size for f in seen) + sum(f.stat().st_size for f in (STATIC / "css").glob("*.css")) + (STATIC / "index.html").stat().st_size
+    # first load = the stylesheets index.html links (page-only sheets in css/views/ load with their lazy view)
+    html = (STATIC / "index.html").read_text()
+    linked = [STATIC / h.removeprefix("/assets/") for h in re.findall(r'<link rel="stylesheet" href="([^"]+)"', html)]
+    assert set(linked) == set((STATIC / "css").glob("*.css")), "every top-level stylesheet is linked from index.html"
+    assert not any("/views/" in str(p) for p in linked)
+    total = sum(f.stat().st_size for f in seen) + sum(f.stat().st_size for f in linked) + (STATIC / "index.html").stat().st_size
     assert total <= FIRST_LOAD_BUDGET, f"first load {total} B > {FIRST_LOAD_BUDGET} B"
 
 

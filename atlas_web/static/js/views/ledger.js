@@ -1,6 +1,7 @@
 // Proof Chain (code/API name: ledger): Merkle tower, inclusion proofs, tamper demo on a server-side copy.
 import { sound } from "../sound.js";
 import { h, icon } from "../dom.js";
+import { provAttr } from "../components/tooltip.js";
 import { stat, statSkeleton } from "../components/stat.js";
 import { chip } from "../components/chip.js";
 import { table, tableSkeleton } from "../components/table.js";
@@ -10,7 +11,7 @@ import { toast } from "../components/toast.js";
 import { num } from "../model.js";
 import { prefersReducedMotion } from "../motion.js";
 import { buildLedger, TAMPER } from "../scenes/ledger.js";
-import { dataView, honesty, mountScene, notRun, stage } from "./common.js";
+import { dataView, honesty, mountScene, notRun, stage, viewCss } from "./common.js";
 import { bullets, detailsList, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";
 
@@ -20,6 +21,7 @@ const st = (label, ...kids) => h("div", { class: "stat" }, h("span", { class: "l
 const mono = (t) => h("span", { class: "mono", text: t ?? "–" });
 
 export async function mount(ctx) {
+  await viewCss("plan");
   const body = dataView(ctx, {
     keys: ["ledger"],
     skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton()), h("div", { class: "span-12" }, tableSkeleton(4))),
@@ -56,7 +58,14 @@ export async function mount(ctx) {
         }
       };
 
-      const tamper = h("button", { class: "btn primary hold", type: "button", "aria-describedby": "lg-hold" }, icon("warn"), "Hold to tamper a copy");
+      // the hash chain as linked blocks: green when the live check verified, red from the failing index in a tampered copy
+      const blocks = L.entries.map((e) => h("li", { class: `lc-b${v.ok === true ? " ok" : ""}`, tabindex: "0", role: "button", "aria-label": `entry ${e.index}: ${e.type}`,
+        "data-prov": provAttr({ ...src, ledger_index: String(e.index), ts: e.ts, note: `prev ${(e.prev_hash || "").slice(0, 16)}… · payload ${(e.payload_hash || "").slice(0, 16)}…` }, `#${e.index} ${e.type}`),
+        onclick: () => select(e.index), onkeydown: (ev) => { if (ev.key === "Enter") select(e.index); } },
+        h("span", { class: "num", text: `#${e.index}` }), h("span", { class: "lc-t", text: e.type }), h("span", { class: "mono lc-h", text: (e.payload_hash || "").slice(0, 8) })));
+      const chainNote = h("p", { class: "mv-note", "aria-live": "polite", text: v.ok === true ? `Real ledger: all ${L.entry_count} blocks verified (signature and link to the previous block).` : v.ok === false ? `Real ledger fails verification at #${v.first_failure && v.first_failure.index}.` : `Not verified: ${v.status_text || "no check"}.` });
+      const paint = (bad) => blocks.forEach((b, i) => { b.classList.toggle("ok", bad === null && v.ok === true); b.classList.toggle("bad", bad !== null && i >= bad); });
+      const tamper = h("button", { class: "btn primary", type: "button", "aria-describedby": "lg-hold" }, icon("warn"), "Tamper test (temporary copy)");
       const run = async () => {
         tamper.disabled = true;
         clearTimeout(timer);
@@ -66,12 +75,14 @@ export async function mount(ctx) {
           layer?.tamper(t.edited_index, reduced);
           setTimeout(() => { ctx.world.shake(); sound.crack(); }, (reduced ? 0 : TAMPER.flyS) * 1000);  // the shard strikes the leaf
           out.className = "lg-out cracked";
+          if (t.index !== null && t.index !== undefined) { paint(t.index); chainNote.textContent = `Temporary copy: entry #${t.edited_index} edited, so the chain breaks from #${t.index} on. The real ledger is not touched.`; }
           out.replaceChildren(chip("tampered", `copy fails verification at #${t.index ?? "?"}`),
             kv(["edited", mono(`entry #${t.edited_index}, field "${t.edited_field}" (temporary copy)`)], ["reason", mono(t.reason)]));
           ctx.announce(`Tampered copy fails at index ${t.index}: ${t.reason}. Real ledger untouched.`);
           const same = t.real_ledger_unchanged === true && t.real_ledger_sha256_before === t.real_ledger_sha256_after;
           timer = setTimeout(() => {
             out.className = "lg-out healed";
+            paint(null); chainNote.textContent = same ? `Real ledger: unchanged (SHA-256 identical before and after); all ${L.entry_count} blocks verified.` : "Real ledger hash differs; see values.";
             out.replaceChildren(same ? chip("PASS", "Real ledger untouched (hash unchanged)") : chip("FAIL", "real ledger hash differs; see values"),
               kv(["before", hc(t.real_ledger_sha256_before, "real ledger SHA-256 before")], ["after", hc(t.real_ledger_sha256_after, "real ledger SHA-256 after")],
                 ["unchanged", mono(String(t.real_ledger_unchanged))]),
@@ -83,14 +94,8 @@ export async function mount(ctx) {
           else if (err.code !== "aborted") toast(err.message, { tone: "error", detail: err.code });
         } finally { setTimeout(() => { tamper.disabled = false; }, 1000); }
       };
-      // press-and-hold 800 ms (pointer, or Space / Enter held): a deliberate act, cancelled by releasing early
-      let hold = 0;
-      const start = (e) => { if (tamper.disabled || hold || (e.repeat)) return; tamper.classList.add("holding"); hold = setTimeout(() => { hold = 0; tamper.classList.remove("holding"); run(); }, 800); };
-      const stop = () => { clearTimeout(hold); hold = 0; tamper.classList.remove("holding"); };
-      tamper.addEventListener("pointerdown", start, { signal: ctx.signal });
-      for (const ev of ["pointerup", "pointerleave", "pointercancel", "blur"]) tamper.addEventListener(ev, stop, { signal: ctx.signal });
-      tamper.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); start(e); } }, { signal: ctx.signal });
-      tamper.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") stop(); }, { signal: ctx.signal });
+      // one click: the server edits a temporary copy and verifies it with the ledger CLI; the real ledger is only read
+      tamper.addEventListener("click", () => { if (!tamper.disabled) run(); }, { signal: ctx.signal });
       ctx.signal.addEventListener("abort", () => clearTimeout(timer), { once: true });
 
       mountScene(ctx, "ledger", L, buildLedger(L, { stageEl, onPick: select })).then((l) => { layer = l; });
@@ -104,12 +109,14 @@ export async function mount(ctx) {
             h("p", { class: "pg-mean", text: "Every signature and fingerprint was re-checked when this page loaded." })),
           h("div", { class: "pg-stat" }, st("signing key", hc(L.pubkey_fp, "public key fingerprint")),
             h("p", { class: "pg-mean", text: "The public key anyone can use to check the signatures." }))),
+        h("section", { class: "lc" }, h("h2", { class: "mv-h2", text: "Hash chain: every block links to the one before" }), chainNote,
+          h("div", { class: "sg-row" }, tamper, h("p", { id: "lg-hold", class: "mv-note", text: "Edits one record in a temporary copy and runs the read-only verifier on it. The real ledger is never touched; nothing is recorded." })), out,
+          h("ol", { class: "lc-list" }, blocks),
+          h("p", { class: "mv-how", text: "How to read this: each block is one signed record (scan, plan, gate, review…). Green = its ML-DSA-65 signature and its link to the previous block were re-checked when this page loaded. Edit any block and every block after it turns red." })),
         main(h("div", { class: "grid" },
           h("div", { class: "span-8 lg-stage" }, stageEl, h("div", { class: "stage-legend" }, h("span", { text: `${L.entry_count} records as leaves · root on top` }))),
           h("aside", { class: "span-4 lg-side" },
-            h("p", { class: "eyebrow", text: "try it: tamper with a copy" }),
-            h("p", { class: "fine", text: "Edits one record in a temporary copy and verifies it. The real ledger is never touched." }),
-            tamper, h("p", { id: "lg-hold", class: "fine", text: "Press and hold for 0.8 s (mouse, touch, or Space / Enter)." }), out, detail)), { title: "The Proof Chain" }),
+            detail)), { title: "Merkle tree: one root summarises every record" }),
         detailsList([
           { title: "How it works", summary: "Each record's hash includes the previous one; a Merkle root summarises them all.", body: bullets([
             ["Every record is signed with ", term("mldsa", "ML-DSA-65"), ", a post-quantum signature."],

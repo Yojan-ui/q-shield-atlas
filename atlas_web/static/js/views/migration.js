@@ -12,7 +12,7 @@ import { HNDL } from "../model.js";
 import { provAttr } from "../components/tooltip.js";
 import { authName, buildChannel, fmtBytes, packetsOf, pickLanes, sessionProv, transcriptList } from "../components/channel.js";
 import { clusterOf } from "../scenes/migration.js";
-import { dataView, honesty, notRun } from "./common.js";
+import { dataView, honesty, notRun, viewCss } from "./common.js";
 import { bullets, detailsList, nextStep, pageHead } from "../components/page.js";
 
 export const LANES = [
@@ -64,6 +64,7 @@ export function gateCell(e, gate) {
 }
 
 export async function mount(ctx) {
+  await viewCss("move");
   let reduced = prefersReducedMotion();
   const body = dataView(ctx, {
     keys: ["results", "move"],

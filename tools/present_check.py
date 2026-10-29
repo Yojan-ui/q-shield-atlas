@@ -1,6 +1,6 @@
 """tools/present_check.py: presentation readiness at 1440x900 in headless Chrome (stdlib CDP, tools/cdp.py).
 
-Every page as admin: no console errors, no failed requests; the Migration 3D layer renders; on QAOA the
+Every page as admin: no console errors, no failed requests; the Detect 3D graph layer renders; on QAOA the
 live quantum run returns a result that names its backend. Screenshots -> atlas_web/screenshots/present/
 (git-ignored PNGs). Uses a temporary data dir; the repo's out/, runs/ and keys/ are only read.
 """
@@ -29,9 +29,9 @@ def main():
         ctx = br.new_context()
         for path in PAGES:
             r = rc.check_page(br, ctx, base, "admin", path, "1440x900", jar, shots)
-            extra = f" 3D layer={r['layer']} fps={r['fps']}" if "migration" in path else ""
+            extra = f" 3D layer={r['layer']} fps={r['fps']}" if "detect" in path else ""
             print(f"{'ok ' if not r['problems'] else 'ERR'} {path:28} {r['load_s']:.2f}s{extra} {r['problems'] or ''}", flush=True)
-            bad += bool(r["problems"]) or ("migration" in path and r["layer"] != "migration")
+            bad += bool(r["problems"]) or ("detect" in path and r["layer"] != "detect")
         page = br.new_page(ctx)
         try:
             page.send("Emulation.setDeviceMetricsOverride", {"width": 1440, "height": 900, "deviceScaleFactor": 1, "mobile": False})

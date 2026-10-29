@@ -103,7 +103,7 @@ def export(dest: Path = DIST) -> Path:
     (dest / "assets" / "boot.js").write_text(BOOT)
     html = html.replace('<script type="module" src="/assets/js/main.js"></script>',
                         '<script src="assets/snapshot.js"></script>\n  <script src="assets/boot.js"></script>')
-    html = html.replace("</head>", f"  <style>{_all_css().replace('url(\"/assets/fonts/', 'url(\"assets/fonts/')}</style>\n</head>")
+    html = html.replace("</head>", f"  <style data-all-css>{_all_css().replace('url(\"/assets/fonts/', 'url(\"assets/fonts/')}</style>\n</head>")
     (dest / "index.html").write_text(html)
     return dest
 
@@ -111,4 +111,5 @@ def export(dest: Path = DIST) -> Path:
 def _all_css() -> str:
     files = [STATIC / "css" / "tokens.css", STATIC / "css" / "app.css"]
     files += sorted(p for p in (STATIC / "css").glob("*.css") if p not in files)
+    files += sorted((STATIC / "css" / "views").glob("*.css"))  # page-only sheets, lazy on the server
     return "\n".join(p.read_text() for p in files).replace("</style", "<\\/style")

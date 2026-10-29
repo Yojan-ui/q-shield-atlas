@@ -88,3 +88,70 @@ def test_move_api_requires_login_and_is_read_only(server):
     r, body = c.request("GET", "/api/workspaces/demo/move", raw=True)
     assert r.status == 200 and json.loads(body)["available"]
     assert hashlib.sha256((REPO / "out" / "capture.json").read_bytes()).hexdigest() == before
+
+
+# ---- headless browser: reduced motion and no-WebGL fallbacks (skipped when Chrome is not installed) ----
+
+def _browser_pages(server, flags, media, paths, js):
+    import sys
+    sys.path.insert(0, str(REPO / "tools"))
+    from cdp import Browser, chrome_binary
+
+    if not chrome_binary():
+        pytest.skip("Chrome not installed")
+    c = Client(server.server_address[1])
+    c.request("POST", "/api/auth/login", {"username": "vic", "password": PASSWORD})
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    b = Browser(flags)
+    out = {}
+    try:
+        for path in paths:
+            page = b.new_page(b.new_context())
+            try:
+                page.send("Runtime.enable")
+                page.send("Emulation.setEmulatedMedia", {"features": [{"name": "prefers-reduced-motion", "value": media}]})
+                for k, v in c.cookies.items():
+                    page.send("Network.setCookie", {"name": k, "value": v, "url": base})
+                page.send("Page.navigate", {"url": base + path})
+                assert page.wait_for("document.body.dataset.ready === '1' && !document.querySelector('.skel')", 20)
+                page.wait_for(js["ready"], 10)
+                out[path] = page.eval(js["probe"])
+                out[path]["exceptions"] = [p for m, p in page.events if m == "Runtime.exceptionThrown"]
+            finally:
+                page.close()
+    finally:
+        b.close()
+    return out
+
+
+def test_move_reduced_motion_is_a_static_frame(server):
+    move = move_payload(workspaces.demo(), None)
+    want = [m["type"] for s in move["sessions"] if s["service_id"] == "hybrid" and "MLKEM" in s["client_groups_offered"] for m in s["messages"]]
+    r = _browser_pages(server, (), "reduce", ["/w/demo/migration"], {
+        "ready": "!!document.querySelector('.ch-svg')",
+        "probe": """(() => { const before = [...document.querySelectorAll('.ch-pkt')].map(p => p.getAttribute('transform'));
+          return new Promise(ok => setTimeout(() => ok({
+            inflight: [...document.querySelectorAll('.ch-pkt')].filter(p => p.getAttribute('visibility') === 'visible').length,
+            moved: [...document.querySelectorAll('.ch-pkt')].some((p, i) => p.getAttribute('transform') !== before[i]),
+            after: [...document.querySelectorAll('.mv-tl')[1].querySelectorAll('.ch-type')].map(e => e.textContent),
+            replay: document.querySelector('.ch-replay').textContent, play: document.querySelector('.mv-controls .btn').textContent,
+            ext: [...document.querySelectorAll('[src],[href]')].map(e => e.getAttribute('src') || e.getAttribute('href')).filter(u => /^https?:/.test(u)) }), 800)); })()"""})
+    p = r["/w/demo/migration"]
+    assert p["exceptions"] == []
+    assert p["inflight"] == 0 and not p["moved"]  # nothing plays by itself
+    assert p["after"] == [t if t != "Alert" else "Alert (warning close_notify)" for t in want]  # the recorded transcript, in order
+    assert p["replay"] == f"Replay of recorded handshake, run {move['run_id']}"
+    assert p["play"].strip() == "Play the plan" and p["ext"] == []
+
+
+def test_detect_and_move_without_webgl(server):
+    r = _browser_pages(server, ("--disable-gpu",), "no-preference", ["/w/demo/detect", "/w/demo/migration"], {
+        "ready": "!!document.querySelector('.gr-flat, .ch-svg')",
+        "probe": "({webgl: !!(window.__atlasWorld && window.__atlasWorld.webgl), nodes: document.querySelectorAll('.gr-flat .gr-node').length,"
+                 " edges: document.querySelectorAll('.gr-flat .gr-edge').length, channel: !!document.querySelector('.ch-svg'), lanes: document.querySelectorAll('.ch-lane').length})"})
+    inv = json.loads((REPO / "out" / "inventory.json").read_text())
+    d, m = r["/w/demo/detect"], r["/w/demo/migration"]
+    assert not d["webgl"] and d["exceptions"] == [] and m["exceptions"] == []
+    assert d["nodes"] == len(inv["assets"]) + len(inv["not_vulnerable"])
+    assert d["edges"] == sum(len(a.get("depends_on") or []) for a in inv["assets"])
+    assert m["channel"] and m["lanes"] == 3  # the Move scene is SVG: it never needed WebGL

@@ -127,6 +127,7 @@ function optimizerTab(ctx, P) {
       { label: "status", render: (r) => (r.status === "ok" ? chip("ok", "measured") : h("span", { class: "fine", text: r.status_text })) }] }), { title: "Scheduling the whole migration" }) : null,
     main(h("div", {}, runtimeChart(b.rows, b.instances), h("ul", { class: "bn-legend", "aria-label": "Chart legend" }, SERIES.map((s) =>
       h("li", {}, h("svg", { viewBox: "0 0 24 8", class: "bn-key", "aria-hidden": "true" }, h("line", { ns: "svg", x1: 0, y1: 4, x2: 24, y2: 4, stroke: s.color, "stroke-width": 2, "stroke-dasharray": s.dash })), `${s.label} · ${s.family}`))),
+      h("p", { class: "mv-how", text: "How to read this: each line is one solver; it shows the measured runtime (log scale) as the problem grows. Lower is faster. Simulator QAOA is a cross-check, not a speed claim." }),
       table({ caption: "Wave-selection instances", rows: b.rows, columns: [
         { label: "instance", key: "instance", mono: true },
         { label: "variables", numeric: true, render: (r) => String(r.n_variables) },

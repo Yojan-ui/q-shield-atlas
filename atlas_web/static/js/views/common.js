@@ -45,6 +45,17 @@ export function dataView(ctx, { keys = ["results", "scene"], skeleton, render })
   return body;
 }
 
+// Page-only stylesheet (static/css/views/<name>.css), loaded once when the view mounts, so it stays out of the
+// first load. Same origin (CSP style-src 'self'). The static export inlines every stylesheet and marks it.
+export function viewCss(name) {
+  if (typeof document === "undefined" || document.querySelector(`style[data-all-css], link[data-view-css="${name}"]`)) return Promise.resolve();
+  return new Promise((ok) => {
+    const l = h("link", { rel: "stylesheet", href: `/assets/css/views/${name}.css`, "data-view-css": name });
+    l.onload = l.onerror = () => ok();
+    document.head.append(l);
+  });
+}
+
 export function notRun(ctx, what) {
   const can = ctx.me && ctx.me.role !== "viewer" && ctx.wsInfo && !ctx.wsInfo.read_only;
   return {

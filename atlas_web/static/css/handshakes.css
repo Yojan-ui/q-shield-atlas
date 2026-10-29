@@ -1,9 +1,9 @@
 .hs-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.hs-label { position: absolute; max-width: min(46ch, 78%); padding: var(--s-1) 0; font-size: var(--fs-12); line-height: 1.4; color: var(--text-2); }
+.hs-label { position: absolute; max-width: min(46ch, 78%); padding: var(--s-1) 0; font-size: var(--fs-16); line-height: 1.4; color: var(--text-2); }
 .side .hs-label { text-align: right; max-width: 36ch; }
 .hs-labels:not(.side) .sub + .sub, .flat .hs-labels { display: none; }
 .hs-label b { color: var(--text); }
-.hs-label .sub, .hs-kv .sub { display: block; font-size: var(--fs-11); color: var(--text-2); }
+.hs-label .sub, .hs-kv .sub { display: block; font-size: var(--fs-16); color: var(--text-2); }
 .hs-label .exp, table.data td .sub.exp { color: var(--exposure); }
 .hs-k::before { content: ""; display: inline-block; vertical-align: middle; width: 12px; height: 1px; margin-right: var(--s-2); background: var(--text); }
 .hs-k.exp::before { background: var(--exposure); }

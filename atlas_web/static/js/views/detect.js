@@ -13,7 +13,7 @@ import { prefersReducedMotion } from "../motion.js";
 import { num } from "../model.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";
-import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
+import { dataView, header, honesty, mountScene, notRun, section, stage, viewCss, wsEyebrow } from "./common.js";
 
 const say = (el, t, bad = true) => { el.textContent = t; el.classList.toggle("bad", bad); };
 const out = () => h("p", { class: "fine dt-msg" }), btn = (t, cls = "btn") => h("button", { class: cls, type: "submit" }, t);
@@ -201,6 +201,7 @@ function intake(ctx) {
 }
 
 export async function mount(ctx) {
+  await viewCss("graph");
   const intakeEls = [].concat(intake(ctx));
   ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
     pageHead(ctx, { route: "detect", title: "Detect", headline: "Red nodes are systems a quantum computer could break. Lines show what depends on what." }),

@@ -65,7 +65,8 @@ export async function mount(ctx) {
             `Which of these ${prob.assets.length} systems should cut over in week ${prob.week}? The exact answer: ${q.exact.assets.join(", ")}.`),
           pm(sF, "Share of QAOA's answers that respect the weekly capacity and dependencies."),
           pm(sO, "Share of answers that are exactly the best choice; compare with the random baseline below it.")),
-        main(h("div", {}, ctx.wsInfo && !ctx.wsInfo.read_only || ctx.ws === "demo" ? quantumPanel(ctx) : null, stageWrap), { title: "QAOA against the exact answer" }),
+        main(h("div", {}, ctx.wsInfo && !ctx.wsInfo.read_only || ctx.ws === "demo" ? quantumPanel(ctx) : null, stageWrap,
+          h("p", { class: "mv-how", text: "How to read this: left is QAOA on the simulator, right a uniform random guess. The bigger the shell, the more shots met the constraints; the bigger the core, the more shots hit the exact optimum." })), { title: "QAOA against the exact answer" }),
         detailsList([
           { title: "How it works", summary: "One week's choice becomes a small yes/no problem that QAOA samples.", body: bullets([
             ["The choice is written as a ", term("qubo", "QUBO"), " (at most 16 variables): value of migrating now, minus penalties for breaking capacity or dependencies."],

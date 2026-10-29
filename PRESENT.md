@@ -12,7 +12,7 @@
    - **QAOA**: press *Run QAOA now*; the backend is shown on the result
    - **Bench**
    - **Review**
-   - **Move** (3D migration; press Play)
+   - **Move** (replay of the recorded handshakes, sender vs receiver; press Play the plan)
 4. The top strip shows the quantum backend in use: "Quantum: Local simulator" or "Quantum: QpiAI Cloud: QpiAI-QSV-Simulator".
 5. If QpiAI Cloud is down or disabled, say: "This is running on QpiAI's local simulator; the app is cloud-ready. Cloud login and device list are live, and job submission switches on with the account's subscription."
 6. Never say "hardware". QAOA is a simulator cross-check against the exact optimum, with no quantum advantage.

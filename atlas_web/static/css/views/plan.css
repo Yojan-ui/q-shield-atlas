@@ -1,0 +1,20 @@
+/* Plan and Proof pages only (views/schedule.js, views/ledger.js load it lazily). */
+/* Plan curves, Proof hash chain */
+.pl-hero{display:grid;gap:var(--s-3);margin-bottom:var(--s-6)}
+.pl-call{margin:0;font-size:var(--fs-28);font-weight:600}
+.pl-call .num{font-size:var(--fs-64);display:block;line-height:1.1}
+.pl-sub{font-size:18px;color:var(--text-2);font-weight:400}
+.pl-chart{width:100%;height:auto;display:block}
+.pl-chart text{font-size:16px;fill:var(--text-2);font-family:var(--font-mono)}
+.pl-line{fill:none;stroke:var(--text-3);stroke-width:2}
+.pl-line.opt{stroke:var(--text);stroke-width:4}
+.pl-line.fcfs{stroke-dasharray:8 6}
+.pl-line.greedy{stroke-dasharray:2 5}
+.pl-pt{fill:var(--text-3)}.pl-pt.opt{fill:var(--text)}
+.pl-chart .pl-lab{font-size:18px;fill:var(--text-2);paint-order:stroke;stroke:var(--base);stroke-width:6px}.pl-chart .pl-lab.opt{fill:var(--text);font-weight:600}
+.lc{display:grid;gap:var(--s-3);margin:var(--s-6) 0}
+.lc-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--s-3)}
+.lc-b{position:relative;border:2px solid var(--hairline-strong);padding:var(--s-2);display:grid;gap:2px;font-size:var(--fs-16);cursor:pointer}
+.lc-b+.lc-b::before{content:"";position:absolute;left:calc(-1*var(--s-3) - 2px);top:50%;width:var(--s-3);border-top:2px solid var(--hairline-strong)}
+.lc-b.ok{border-color:var(--pass)}.lc-b.bad{border-color:var(--exposure);background:var(--exposure-wash)}
+.lc-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lc-h{color:var(--text-2)}

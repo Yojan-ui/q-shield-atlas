@@ -88,7 +88,7 @@ export async function mount(ctx) {
           { label: "waves passed every gate", cell: num(passed, gsrc), unit: `of ${(r.waves || []).length} waves`, mean: "A wave counts only when its handshake, downgrade, compatibility and rollback gates all pass." },
           { label: "rollback tested", cell: num(fr && fr.restored_config_sha256 === fr.snapshot_sha256 ? 1 : 0, gsrc), unit: fr ? `${fr.status}` : "not run", mean: "A forced failure was rolled back and the exact previous configuration was restored." },
         ]),
-        main(h("div", {}, el, wavesT, labT), { title: "Gates per wave" }),
+        main(h("div", {}, el, h("p", { class: "mv-how", text: "How to read this: each strand is one recorded lab handshake. A single red strand is classical key exchange (HNDL-exposed); a braid is hybrid X25519 + ML-KEM-768; a wall means a classical-only client was refused." }), wavesT, labT), { title: "Gates per wave" }),
         detailsList([
           { title: "How it works", summary: "Each wave is switched on real TLS 1.3 lab services and checked four ways.", body: bullets([
             ["Post-quantum handshake: the server must negotiate ", term("hybrid", "hybrid key exchange"), " (X25519MLKEM768)."],
