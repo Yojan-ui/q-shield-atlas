@@ -5,8 +5,8 @@ Total budget: **120 s**, all clicks in `python -m atlas_web` (terminal steps are
 below is from the current `out/results.json` and ledger (the demo workspace); the source of each number is in an
 HTML comment next to it (view the raw file to see them).
 
-<!-- Snapshot: ./run_demo.sh on 2026-10-28, results.json generated_at 2026-10-28T19:41:47Z, RESULT: PASS.
-     Ledger 60 entries, root 06cd915f32a252f964e1f3240b75049c317a2f410e10e29b219a88f9b770050a, verified
+<!-- Snapshot: ./run_demo.sh on 2026-10-29, results.json generated_at 2026-10-29T01:52:24Z, RESULT: PASS.
+     Ledger 68 entries, root e40be08d7d081cb58d2d2ebf1728e1eba25710b3589701fa10c276b43a0a098b, verified
      (results.json: ledger.entry_count, ledger.root, ledger_verification.ok). Plan, handshake and QAOA numbers are
      deterministic; run_ids, ports, transcript hashes, the ledger entry count and root change on every rerun.
      Do not rerun run_demo.sh right before the demo: the web app, report and export all read this snapshot. -->
@@ -37,7 +37,7 @@ for a bank is which systems to move first, and how to prove each move worked."
 
 **On screen:** the codebase as a city of columns, one per scanned file; red markers sit at the line of each finding.
 Stats: **37** files scanned, **29** quantum-vulnerable findings, **16** assets to migrate, **1** drift case
-<!-- detect.files_scanned = 37; detect.summary.vulnerable_findings = 29; detect.inventory.assets = 16; detect.drift_count = 1 (detect run e53c0762) -->.
+<!-- detect.files_scanned = 37; detect.summary.vulnerable_findings = 29; detect.inventory.assets = 16; detect.drift_count = 1 (detect run e1ff8a03) -->.
 **Do:** hover a red marker (file:line, rule, family); click the `web-gw` column → its asset page (camera focuses
 the crystal): ECC key exchange + RSA certificate, the live probe negotiated classical X25519 although the config
 claims PQC (`pqc_claimed_not_negotiated`).
@@ -52,7 +52,7 @@ Z2030: **0.173** vs FCFS, **0.019** vs greedy; Z2035: **0.096** / **0.058**
 beams go out. Hover any number: run_id, solver "qpiai-opt local", job id "none" with the logged reason.
 **Say:** "QpiAI Opt finds a proven-optimal wave plan (local MILP, global optimum) that is never worse than first-come-first-served
 or greedy on the same data; the gain is honest and small, because long data shelf lives lock most exposure in."
-<!-- solver_runs[*].solver = qpiai-opt local, termination optimal, guarantee global_optimum; runs eacf9ac6, a06eb61d; job_id null + job_id_reason -->
+<!-- solver_runs[*].solver = qpiai-opt local, termination optimal, guarantee global_optimum; runs 641f5d49, d4cb2a95; job_id null + job_id_reason -->
 
 ## 4. Handshakes (20 s): rail key **4** (Handshakes)
 
@@ -68,7 +68,7 @@ post-quantum end to end, and a classical-only client is refused, so there is no 
 
 ## 5. Ledger tamper (25 s): rail key **5** (Ledger)
 
-**On screen:** the Merkle tower, one leaf per entry (**60**), root on top, verified ✔ <!-- ledger.entry_count = 60; live verification ok -->.
+**On screen:** the Merkle tower, one leaf per entry (**68**), root on top, verified ✔ <!-- ledger.entry_count = 68; live verification ok -->.
 **Click:** **Tamper a copy**. A shard hits leaf #2; that branch cracks red to the root; the panel shows
 "#2: ML-DSA-65 signature does not verify", then heals: "Real ledger untouched (hash unchanged)" with the same hash before and after.
 **Say:** "Every run is signed with ML-DSA-65 into a hash-chained log with a Merkle root; change one field in one entry and
@@ -77,12 +77,14 @@ verification fails at exactly that entry. We edited a copy; the real ledger's ha
 ## 6. QAOA (15 s): rail key **6** (QAOA)
 
 **On screen:** "measured cross-check, no quantum advantage". Exact optimum (brute force) **−0.346154**, assets backup and
-statements, **14** QUBO variables <!-- qaoa.exact.objective; qaoa.exact.assets; qaoa.problem.n_variables (run 3c6c28ad) -->.
+statements, **14** QUBO variables <!-- qaoa.exact.objective; qaoa.exact.assets; qaoa.problem.n_variables (run f8bf1b79) -->.
 Click p=3: feasible fraction **0.1948** vs random **0.0034**, P(optimal set) **0.0156** vs **0.0010**
-<!-- qaoa.table p=3 local / random metrics.feasible_fraction, p_optimal_assets -->. QCloud rows read
+<!-- qaoa.table p=3 local / random metrics.feasible_fraction, p_optimal_assets -->. The same circuits sampled on the QpiAI SDK's
+local simulator (QpiAI-QSV-Local, free, no network) give **0.1758** feasible at p=3 and agree with numpy within 4σ at every p
+<!-- qaoa.table p=3 qpiai_local metrics.feasible_fraction; qaoa.comparisons[against=qpiai_local].differs = false; job_id null, reason "local SDK simulation issues no job ID" -->. QCloud rows read
 "not run: QCloud sampling is opt-in (python -m qaoa --qcloud)" <!-- qaoa.table[*].status_text -->.
-**Say:** "QAOA on a simulator, measured against the exact optimum of a 14-variable wave problem: far more feasible plans than random,
-and we claim no quantum advantage."
+**Say:** "QAOA on two simulators, ours and QpiAI's own SDK, measured against the exact optimum of a 14-variable wave problem:
+far more feasible plans than random, the two simulators agree, and we claim no quantum advantage."
 
 ## 7. Close (10 s): rail key **1** (Pipeline)
 
