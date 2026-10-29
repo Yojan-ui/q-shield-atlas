@@ -25,3 +25,19 @@ test("pillar geometry is bounded and centred", () => {
   assert.equal(pillarHeight(5), pillarHeight(1));
   assert.equal(pillarX(0, 3), -pillarX(2, 3));
 });
+
+import { benchItems } from "../static/js/views/bench.js";
+test("Benchmark bars come only from measured runtimes; nothing measured is 'not yet run'", () => {
+  assert.equal(benchItems({ bench: null, crypto: null }, "optimizers"), null);
+  assert.equal(benchItems({ bench: null, crypto: null }, "crypto"), null);
+  const P = { bench: { instances: [{ id: "a", n_variables: 6 }, { id: "b", n_variables: 7 }], rows: [
+    { instance: "b", solver: "exact", status: "ok", runtime_s: 1e-4 }, { instance: "b", solver: "milp", status: "ok", runtime_s: 0.1 },
+    { instance: "a", solver: "random", status: "ok", runtime_s: 9 }] } };
+  const it = benchItems(P, "optimizers");
+  const by = Object.fromEntries(it.map((x) => [x.id, x]));
+  assert.ok(by.milp.h > by.exact.h);  // slower is taller (log scale)
+  assert.equal(by.random.state, "missing");  // only the largest instance is shown; random has no row there
+  assert.match(by.random.label, /not run/);
+  const c = benchItems({ crypto: { primitives: { "ML-DSA-65": { public_key_der_bytes: 1974, signature_bytes: 3309 }, "ECDSA P-256": { public_key_der_bytes: 91, signature_bytes: 72 } } } }, "crypto");
+  assert.equal(c.find((x) => x.id === "ML-DSA-65").h, 1);
+});

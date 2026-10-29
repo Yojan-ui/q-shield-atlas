@@ -27,7 +27,8 @@ export function buildPillars({ THREE, world, group }, items, { labelsEl, stageEl
   const labels = items.map((it) => { const e = document.createElement("span"); e.className = "pl3-label"; e.textContent = it.label; labelsEl.append(e); return e; });
   const v = new THREE.Vector3();
   let clock = 0;
-  world.focus([0, 2, 0], Math.max(8, n * GAP * 0.55 + 4));
+  const tallest = Math.max(...items.map((it) => pillarHeight(it.h)));
+  world.focus([0, tallest / 2, 0], Math.max(8, n * GAP * 0.55 + 4, tallest * 1.8 + 4));
   const set = (i, state) => {
     const it = items[i]; if (!it) return;
     it.state = state;

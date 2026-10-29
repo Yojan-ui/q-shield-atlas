@@ -7,7 +7,8 @@ import { table, tableSkeleton } from "../components/table.js";
 import { emptyState } from "../components/states.js";
 import { toast } from "../components/toast.js";
 import { confirmDialog } from "../components/dialog.js";
-import { dataView, honesty } from "./common.js";
+import { dataView, honesty, mountScene, stage, viewCss } from "./common.js";
+import { buildPillars } from "../scenes/pillars.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";
 
@@ -60,6 +61,28 @@ export function runtimeChart(rows, instances) {
 const pct = (x) => (x === null || x === undefined ? "–" : `${(x * 100).toFixed(1)} %`);
 const n0 = (x) => (x === null || x === undefined ? "–" : Math.round(x).toLocaleString("en-US"));
 const cell = (value, digits, source) => ({ kind: "number", value, text: Number(value).toFixed(digits), digits, source });
+
+// 3D bars from the measured fields only. Optimizers: runtime_s per solver on the largest instance (log scale).
+// Cryptography: public key + signature / ciphertext bytes per primitive. null = not yet run.
+const SHORT = { exact: "exact", milp: "MILP", random: "random", qaoa1: "QAOA p1\nnumpy", qaoa_sdk1: "QAOA p1\nQSV-Local", hybrid: "hybrid" };
+export function benchItems(P, tab) {
+  if (tab === "crypto") {
+    const prim = P && P.crypto && P.crypto.primitives;
+    if (!prim) return null;
+    const rows = Object.entries(prim).map(([a, x]) => ({ a, b: (x.public_key_der_bytes || 0) + (x.signature_bytes || x.ciphertext_bytes || 0) })).filter((r) => r.b > 0);
+    const max = Math.max(1, ...rows.map((r) => r.b));
+    return rows.length ? rows.map((r) => ({ id: r.a, label: `${r.a}\n${r.b.toLocaleString("en-US")} B`, h: r.b / max, state: "ok" })) : null;
+  }
+  const b = P && P.bench;
+  if (!b || !b.instances || !b.instances.length) return null;
+  const big = b.instances[b.instances.length - 1];
+  const rows = SERIES.map((s) => ({ s, r: b.rows.find((r) => r.instance === big.id && seriesKey(r) === s.key) }));
+  const t = rows.filter((x) => x.r && x.r.status === "ok" && x.r.runtime_s > 0).map((x) => Math.log10(x.r.runtime_s));
+  const lo = Math.min(...t), hi = Math.max(...t);
+  return rows.map(({ s, r }) => (r && r.status === "ok" && r.runtime_s > 0
+    ? { id: s.key, label: `${SHORT[s.key] || s.key}\n${secs(r.runtime_s)}`, h: 0.08 + 0.92 * (hi > lo ? (Math.log10(r.runtime_s) - lo) / (hi - lo) : 1), state: "ok" }
+    : { id: s.key, label: `${SHORT[s.key] || s.key}\nnot run`, h: 0, state: "missing" }));
+}
 
 function cryptoTab(ctx, P) {
   const c = P.crypto;
@@ -150,6 +173,19 @@ function optimizerTab(ctx, P) {
 }
 
 export async function mount(ctx) {
+  await viewCss("pillars");
+  const labels3d = h("div", { class: "gr-labels", "aria-hidden": "true" }), note3d = h("p", { class: "mv-how" });
+  const stageEl = stage(ctx, { label: "Measured benchmark values as bars", fallback: h("span") });
+  stageEl.append(labels3d);
+  const show3d = (P, tab) => {
+    const items = benchItems(P, tab);
+    note3d.textContent = !items ? (tab === "crypto" ? "3D bars: key and signature sizes not yet run (python -m bench.crypto)." : "3D bars: optimizer timings not yet run (python -m bench).")
+      : tab === "crypto" ? "How to read this: one bar per primitive, height = measured public key plus signature (or ciphertext) bytes."
+      : `How to read this: one bar per solver on the largest instance (${P.bench.instances.at(-1).n_variables} variables), height = measured runtime on a log scale. Taller is slower; a wireframe solver was not run.`;
+    stageEl.hidden = !items;
+    if (!items) { ctx.world.mount("bench", null); return; }
+    mountScene(ctx, "bench", { available: true }, (env) => buildPillars(env, items, { labelsEl: labels3d, stageEl, reduced: ctx.world.reduced })).catch(() => {});
+  };
   const ro = !ctx.wsInfo || ctx.wsInfo.read_only, canRun = ctx.me.role !== "viewer" && !ro;
   const runBtn = h("button", { class: "btn", type: "button", disabled: !canRun }, icon("play"), "Run benchmark");
   runBtn.addEventListener("click", async () => {
@@ -166,7 +202,7 @@ export async function mount(ctx) {
     render: ({ bench: P }) => {
       const panel = h("div", { role: "tabpanel", id: "bn-panel" });
       const tabs = h("div", { class: "tabs", role: "tablist", "aria-label": "Benchmark" });
-      const draw = () => {
+      let draw = () => {
         tabs.replaceChildren(...[["crypto", "Cryptography"], ["optimizers", "Optimizers"]].map(([id, label]) => h("button", { class: "tab", type: "button", role: "tab", id: `tab-${id}`,
           "aria-selected": String(tab === id), "aria-controls": "bn-panel", tabindex: tab === id ? "0" : "-1", text: label,
           onclick: () => { tab = id; ctx.setQuery({ tab: id }); draw(); },
@@ -175,8 +211,10 @@ export async function mount(ctx) {
         panel.replaceChildren(tab === "crypto" ? cryptoTab(ctx, P) : P.bench ? optimizerTab(ctx, P)
           : emptyState({ title: `Optimizer benchmark: ${P.status_text}`, body: "Run the benchmark to compare the optimizers on this workspace's plan.", action: null }));
       };
+      const draw0 = draw;
+      draw = () => { draw0(); show3d(P, tab); };
       draw();
-      return h("div", {}, tabs, panel, nextStep(ctx, "bench", { route: "review", text: "Next: review the steps" }));
+      return h("div", {}, tabs, stageEl, note3d, panel, nextStep(ctx, "bench", { route: "review", text: "Next: review the steps" }));
     },
   });
   ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
