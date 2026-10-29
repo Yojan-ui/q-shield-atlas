@@ -165,3 +165,27 @@
 [QPIAI QSV] QAOA wave selection: 7 qubits/variables, p=1, device QpiAI-QSV-Local, shots 2048 (qpiai-quantum 0.3.0)
 [QPIAI QSV] Result: feasible share 0.9629, P(optimal) 0.1079 vs random 0.1294, 0.50 s
 ========================================
+========================================
+[QCLOUD] 2026-10-29T21:01:57Z Received status check from UI (GET /api/quantum/status)
+[QCLOUD] SDK qpiai-quantum 0.3.0: login ok, devices 6: QpiAI-QSV-Simulator (active), QpiAI-QDM-Simulator (active), QpiAI-QTN-Simulator (active), QpiAI-QSV-Lite (active), QpiAI-QDM-Lite (active), QpiAI-Indus-1 (maintenance)
+========================================
+========================================
+[QCLOUD] 2026-10-29T21:02:57Z Received status check from UI (GET /api/quantum/status)
+[QCLOUD] SDK qpiai-quantum 0.3.0: login ok, devices 6: QpiAI-QSV-Simulator (active), QpiAI-QDM-Simulator (active), QpiAI-QTN-Simulator (active), QpiAI-QSV-Lite (active), QpiAI-QDM-Lite (active), QpiAI-Indus-1 (maintenance)
+========================================
+========================================
+[QCLOUD] 2026-10-29T21:03:57Z Received status check from UI (GET /api/quantum/status)
+[QCLOUD] SDK qpiai-quantum 0.3.0: login ok, devices 6: QpiAI-QSV-Simulator (active), QpiAI-QDM-Simulator (active), QpiAI-QTN-Simulator (active), QpiAI-QSV-Lite (active), QpiAI-QDM-Lite (active), QpiAI-Indus-1 (maintenance)
+========================================
+========================================
+[QCLOUD] 2026-10-29T21:04:57Z Received status check from UI (GET /api/quantum/status)
+[QCLOUD] SDK qpiai-quantum 0.3.0: login ok, devices 6: QpiAI-QSV-Simulator (active), QpiAI-QDM-Simulator (active), QpiAI-QTN-Simulator (active), QpiAI-QSV-Lite (active), QpiAI-QDM-Lite (active), QpiAI-Indus-1 (maintenance)
+========================================
+========================================
+[QCLOUD] 2026-10-29T21:06:02Z Received status check from UI (GET /api/quantum/status)
+[QCLOUD] SDK qpiai-quantum 0.3.0: login ok, devices 6: QpiAI-QSV-Simulator (active), QpiAI-QDM-Simulator (active), QpiAI-QTN-Simulator (active), QpiAI-QSV-Lite (active), QpiAI-QDM-Lite (active), QpiAI-Indus-1 (maintenance)
+========================================
+========================================
+[QCLOUD] 2026-10-29T21:06:41Z Received status check from UI (GET /api/quantum/status)
+[QCLOUD] SDK qpiai-quantum 0.3.0: login ok, devices 6: QpiAI-QSV-Simulator (active), QpiAI-QDM-Simulator (active), QpiAI-QTN-Simulator (active), QpiAI-QSV-Lite (active), QpiAI-QDM-Lite (active), QpiAI-Indus-1 (maintenance)
+========================================
