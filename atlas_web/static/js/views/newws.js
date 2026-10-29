@@ -1,6 +1,4 @@
-// New workspace from a public git repository (operators): POST /api/workspaces (template "empty"), then
-// POST /api/workspaces/<id>/clone. The GitHub URL field is focused on arrival. Nothing runs until the operator
-// starts the pipeline (and confirms the suggested service manifests on Detect).
+// New workspace from a public repo (operators): create (template "empty"), then clone. Nothing runs yet.
 import { h } from "../dom.js";
 import { field } from "../components/form.js";
 import { honesty } from "./common.js";

@@ -1,7 +1,4 @@
-// Presenter mode: P (or the top-bar "Present" button) on any workspace tours the seven pipeline pages in display
-// order. Each page holds 8 s with one large caption built from that workspace's real results; ← → move manually,
-// Esc exits. While presenting, the sidebar and fine print are hidden and the 3D stage fills the screen.
-// Captions and styles load lazily so the first load stays small.
+// Presenter mode (P or "Present"): tours the 7 steps, 8 s each, one caption from real results; ← → step, Esc exits.
 import { FLOW } from "./flow.js";
 
 const HOLD_MS = 8000;

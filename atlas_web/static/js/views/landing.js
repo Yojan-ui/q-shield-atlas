@@ -67,7 +67,7 @@ export async function mount(ctx) {
     h("p", { class: "eyebrow" }, h("span", { class: "accent", text: "PQC-01" }), " · Q-Shield Atlas"),
     h("h1", { class: "ld-h1", text: "Find quantum-breakable crypto. Fix it in order. Prove it." }),
     h("p", { class: "ld-lede", text: "A future quantum computer can break RSA and ECC, so traffic recorded today can be read later; Atlas finds that crypto, schedules the move and proves every step." }),
-    h("div", { class: "sg-row ld-cta" }, h("a", { class: "btn primary", href: go("/w/demo/pipeline?guided=1"), text: "See it run" }), h("a", { class: "btn", href: go("/workspaces/new"), text: "Scan your own repo" })));
+    h("div", { class: "sg-row ld-cta" }, h("a", { class: "btn primary", href: go("/w/demo/pipeline?guided=1"), text: "See it run" }), h("a", { class: "btn", href: go("/settings/new-workspace"), text: "Scan your own repo" })));
   // the Proof Chain forming: one block per real demo ledger entry, appended in order, green once verified
   const chain = h("ol", { class: "ld-chain", "aria-label": "Proof Chain entries" });
   ctx.store.get("demo", "ledger", { signal: ctx.signal }).then((L) => {

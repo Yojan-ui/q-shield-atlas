@@ -153,3 +153,24 @@ export async function mount(ctx) {
   ctx.root.append(h("div", { class: "grid" }, headEl, h("div", { class: "span-12" }, stageEl), h("div", { class: "span-12" }, body), h("div", { class: "span-12" }, honesty())));
 }
 
+// Manual-review notes (docs/detect_real_repos.md) that mention this service, plus any live probe of it.
+function reviewAndProbes(scene, a, id) {
+  const dirs = [...new Set((a.evidence || []).map((f) => f.file.split("/").slice(0, -1).join("/")))];
+  const hits = ((scene && scene.review_notes) || []).filter((n) => n.text.includes(id) || dirs.some((d) => d && n.text.includes(d.split("/").pop())));
+  const general = ((scene && scene.review_notes) || []).filter((n) => !n.paths.length && n.kind !== "fixed during review");
+  const probes = ((scene && scene.probes) || []).filter((p) => p.service === id);
+  const out = [];
+  if (hits.length || general.length) {
+    out.push(section("Manual review notes", h("div", {},
+      h("ul", { class: "checks" }, [...hits, ...general].map((n) => h("li", {}, chip(n.kind === "known gap" ? "NOT_RUN" : "recorded", n.kind), h("span", { text: n.text })))),
+      h("p", { class: "fine", text: `From ${(hits[0] || general[0]).source}: a human review of every finding, not computed here.` }))));
+  }
+  if (probes.length) {
+    out.push(section("Live probe", table({ caption: "Live TLS probe of this service", rows: probes, columns: [
+      { label: "endpoint", render: (p) => mono(p.endpoint) },
+      { label: "key exchange", render: (p) => h("span", {}, mono(p.group || "no handshake"), p.classical ? h("span", { class: "sub", text: HNDL }) : null) },
+      { label: "certificate", render: (p) => mono(p.cert || "not yet run") },
+      { label: "drift", render: (p) => (p.drift.length ? h("span", {}, p.drift.map((d) => chip("NOT_RUN", d))) : chip("PASS", "none")) }] })));
+  }
+  return out;
+}
