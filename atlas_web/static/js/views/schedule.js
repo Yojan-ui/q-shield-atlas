@@ -95,11 +95,11 @@ function curves(r, scenario) {
       "data-prov": provAttr({ run_id: (s.produced.run_ids || []).join(", ") || "n/a", solver: s.produced.solver || "n/a", job_id: "none (local solve, no platform job ID)", ts: r.generated_at, note: `${scenario} · week ${p.week}: ${p.exposure_years.toFixed(2)} exposure-years` }, s.label) })));
   });
   const ends = S.map((s) => Y(s.points.at(-1).exposure_years));
-  spreadLabels(ends, S.some((s) => s.twins.length) ? 46 : 30, T + 10, H - B - 12).forEach((y, k) => {
+  spreadLabels(ends, S.some((s) => s.twins.length) ? 52 : 30, T + 10, H - B - 16).forEach((y, k) => {
     const s = S[k];
     svg.append(h("line", { ns: "svg", x1: X(end) + 4, y1: ends[k], x2: X(end) + 16, y2: y - 5, class: "bn-grid" }),
       s.twins.length ? h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y: y - 10 }, h("tspan", { ns: "svg", text: s.label.replace(" (identical plan)", "") }),
-        h("tspan", { ns: "svg", x: X(end) + 20, dy: 20, text: "(identical plan)" })) : h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y }, s.label));
+        h("tspan", { ns: "svg", x: X(end) + 20, dy: 24, text: "(identical plan)" })) : h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y }, s.label));
   });
   const makespan = r.exposure && r.exposure.makespan_weeks;
   return h("div", {}, svg, h("p", { class: "mv-note", text: `All systems migrated by week ${makespan ?? "–"} (optimised plan). Exposure still ahead reaches 0 by week ${zero}; the axis stops at week ${end}, after which no line changes.` }));
@@ -152,7 +152,7 @@ function objectiveChart(r) {
       svg.append(h("rect", { ns: "svg", class: `pl-obar ${b.cls}`, x, y: Y(b.value), width: bw, height: Y(0) - Y(b.value), tabindex: "0",
         "data-prov": provAttr({ run_id: ((((b.cls === "opt" ? r.exposure : r.baselines[b.cls]) || {}).produced_by || {}).run_ids || []).join(", ") || "n/a", solver: (((b.cls === "opt" ? r.exposure : r.baselines[b.cls]) || {}).produced_by || {}).solver || "n/a", job_id: "none (local solve)", ts: r.generated_at, note: `${g.scenario}: weighted exposure ${b.value.toFixed(3)}` }, `${b.label} · ${g.scenario}`) }),
         h("text", { ns: "svg", class: "pl-ov", x: x + bw / 2, y: Y(b.value) - 10, "text-anchor": "middle" }, b.value.toFixed(maxV < 10 ? 3 : 1)),
-        h("text", { ns: "svg", class: `pl-os ${b.cls}`, x: x + bw / 2, y: Y(b.value) + 24, "text-anchor": "middle" }, b.cls === "opt" ? "optimal" : Math.abs(b.saved) < 0.005 ? "same" : `−${b.saved.toFixed(2)}%`),
+        h("text", { ns: "svg", class: `pl-os ${b.cls}${Y(0) - Y(b.value) > 44 ? "" : " out"}`, x: x + bw / 2, y: Y(0) - Y(b.value) > 44 ? Y(b.value) + 24 : Y(b.value) - 32, "text-anchor": "middle" }, b.cls === "opt" ? "optimal" : Math.abs(b.saved) < 0.005 ? "same" : `−${b.saved.toFixed(2)}%`),
         h("text", { ns: "svg", x: x + bw / 2, y: H - B + 22, "text-anchor": "middle" }, b.label.split(" ")[0]));
     });
     svg.append(h("text", { ns: "svg", class: "pl-lab", x: L + gi * gw + gw / 2, y: H - 8, "text-anchor": "middle" }, `Q-Day ${g.year}`));

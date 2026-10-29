@@ -2,7 +2,7 @@
 /* Plan curves, Proof hash chain */
 .pl-hero{display:grid;gap:var(--s-3);margin-bottom:var(--s-6)}
 
-.pl-chart{width:100%;height:auto;display:block}
+.pl-chart{width:100%;height:auto;display:block;overflow:visible}
 .pl-chart text{font-size:16px;fill:var(--text-2);font-family:var(--font-mono)}
 .pl-line{fill:none;stroke:var(--text-3);stroke-width:2}
 .pl-line.opt{stroke:var(--text);stroke-width:4}
@@ -26,3 +26,4 @@
 .pl-h3{margin:var(--s-4) 0 0;font-size:var(--fs-20)}
 .pl-obar{fill:var(--text-3)}.pl-obar.opt{fill:var(--text)}
 .pl-chart .pl-ov{font-size:16px;fill:var(--text)}.pl-chart .pl-os{font-size:16px;fill:#000;font-weight:600}
+.pl-chart .pl-os.out{fill:var(--text-2)}

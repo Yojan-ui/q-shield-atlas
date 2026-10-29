@@ -8,3 +8,6 @@
 .hs-k::before { content: ""; display: inline-block; vertical-align: middle; width: 12px; height: 1px; margin-right: var(--s-2); background: var(--text); }
 .hs-k.exp::before { background: var(--exposure); }
 .hs-k.acc::before { background: var(--accent); }
+@media (max-width: 600px) { .hs-labels { display: none; } }  /* the tables below carry the same facts */
+.hs-labels:not(.side) .sub { display: none; }  /* stacked layout: names only, details in the tables */
+.hs-labels .sub + .sub { display: none; }  /* third line (auth / downgrade) is in the tables; keeps rows apart at every width */

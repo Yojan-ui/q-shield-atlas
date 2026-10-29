@@ -48,12 +48,12 @@ const svg = (tag, attrs = {}, ...kids) => h(tag, { ns: "svg", ...attrs }, ...kid
 function endBox(x, y, hgt, lines, prov) {
   return svg("g", { class: "ch-box", tabindex: prov ? "0" : null, "data-prov": prov },
     svg("rect", { x, y, width: BOXW, height: hgt, rx: 2 }),
-    lines.map(([cls, text], i) => svg("text", { x: x + 14, y: y + 26 + i * 23, class: cls }, text)));
+    lines.map(([cls, text], i) => svg("text", { x: x + 14, y: y + 26 + i * 26, class: cls }, text)));
 }
 
 // Build the SVG scene. lanes: [{id, title, caption, tone, session, sender, receiver, prov, end}] -> {el, set(t)}
 export function buildChannel(lanes, { runId, title = null }) {
-  const LANE_H = 214, TOP = 44, H = TOP + lanes.length * LANE_H;
+  const LANE_H = 228, TOP = 44, H = TOP + lanes.length * LANE_H;
   const root = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "ch-svg", role: "img",
     "aria-label": `${title || `Replay of recorded handshake, run ${runId}`}. ${lanes.map((l) => `${l.title}: ${l.session ? packetsOf(l.session).map((m) => m.type).join(", ") : "not run"}`).join(". ")}` });
   root.append(svg("text", { x: 0, y: 22, class: "ch-replay" }, title || `Replay of recorded handshake, run ${runId}`),
@@ -64,8 +64,8 @@ export function buildChannel(lanes, { runId, title = null }) {
     const g = svg("g", { class: `ch-lane ${l.tone}` });
     g.append(svg("text", { x: 0, y: y0 + 30, class: "ch-title" }, l.title),
       svg("text", { x: W, y: y0 + 30, class: `ch-cap ${l.tone}`, "text-anchor": "end" }, l.caption),
-      endBox(0, y0 + 44, 150, l.sender, null),
-      endBox(RX + 20, y0 + 44, 150, l.receiver, l.prov),
+      endBox(0, y0 + 44, 166, l.sender, null),
+      endBox(RX + 20, y0 + 44, 166, l.receiver, l.prov),
       svg("line", { x1: SX, x2: RX, y1: cy, y2: cy, class: "ch-wire" }),
       svg("text", { x: SX, y: cy + 52, class: "ch-dir" }, "→ sender to receiver"),
       svg("text", { x: RX, y: cy + 52, class: "ch-dir", "text-anchor": "end" }, "receiver to sender ←"));

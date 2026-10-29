@@ -2,6 +2,8 @@
 // (ledger signature status). Height and colour come only from the caller's real fields; an item without data is a
 // low wireframe column ("not yet run"). Colour means status only: green passed / verified, red failed, white running
 // (pulses), grey idle. Labels are HTML, projected each frame, no per-frame allocation. Same world, same camera.
+import { placeLabels } from "./labels.js";
+
 export const STATE_COLOR = { ok: 0x4ade80, fail: 0xff4d5e, pqc: 0x5ed3f3, running: 0xffffff, idle: 0x3a3a3a, missing: 0x9a9a9a };
 export const pillarHeight = (h) => 0.35 + 5 * Math.max(0, Math.min(1, h ?? 0));
 export const GAP = 2.4;
@@ -24,8 +26,8 @@ export function buildPillars({ THREE, world, group }, items, { labelsEl, stageEl
   });
   group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(pillarX(0, n) - 1, 0, 0.8), new THREE.Vector3(pillarX(n - 1, n) + 1, 0, 0.8)]),
     new THREE.LineBasicMaterial({ color: 0x3a3a3a })));
-  const labels = items.map((it) => { const e = document.createElement("span"); e.className = "pl3-label"; e.textContent = it.label; labelsEl.append(e); return e; });
-  const v = new THREE.Vector3();
+  const labels = items.map((it) => { const e = document.createElement("span"); e.className = "pl3-label"; e.hidden = true; e.textContent = it.label; labelsEl.append(e); return e; });  // shown once placed
+  const v = new THREE.Vector3(), L = items.map((it, i) => ({ e: labels[i], x: 0, y: 0, below: i % 2 === 1, off: false })), placed = [];
   let clock = 0;
   const tallest = Math.max(...items.map((it) => pillarHeight(it.h)));
   world.focus([0, tallest / 2, 0], Math.max(8, n * GAP * 0.55 + 4, tallest * 1.8 + 4));
@@ -46,14 +48,13 @@ export function buildPillars({ THREE, world, group }, items, { labelsEl, stageEl
       const b = stageEl.getBoundingClientRect();
       group.updateMatrixWorld();
       for (let i = 0; i < n; i++) {
-        if (reveal && !reduced) { const on = clock > i * 0.15; meshes[i].visible = on; labels[i].style.visibility = on ? "" : "hidden"; }  // pop in, one per item
+        if (reveal && !reduced) meshes[i].visible = clock > i * 0.15;  // pop in, one per item
         if (items[i].state === "running") meshes[i].material.emissive.setScalar(pulse);
-        const below = i % 2 === 1;  // alternate above / below so neighbouring labels never collide
-        v.set(meshes[i].position.x, below ? -0.35 : pillarHeight(items[i].h) + 0.35, 0).applyMatrix4(group.matrixWorld).project(world.camera);
-        const e = labels[i];
-        e.hidden = v.z > 1;
-        e.style.transform = `translate(${((v.x + 1) / 2) * b.width}px, ${((1 - v.y) / 2) * b.height}px) translate(-50%, ${below ? "0" : "-100%"})`;
+        const lb = L[i];  // alternate above / below; placeLabels hides any that would still collide
+        v.set(meshes[i].position.x, lb.below ? -0.35 : pillarHeight(items[i].h) + 0.35, 0).applyMatrix4(group.matrixWorld).project(world.camera);
+        lb.off = v.z > 1 || (reveal && !reduced && clock <= i * 0.15); lb.x = ((v.x + 1) / 2) * b.width; lb.y = ((1 - v.y) / 2) * b.height;
       }
+      placeLabels(L, b.width, b.height, placed);
     },
     dispose() { labelsEl.replaceChildren(); stageEl.style.cursor = ""; },
   };

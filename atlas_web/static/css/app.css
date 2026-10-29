@@ -93,7 +93,7 @@ h3 { margin: 0; font-size: var(--fs-16); font-weight: var(--weight-semibold); }
 .stat { padding: var(--s-4) var(--s-4) var(--s-4) 0; min-height: 112px; display: flex; flex-direction: column; justify-content: space-between; gap: var(--s-2); }
 .stat + .stat { padding-left: var(--s-4); border-left: var(--rule) solid var(--hairline); }
 .stat .label { font-size: var(--fs-16); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--text-2); display: flex; align-items: center; gap: var(--s-2); }
-.stat .value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: clamp(22px, 11cqi, var(--fs-40)); line-height: 1; letter-spacing: var(--track-tight); min-height: 40px; overflow-wrap: anywhere; }
+.stat .value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: clamp(22px, 11cqi, var(--fs-40)); line-height: 1.2; letter-spacing: var(--track-tight); min-height: 40px; overflow-wrap: anywhere; }
 .stat, .stats > *, .pg-stats > *, .grid > * { min-width: 0; } .stat, .pg-stat { container-type: inline-size; }
 .stat .value.missing { font-family: var(--font-sans); font-size: var(--fs-16); color: var(--text-2); letter-spacing: 0; display: flex; align-items: flex-end; }
 .stat .unit { font-size: var(--fs-16); color: var(--text-2); }

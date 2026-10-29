@@ -3,10 +3,11 @@
 // as a dark inner block; it moves on the same replay clock (t in message units) as the SVG. Red classical, green
 // hybrid, white the downgrade attempt. No packet exists unless the transcript was recorded (and hash-checked).
 import { flight, packetsOf } from "../components/channel.js";
+import { placeLabels } from "./labels.js";
 
 export const UNIT = 0.0036;  // scene units per recorded byte
 export const packetLength = (bytes) => Math.max(0.12, (bytes || 0) * UNIT);
-const SX = -6.5, RX = 6.5, LANE = 2.6, TONE = { exp: 0xff4d5e, ok: 0x4ade80, pqc: 0x5ed3f3, neutral: 0xffffff };
+const SX = -6.5, RX = 6.5, LANE = 3.4, TONE = { exp: 0xff4d5e, ok: 0x4ade80, pqc: 0x5ed3f3, neutral: 0xffffff };
 
 export function buildLanes3d({ THREE, world, group }, lanes, { labelsEl, stageEl, autoplay = false, reduced = false }) {
   group.rotation.y = Math.asin(0.6);  // square to the world.focus view direction
@@ -31,16 +32,16 @@ export function buildLanes3d({ THREE, world, group }, lanes, { labelsEl, stageEl
       g.visible = false; g.position.set(0, y + 0.3, z); group.add(g);
       return { m, g, len };
     });
-    const title = document.createElement("span"); title.className = "pl3-label"; title.textContent = l.session ? l.title : `${l.title}: not run`; labelsEl.append(title);
-    const cur = document.createElement("span"); cur.className = "pl3-label"; labelsEl.append(cur);
+    const title = document.createElement("span"); title.className = "pl3-label"; title.hidden = true; title.textContent = l.session ? l.title : `${l.title}: not run`; labelsEl.append(title);
+    const cur = document.createElement("span"); cur.className = "pl3-label"; cur.hidden = true; labelsEl.append(cur);  // shown once placed
     return { y, z, pk, title, cur, shown: -2 };
   });
   world.focus([0, ((lanes.length - 1) * LANE) / 2, 0], 13 + lanes.length * 1.5);
   const v = new THREE.Vector3();
-  const place = (el, x, y, z, b) => {
+  const LB = [...L.map((l) => ({ e: l.title, x: 0, y: 0 })), ...L.map((l) => ({ e: l.cur, x: 0, y: 0, below: true }))], placed = [];  // titles first
+  const place = (k, x, y, z, b) => {
     v.set(x, y, z).applyMatrix4(group.matrixWorld).project(world.camera);
-    el.hidden = v.z > 1;
-    el.style.transform = `translate(${((v.x + 1) / 2) * b.width}px, ${((1 - v.y) / 2) * b.height}px) translate(-50%, -100%)`;
+    const it = LB[k]; it.off = v.z > 1 || !it.e.textContent; it.x = ((v.x + 1) / 2) * b.width; it.y = ((1 - v.y) / 2) * b.height;
   };
   let t = 0;
   return {
@@ -58,9 +59,11 @@ export function buildLanes3d({ THREE, world, group }, lanes, { labelsEl, stageEl
         });
         const k0 = Math.floor(t);
         if (k0 !== l.shown) { l.shown = k0; const p = l.pk[k0]; l.cur.textContent = p ? `${p.m.dir === "c2s" ? "→" : "←"} ${p.m.type} · ${p.m.bytes.toLocaleString("en-US")} B` : ""; }
-        place(l.title, SX - 0.9, l.y + 1.45, l.z, b);
-        place(l.cur, 0, l.y + 1.05, l.z, b);
+        const k = L.indexOf(l);
+        place(k, SX - 0.9, l.y + 1.45, l.z, b);
+        place(L.length + k, 0, l.y - 0.55, l.z, b);  // below the wire, lower priority than the titles
       }
+      placeLabels(LB, b.width, b.height, placed);
     },
     dispose() { labelsEl.replaceChildren(); },
   };

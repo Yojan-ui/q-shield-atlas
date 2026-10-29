@@ -48,7 +48,7 @@ export async function mount(ctx) {
     resultsP.then((res) => {
       const byId = Object.fromEntries((scene.nodes || []).map((n) => [n.id, n]));
       const ranked = [...((res && res.results && res.results.assets) || [])].filter((x) => byId[x.id]).sort((x, y) => (y.risk_weight || 0) - (x.risk_weight || 0)).slice(0, 3);
-      for (const x of ranked) { const e = h("span", { class: "pl3-label", text: x.name }); labels3d.append(e); top.push({ e, pos: byId[x.id].pos }); }
+      for (const x of ranked) { const e = h("span", { class: "pl3-label", text: x.name, hidden: true }); labels3d.append(e); top.push({ e, pos: byId[x.id].pos }); }
     });
     const base = lattice.hooks(ctx, stageEl);
     return { ...base, update(dt) {

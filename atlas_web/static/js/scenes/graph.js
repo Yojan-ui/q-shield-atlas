@@ -1,8 +1,9 @@
+import { placeLabels } from "./labels.js";
 // Detect graph: every inventoried system is a node, every declared dependency (depends_on) an edge.
 // Colour = what the scan found (red RSA/ECC/DH/DSA, amber needs a live probe, cyan PQC/hybrid only, grey nothing
 // vulnerable); size = the risk weight from the plan (an assumption, config/assumptions.json); a white ring marks
 // static-vs-live drift from the recorded probe. Layout is a deterministic force layout (seeded, no randomness).
-// One instanced mesh per mark type, no per-frame allocation; labels only for hovered / selected / top risk.
+// One instanced mesh per mark type; labels only for hovered / selected / top risk, placed by scenes/labels.js.
 export const VULN = new Set(["RSA", "ECC", "DH", "DSA"]);
 export const CLASSES = {
   exposed: { label: "Red: RSA / ECC / DH found (quantum-exposed)", color: 0xff4d5e, css: "exposed" },
@@ -156,7 +157,10 @@ export function buildGraph({ THREE, world, group }, G, L, { reduced, labelsEl, s
   const top = topByRisk(nodes, Math.min(6, n));
   const pool = Array.from({ length: top.length + 2 }, () => { const e = document.createElement("span"); e.className = "gr-label"; e.hidden = true; labelsEl.append(e); return e; });
   let hovered = -1, selected = -1, spin = !reduced;
-  const v = new THREE.Vector3(), show = [...top, -1, -1], LX = new Float32Array(top.length + 2), LY = new Float32Array(top.length + 2);
+  const v = new THREE.Vector3(), show = [...top, -1, -1], placed = [];
+  const GL = pool.map((e) => ({ e, x: 0, y: 0, off: true, pin: false }));
+  const ORDER = [GL[top.length], GL[top.length + 1], ...GL.slice(0, top.length)];  // hovered / selected placed first
+  const short = (name) => name.replace(/\s*\([^)]*\)\s*$/, "");  // "host (bank, apex)" -> "host"; full name in the side panel
   const select = (i) => {
     selected = i;
     let k = 0;
@@ -180,19 +184,15 @@ export function buildGraph({ THREE, world, group }, G, L, { reduced, labelsEl, s
       graph.updateMatrixWorld();
       pool.forEach((e, k) => {
         const i = show[k];
-        if (i === undefined || i < 0 || (k >= top.length && top.includes(i))) { e.hidden = true; return; }
+        if (i === undefined || i < 0 || (k >= top.length && top.includes(i))) { GL[k].off = true; return; }
         v.set(P[i * 3], P[i * 3 + 1] + nodeSize(nodes[i].risk, maxRisk) + 0.25, P[i * 3 + 2]).applyMatrix4(graph.matrixWorld).project(world.camera);
-        if (v.z > 1) { e.hidden = true; return; }
-        const x = ((v.x + 1) / 2) * b.width, y = ((1 - v.y) / 2) * b.height, pin = i === selected || i === hovered;
-        LX[k] = x; LY[k] = y;
-        let clash = false;  // hide a top-risk label that would overlap one already placed (hovered / selected always show)
-        if (!pin) for (let q = 0; q < k; q++) if (!pool[q].hidden && Math.abs(LX[q] - x) < 190 && Math.abs(LY[q] - y) < 22) { clash = true; break; }
-        if (clash) { e.hidden = true; return; }
-        if (e.textContent !== nodes[i].name) e.textContent = nodes[i].name;
-        e.hidden = false;
-        e.classList.toggle("on", i === selected || i === hovered);
-        e.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+        const it = GL[k];
+        if (v.z > 1) { it.off = true; return; }
+        if (e.textContent !== short(nodes[i].name)) { e.textContent = short(nodes[i].name); e.title = nodes[i].name; }
+        it.off = false; it.pin = i === selected || i === hovered; it.x = ((v.x + 1) / 2) * b.width; it.y = ((1 - v.y) / 2) * b.height;
+        e.classList.toggle("on", it.pin);
       });
+      placeLabels(ORDER, b.width, b.height, placed);
     },
     dispose() { labelsEl.replaceChildren(); stageEl.style.cursor = ""; },
   };
