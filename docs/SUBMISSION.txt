@@ -1,280 +1,139 @@
-Q-SHIELD ATLAS - SUBMISSION
+PART A - OUTPUT FROM QPIAI
+
+1. Q-Shield Atlas - Output from QpiAI
 Team: Team Q-Shield Atlas
-Event: NITTE hackathon, Post-Quantum Cryptography track, problem statement PQC-01
+Event: NITTE hackathon, Post-Quantum Cryptography track, PQC-01
 Repo: https://github.com/Yojan-ui/q-shield-atlas
-Date: 2026-10-29T21:17:36Z
+Date: 2026-10-29T21:19:32Z
+SDK versions (installed, env pqc): qpiai-opt 0.0.9, qpiai-quantum 0.3.0
+Every value below was returned by a QpiAI tool and recorded with a run_id; nothing is estimated.
 
 ========================================================================
-1. SUMMARY
+2. QPIAI QCLOUD
 ========================================================================
 
-PROBLEM
-  Harvest now, decrypt later: traffic protected by RSA or elliptic-curve key exchange can be recorded today and
-  read once a large quantum computer exists. In our scan of 60 public Indian bank endpoints (one TLS handshake each,
-  2026-10-29), 46 negotiated classical key exchange, 12 hybrid post-quantum, 2 were unreachable.
+Login / device list (latest of 9 recorded status checks, from logs/qpiai_usage.log):
+  [QCLOUD] 2026-10-29T21:12:44Z Received status check from UI (GET /api/quantum/status)
+  [QCLOUD] SDK qpiai-quantum 0.3.0: login ok, devices 6: QpiAI-QSV-Simulator (active), QpiAI-QDM-Simulator (active), QpiAI-QTN-Simulator (active), QpiAI-QSV-Lite (active), QpiAI-QDM-Lite (active), QpiAI-Indus-1 (maintenance)
 
-WHAT ATLAS DOES (7 steps)
-  1 Detect        Find RSA / ECC / DH in code, configs and certificates (file:line evidence), plus live TLS probes
-  2 Prove         Sign the Detect evidence into an ML-DSA-65 hash-chained Proof Chain before anything else runs
-  3 Plan          Schedule the migration in weekly waves with a QpiAI Opt MILP, compared with FCFS and greedy
-  4 Test          Gate each wave on real TLS 1.3 lab services: hybrid X25519MLKEM768, downgrade refused, rollback
-  5 Cross-check   Check one week's cutover choice with QAOA on QpiAI QSV-Local against the exact optimum
-  6 Verify        Sign every result and re-verify the whole chain
-  7 Review        A person approves or rejects each result; the decision is signed too
-
-========================================================================
-2. ARCHITECTURE
-========================================================================
-
-  Browser
-     |  HTTP JSON API + Server-Sent Events (127.0.0.1 only)
-     v
-  atlas_web server (Python 3.12 stdlib HTTP, SQLite auth, CSRF)
-     |
-     v
-  Pipeline runner (one subprocess per step, live log)
-     |
-     v
-  Pipeline modules  --->  workspace files (out/, runs/)  +  signed ledger (ML-DSA-65, SHA-256 chain, Merkle root)
-
-  7-step pipeline (contracts/stages.json):
-  1 Detect (detect/) -> 2 Proof: findings signed (ledger/) -> 3 Plan (schedule/, QpiAI Opt MILP)
-    -> 4 Handshake gates (capture/ + gates/) -> 5 Wave selection (qaoa/, QAOA) -> 6 Proof: post-quantum verified
-    (ledger/ ingest + verify, contracts/ assemble) -> 7 Review (atlas_web review, signed decision)
+Every job-submit response recorded (runs/platform_jobs.log):
+  2026-10-28T13:48:22Z  schedule.milp.expected.expected  run 1a10396e66574fe5bd4a1b9965f763bf:
+    APIError: no active storage quota found for organization
+  2026-10-28T13:48:23Z  schedule.milp.expected.tiebreak  run 029482259c394779b6fd70d06db601d4:
+    APIError: no active storage quota found for organization
+  2026-10-28T15:28:55Z  qaoa.qcloud.p1  run e3baac4cf6d24a59b6949db08b0cd78d:
+    JobManagerError: Error during QASM job submission: Experiment 'qshield-qaoa-crosscheck' not found. Please create the experiment first.
+  2026-10-28T15:29:50Z  qaoa.qcloud.p1  run a7985b93f3a5490aaa3636c969dcc1c3:
+    JobManagerError: Error during QASM job submission: Bad Request (400) when submitting job. Server response: {'error': 'Failed to create job: an active subscription is required to run jobs'}
+  Result: no QCloud job was created, so no QCloud job ID exists. (The two schedule.milp entries are QpiAI Opt platform submits.)
 
 ========================================================================
-3. BACKEND
+3. QPIAI OPT (MILP SCHEDULING) OUTPUT
 ========================================================================
 
-  atlas_web server  | atlas_web/        | Python 3.12 stdlib HTTP, SSE, SQLite, scrypt, CSRF | UI + JSON API, workspaces, roles
-  Runner            | atlas_web/runner.py | subprocesses with timeouts                       | runs pipeline CLIs per workspace, live log
-  Detect            | detect/           | static scanner + OpenSSL s_client probe            | RSA/ECC/DH inventory with file:line evidence, drift
-  Schedule          | schedule/, solvers/ | QpiAI Opt MILP (local), FCFS, greedy             | weekly wave plan minimising weighted exposure
-  Capture           | capture/          | OpenSSL 3.6.5 s_server / s_client -brief -msg     | real TLS 1.3 lab services + handshake evidence
-  Gates             | gates/            | group allowlist, compatibility matrix              | PQ handshake, downgrade, compatibility, rollback per wave
-  Ledger            | ledger/           | SHA-256 hash chain, RFC 6962 Merkle, ML-DSA-65 (OpenSSL CLI) | signs every run; detects any edit
-  QAOA              | qaoa/             | numpy statevector, QpiAI QSV-Local (qpiai-quantum 0.3.0) | link cutover selection vs exact optimum
-  Benchmark         | bench/            | same solvers, 6-16 variables                       | classical vs quantum vs hybrid
-  Contracts         | contracts/        | JSON Schema                                        | validates outputs, assembles results.json, stage list
+REAL-BANKS
+  schedule.milp.expected.expected: 58 systems, 26 weeks horizon, capacity 10 engineer-days/week, 0 dependencies
+    solver qpiai-opt local (qpiai-opt 0.0.9, mode local)  status optimal (optimal, global_optimum)
+    objective 37.753846153846155   solve time 18.3 ms   run_id e517016f311a48ac82447d1664a120c1   ts 2026-10-29T20:58:53Z
+    job_id null: QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes
+  schedule.milp.expected.tiebreak: 58 systems, 26 weeks horizon, capacity 10 engineer-days/week, 0 dependencies
+    solver qpiai-opt local (qpiai-opt 0.0.9, mode local)  status optimal (optimal, global_optimum)
+    objective 11.480769230769232   solve time 17.4 ms   run_id dc2f11ca49d345949bc09008e8d21f06   ts 2026-10-29T20:58:53Z
+    job_id null: QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes
+  wave plan (20 weeks):
+    week 1: amcblanand-bank-in, netbanking-apgb-bank-in, vdns-bank-in
+    week 2: ccb-bank-in, navsarjanind-bank-in, rccbltd-bank-in
+    week 3: jaloreccb-bank-in, www-parshwanath-bank-in, veershaiv-bank-in
+    week 4: www-sdc-bank-in, slice-bank-in, tgccb-bank-in
+    week 5: bgb-bank-in, huc-bank-in, kamalabank-bank-in
+    week 6: www-gandhicub-bank-in, punjabandsind-bank-in, www-tnsbl-bank-in
+    week 7: apani-bank-in, www-pandharpur-bank-in, vidyasagarccb-bank-in
+    week 8: www-modelbank-bank-in, www-ssns-bank-in, www-vidyasagarccb-bank-in
+    week 9: www-nilamburcub-bank-in, punemerchants-bank-in, www-slice-bank-in
+    week 10: equitas-bank-in, www-mahilabankjhabua-bank-in, www-sbmbl-bank-in
+    week 11: www-dcbmainpuri-bank-in, qnb-bank-in, upgb-bank-in
+    week 12: www-bgb-bank-in, gandhicub-bank-in, tirururban-bank-in
+    week 13: dharmaj-bank-in, www-smsgdg-bank-in, tnsbl-bank-in
+    week 14: www-gdccbank-bank-in, harco-bank-in, puneurban-bank-in
+    week 15: pscbl-bank-in, tcubl-bank-in, www-tcubltd-bank-in
+    week 16: www-laxmi-bank-in, www-tcubl-bank-in, www-tgccb-bank-in
+    week 17: agoec-bank-in, mdcc-bank-in, www-qnb-bank-in
+    week 18: www-ccb-bank-in, mahilabankjhabua-bank-in, www-payyoliurbanbank-bank-in
+    week 19: www-erecb-bank-in, harijnagrik-bank-in, nsbvidisha-bank-in
+    week 20: khamgaonurban-bank-in
+  weighted exposure (expected / worst case): MILP 37.7538 / 56.1538; FCFS 37.9077 / 56.3077; greedy 37.7538 / 56.1538
+  makespan: MILP 20, FCFS 20, greedy 20 weeks
+  exposure-years avoided vs FCFS: Z2030 0.0192; Z2032 0.0192; Z2035 0.0192
+  exposure-years avoided vs greedy: Z2030 0.0000; Z2032 0.0000; Z2035 0.0000
 
-========================================================================
-4. QPIAI USAGE
-========================================================================
+ONLINE-BOUTIQUE
+  schedule.milp.expected.expected: 3 systems, 26 weeks horizon, capacity 10 engineer-days/week, 0 dependencies
+    solver qpiai-opt local (qpiai-opt 0.0.9, mode local)  status optimal (optimal, global_optimum)
+    objective 0.06923076923076923   solve time 7.8 ms   run_id d8be0b6d04684b388de4bbf17f0f2a71   ts 2026-10-29T20:59:23Z
+    job_id null: QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes
+  schedule.milp.expected.tiebreak: 3 systems, 26 weeks horizon, capacity 10 engineer-days/week, 0 dependencies
+    solver qpiai-opt local (qpiai-opt 0.0.9, mode local)  status optimal (optimal, global_optimum)
+    objective 0.23076923076923078   solve time 1.7 ms   run_id eb040d4b1d6b4caabc6b3699887c4d81   ts 2026-10-29T20:59:23Z
+    job_id null: QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes
+  wave plan (2 weeks):
+    week 1: emailservice, recommendationservice
+    week 2: shoppingassistantservice
+  weighted exposure (expected / worst case): MILP 0.0692 / 0.2308; FCFS 0.0692 / 0.2308; greedy 0.0692 / 0.2308
+  makespan: MILP 2, FCFS 2, greedy 2 weeks
+  exposure-years avoided vs FCFS: Z2030 0.0000; Z2032 0.0000; Z2035 0.0000
+  exposure-years avoided vs greedy: Z2030 0.0000; Z2032 0.0000; Z2035 0.0000
 
-Q-SHIELD ATLAS - QpiAI OPT, QSV-LOCAL AND QCLOUD
-Values copied from logged runs: out/results.json, runs/<run_id>/manifest.json, runs/platform_jobs.log,
-atlas_web/data/workspaces/*/runs/*/manifest.json and the web app's run records (atlas_web/data/atlas.db).
-Full detail: docs/QUANTUM.md
-
-QPIAI OPT (scheduling MILP, local solve)
-  package         qpiai-opt 0.0.9, mode local
-  stage           schedule.milp.expected.expected
-  status          optimal (guarantee: global_optimum)
-  objective       565.3230769230769
-  solve time      0.1215455 s
-  run_id          641f5d49ae3e4a19b4e2500a0f1047e9
-  timestamp       2026-10-29T01:52:01Z
-  inputs SHA-256  7eef3f5623c48f3216ef8898601aa03582faa949771c907cb00738eac70aae48
-  output SHA-256  abef806293d13c0c3e50c265d901b132bff0e86e4b668c7efcbca7c060d59e77
-  job_id          null
-  reason          QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable
-                  via run_id and input/output SHA-256 hashes
-
-QPIAI QSV-LOCAL (QAOA wave selection, qpiai-quantum 0.3.0 in-process simulator)
-  run_id          f8bf1b797021460d96be5efbb1a84acb
-  timestamp       2026-10-29T01:52:20Z
-  problem         week 1: 10 systems + 4 slack bits = 14 QUBO variables, 2048 shots per p
-  exact optimum   -0.3461538461538609 (migrate backup and statements; brute force over 2^10 subsets)
-  p   feasible share   P(optimal set)
-  1   0.134765625      0.013671875
-  2   0.201171875      0.0185546875
-  3   0.17578125       0.01708984375
-  random baseline: feasible share 0.00341796875, P(optimal set) 0.0009765625
-  job_id          null ("local SDK simulation issues no job ID")
-
-QCLOUD USAGE LOG (time order: timestamp - action - result)
-  2026-10-28 - SDK: qpiai-quantum 0.3.0 (import qpiai_quantum), pinned in requirements.txt - installed in env pqc
-  2026-10-28 - QCloud login: QpiAIQuantumAuth.login(QCLOUD_API_KEY) - ok (recorded in docs/qpiai_api_notes.md)
-  2026-10-28 - devices listed: JobManager().list_compute_resources() - 6 devices: QpiAI-QSV-Simulator, QpiAI-QDM-Simulator, QpiAI-QTN-Simulator, QpiAI-QSV-Lite, QpiAI-QDM-Lite (active); QpiAI-Indus-1 QPU (maintenance)
-  2026-10-28T13:48:20Z - QpiAI Opt platform submit, schedule.milp.expected.expected, 1 job (run 1a10396e6657...) - rejected: "APIError: no active storage quota found for organization"
-  2026-10-28T13:48:22Z - QpiAI Opt platform submit, schedule.milp.expected.tiebreak, 1 job (run 029482259c39...) - rejected: "APIError: no active storage quota found for organization"
-  2026-10-28T15:28:55Z - QCloud submit, qaoa.qcloud.p1 on QpiAI-QSV-Simulator, 1 job (run e3baac4cf6d24a59b6949db08b0cd78d) - rejected: "Experiment 'qshield-qaoa-crosscheck' not found. Please create the experiment first."
-  2026-10-28T15:29:50Z - QCloud submit, qaoa.qcloud.p1 on QpiAI-QSV-Simulator, 1 job (run a7985b93f3a5490aaa3636c969dcc1c3) - rejected: "Bad Request (400) when submitting job. Server response: {'error': 'Failed to create job: an active subscription is required to run jobs'}"; p=2 and p=3 skipped after the first failure; job_id null, credits_used null
-  2026-10-28 - daily cap (runs/platform_jobs.log): 4 submissions logged that UTC day (2 QpiAI Opt, 2 QCloud), cap 10 per UTC day; no submission since
-  2026-10-29T01:52:20Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run f8bf1b797021460d96be5efbb1a84acb, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
-  2026-10-29T02:10:35Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.38 s
-  2026-10-29T02:10:48Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 353de4c35b924affa23de5534b1ce252, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T02:10:54Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace otel-demo, step duration 1.33 s
-  2026-10-29T05:13:57Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.06 s
-  2026-10-29T05:14:16Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 3aaabc2dec794577a7c6c68aa53cff3f, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T05:49:33Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.17 s
-  2026-10-29T05:49:51Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 809add1d1290466db4e60b01a789f9a3, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T05:55:17Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.83 s
-  2026-10-29T05:55:39Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 5a0ef665a20246938e52933a963bfffc, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T08:56:39Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.3 s
-  2026-10-29T08:56:57Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 0e7b779fb92f4ac7ad86394a0ade4e4e, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T10:27:29Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 12.45 s
-  2026-10-29T10:28:07Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run d87ec03db6084984bbbe4d5df74ef55b, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
-  2026-10-29T12:14:24Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 12.56 s
-  2026-10-29T12:14:49Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run f1aeb3d1adaa4f0d86f27c9f24232c97, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
-  2026-10-29T12:15:04Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.72 s
-  2026-10-29T12:15:29Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run c82fe083d5ca4842935b985238428e48, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T12:15:39Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace otel-demo, step duration 1.69 s
-  2026-10-29T13:10:15Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 12.92 s
-  2026-10-29T13:10:53Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run 4ace92d6eed64a01b662760f1e0d5ec5, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
-  2026-10-29T13:44:14Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 15.34 s
-  2026-10-29T13:44:41Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run 6ffa2b8a7d4440899610c449549d8c4c, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
-  2026-10-29T13:58:03Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.72 s
-  2026-10-29T13:58:17Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run dbdec6b75c48494aa2e144bb9872939e, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T15:04:35Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 4.78 s
-  2026-10-29T15:04:47Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run d955dd55742f4d649981bb9b3a11141f, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T15:09:29Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.28 s
-  2026-10-29T15:09:42Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run 7f6bed277f3a4875aba4bafc47b25dca, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T15:25:14Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace online-boutique, step duration 5.77 s
-  2026-10-29T15:25:27Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace online-boutique, run c9189a4691f04810b941762f70b9dac4, 7 variables, 2048 shots: p=1 feasible 0.9629 P(opt) 0.1079; p=2 feasible 0.9546 P(opt) 0.1016; p=3 feasible 0.9722 P(opt) 0.0986; job_id null
-  2026-10-29T15:34:42Z - web pipeline run, qaoa step (numpy + QpiAI-QSV-Local, p=1..3) - exit 0, workspace real-banks, step duration 16.32 s
-  2026-10-29T15:35:13Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace real-banks, run d4e268e9e88346f0bbfc2822c6f3f3be, 14 variables, 2048 shots: p=1 feasible 0.7192 P(opt) 0.0132; p=2 feasible 0.8003 P(opt) 0.0234; p=3 feasible 0.7661 P(opt) 0.0161; job_id null
-  2026-10-29T19:47:23Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run c81de008123b4c158c622e66bbccd9df, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
-  2026-10-29T19:49:37Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run b7cbce9bd04642dba8c48910fa83e8bb, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
-  2026-10-29T19:49:39Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run 35518c4fc6bd447e96c18166f7bcc743, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
-  2026-10-29T20:11:12Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run e411a528a8f346eda588711d3d338b69, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
-  2026-10-29T20:11:14Z - QAOA on QpiAI-QSV-Local (qpiai-quantum 0.3.0) - ok, workspace demo, run 47f50f4f1bae455394c406105f60d8ae, 14 variables, 2048 shots: p=1 feasible 0.1348 P(opt) 0.0137; p=2 feasible 0.2012 P(opt) 0.0186; p=3 feasible 0.1758 P(opt) 0.0171; job_id null
-  2026-10-30 - web app GET /api/quantum/status during the UI check - login ok, 5 devices active, jobs disabled (live check; the status cache is in memory, not persisted)
-
-STATUS
-  QCloud SDK and login used; QAOA executed on the QpiAI-QSV-Local simulator through the SDK; cloud job submission rejected (no active subscription), so no QCloud hardware/cloud job ID exists.
-
-HONESTY
-  No quantum advantage claimed. QAOA is a measured cross-check against the exact optimum, which
-  brute force finds; at this size MILP and brute force are exact and faster.
-
-HOW TO REPRODUCE
-  conda activate pqc && source .env.sh
-  export QSHIELD_FORBID_PLATFORM=1
-  python -m schedule --inventory out/inventory.json     # QpiAI Opt MILP (local)
-  python -m qaoa --qpiai-local                          # QAOA on QpiAI QSV-Local
-  ./run_demo.sh --no-open                               # whole pipeline, signed ledger, results.json
-  ./run_demo.sh --qcloud                                # QCloud (opt-in; blocked until the account has a subscription)
+DEMO
+  schedule.milp.expected.expected: 16 systems, 26 weeks horizon, capacity 10 engineer-days/week, 12 dependencies
+    solver qpiai-opt local (qpiai-opt 0.0.9, mode local)  status optimal (optimal, global_optimum)
+    objective 565.3230769230769   solve time 108.5 ms   run_id de6b393d9cd54a558c02d19c9a337107   ts 2026-10-29T20:10:53Z
+    job_id null: QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes
+  schedule.milp.expected.tiebreak: 16 systems, 26 weeks horizon, capacity 10 engineer-days/week, 12 dependencies
+    solver qpiai-opt local (qpiai-opt 0.0.9, mode local)  status optimal (optimal, global_optimum)
+    objective 7.9423076923076925   solve time 97.3 ms   run_id 23c4e90347334cadb82934939f3cbbd6   ts 2026-10-29T20:10:53Z
+    job_id null: QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes
+  wave plan (7 weeks):
+    week 1: backup, hsm
+    week 2: cdn, root-ca
+    week 3: payments-api, statements, web-gw
+    week 4: kyc-db, ledger-db
+    week 5: bus, crm
+    week 6: ops-dash, risk-engine, sftp-reg
+    week 7: auth, vpn
+  weighted exposure (expected / worst case): MILP 565.3231 / 767.2308; FCFS 566.7096 / 768.9231; greedy 565.8096 / 767.7115
+  makespan: MILP 7, FCFS 8, greedy 8 weeks
+  exposure-years avoided vs FCFS: Z2030 0.1731; Z2032 0.1538; Z2035 0.0962
+  exposure-years avoided vs greedy: Z2030 0.0192; Z2032 0.0385; Z2035 0.0577
 
 
 ========================================================================
-5. RESULTS ON REAL DATA (from each workspace's results.json)
+4. QPIAI QSV-LOCAL (QAOA) OUTPUT
 ========================================================================
 
-REAL-BANKS  (real public TLS handshakes (60 Indian bank endpoints, CC0 dataset); plan simulated)
-  results.json generated 2026-10-29T20:59:19Z
-  systems to migrate: 58   vulnerable findings: 101   plan length: 20 weeks
-  proof chain: 52 ML-DSA-65 signed entries, verification ok=True
-  MILP exposure-years avoided vs FCFS: Z2030 0.0192 (weighted 0.1538); Z2032 0.0192 (weighted 0.1538); Z2035 0.0192 (weighted 0.1538)
-  MILP exposure-years avoided vs greedy: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
-  QAOA run d5d9f4be29db4502961721c12f07922b (14 variables):
-    qpiai-quantum local simulator (QpiAI-QSV-Local) p=1: feasible 0.7192, P(optimal set) 0.0132
-    qpiai-quantum local simulator (QpiAI-QSV-Local) p=2: feasible 0.8003, P(optimal set) 0.0234
-    qpiai-quantum local simulator (QpiAI-QSV-Local) p=3: feasible 0.7661, P(optimal set) 0.0161
-    random baseline: feasible 0.1724, P(optimal set) 0.0015
+REAL-BANKS  QAOA run d5d9f4be29db4502961721c12f07922b  ts 2026-10-29T20:59:15Z
+  14 variables (week 1: 10 systems + slack bits); exact answer: netbanking-apgb-bank-in (objective -0.1538461538461462, bitstring 01110000001000)
+  p=1  shots 2048  feasible share 0.7192  P(optimal set) 0.0132  best selection: amcblanand-bank-in, netbanking-apgb-bank-in (different set, same optimal objective as exact: a tie)  time 0.65 s
+  p=2  shots 2048  feasible share 0.8003  P(optimal set) 0.0234  best selection: amcblanand-bank-in, netbanking-apgb-bank-in (different set, same optimal objective as exact: a tie)  time 0.02 s
+  p=3  shots 2048  feasible share 0.7661  P(optimal set) 0.0161  best selection: netbanking-apgb-bank-in, equitas-bank-in, harco-bank-in (different set, same optimal objective as exact: a tie)  time 0.03 s
+  random baseline (2048 shots): feasible share 0.1724, P(optimal set) 0.0015
 
-ONLINE-BOUTIQUE  (real source scan of Google's microservices demo (pinned commit))
-  results.json generated 2026-10-29T20:59:36Z
-  systems to migrate: 3   vulnerable findings: 4   plan length: 2 weeks
-  proof chain: 93 ML-DSA-65 signed entries, verification ok=True
-  MILP exposure-years avoided vs FCFS: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
-  MILP exposure-years avoided vs greedy: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
-  QAOA run 92f690944abc4191810904a999df6b1f (7 variables):
-    qpiai-quantum local simulator (QpiAI-QSV-Local) p=1: feasible 0.9629, P(optimal set) 0.1079
-    qpiai-quantum local simulator (QpiAI-QSV-Local) p=2: feasible 0.9546, P(optimal set) 0.1016
-    qpiai-quantum local simulator (QpiAI-QSV-Local) p=3: feasible 0.9722, P(optimal set) 0.0986
-    random baseline: feasible 0.8813, P(optimal set) 0.1294
+ONLINE-BOUTIQUE  QAOA run 92f690944abc4191810904a999df6b1f  ts 2026-10-29T20:59:32Z
+  7 variables (week 1: 3 systems + slack bits); exact answer: emailservice, recommendationservice (objective -0.03461538461538449, bitstring 0010011)
+  p=1  shots 2048  feasible share 0.9629  P(optimal set) 0.1079  best selection: emailservice, recommendationservice (same set as exact)  time 0.52 s
+  p=2  shots 2048  feasible share 0.9546  P(optimal set) 0.1016  best selection: emailservice, shoppingassistantservice (different set, same optimal objective as exact: a tie)  time 0.01 s
+  p=3  shots 2048  feasible share 0.9722  P(optimal set) 0.0986  best selection: emailservice, recommendationservice (same set as exact)  time 0.01 s
+  random baseline (2048 shots): feasible share 0.8813, P(optimal set) 0.1294
 
-OTEL-DEMO  (real source scan of the OpenTelemetry demo (pinned commit))
-  results.json generated 2026-10-29T12:15:51Z
-  systems to migrate: 0   vulnerable findings: 0   plan length: 0 weeks
-  proof chain: 10 ML-DSA-65 signed entries, verification ok=True
-  MILP exposure-years avoided vs FCFS: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
-  MILP exposure-years avoided vs greedy: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
-  QAOA: not run (no systems to migrate)
+DEMO  QAOA run 47f50f4f1bae455394c406105f60d8ae  ts 2026-10-29T20:11:14Z
+  14 variables (week 1: 10 systems + slack bits); exact answer: backup, statements (objective -0.3461538461538609, bitstring 01000100000001)
+  p=1  shots 2048  feasible share 0.1348  P(optimal set) 0.0137  best selection: backup, statements (same set as exact)  time: not logged (run before QpiAI logging was added)
+  p=2  shots 2048  feasible share 0.2012  P(optimal set) 0.0186  best selection: backup, statements (same set as exact)  time: not logged (run before QpiAI logging was added)
+  p=3  shots 2048  feasible share 0.1758  P(optimal set) 0.0171  best selection: backup, statements (same set as exact)  time: not logged (run before QpiAI logging was added)
+  random baseline (2048 shots): feasible share 0.0034, P(optimal set) 0.0010
 
-DEMO  (SYNTHETIC 16-asset mock bank inventory; lab TLS handshakes real)
-  results.json generated 2026-10-29T20:11:18Z
-  systems to migrate: 16   vulnerable findings: 29   plan length: 7 weeks
-  proof chain: 88 ML-DSA-65 signed entries, verification ok=True
-  MILP exposure-years avoided vs FCFS: Z2030 0.1731 (weighted 1.6923); Z2032 0.1538 (weighted 1.6346); Z2035 0.0962 (weighted 0.7500)
-  MILP exposure-years avoided vs greedy: Z2030 0.0192 (weighted 0.4808); Z2032 0.0385 (weighted 0.5385); Z2035 0.0577 (weighted 0.4231)
-  QAOA run 47f50f4f1bae455394c406105f60d8ae (14 variables):
-    qpiai-quantum local simulator (QpiAI-QSV-Local) p=1: feasible 0.1348, P(optimal set) 0.0137
-    ibm_fez p=1: feasible 0.0664, P(optimal set) 0.0088
-    qpiai-quantum local simulator (QpiAI-QSV-Local) p=2: feasible 0.2012, P(optimal set) 0.0186
-    ibm_fez p=2: feasible 0.0444, P(optimal set) 0.0044
-    qpiai-quantum local simulator (QpiAI-QSV-Local) p=3: feasible 0.1758, P(optimal set) 0.0171
-    ibm_fez p=3: feasible 0.0146, P(optimal set) 0.0029
-    random baseline: feasible 0.0034, P(optimal set) 0.0010
-
-
-  Exposure-years avoided are differences in scenario-weighted exposure between the MILP plan and each baseline on
-  the same data; 0 means the baseline already reached the optimum on that inventory.
 
 ========================================================================
-6. OPTIMIZER COMPARISON (out/bench.json, run f1e23e14cd8c436b9ce2da6182edc255, 2026-10-29T17:49:22Z, largest size 16 variables)
-========================================================================
-
-  method  |  family  |  guarantee  |  runtime
-  Exact (brute force)  |  classical  |  proven optimum (checks every choice)  |  0.0032 s
-  MILP (QpiAI Opt, local)  |  classical  |  proven optimum (MILP gap 0)  |  0.1171 s
-  Random sampling  |  baseline  |  none  |  0.0311 s
-  QAOA (numpy statevector) p=1  |  quantum (simulator)  |  none (sampling)  |  7.6212 s
-  QAOA (numpy statevector) p=2  |  quantum (simulator)  |  none (sampling)  |  13.9574 s
-  QAOA (numpy statevector) p=3  |  quantum (simulator)  |  none (sampling)  |  20.4254 s
-  QAOA (QpiAI QSV-Local) p=1  |  quantum (simulator)  |  none (sampling)  |  0.0422 s
-  Hybrid (QAOA + classical repair) p=1  |  hybrid (simulator + classical)  |  always feasible; optimum not guaranteed  |  7.7243 s
-  Hardware  |  quantum (hardware)  |  n/a  |  not run: QpiAI QCloud job creation needs an active subscription (blocked for this account), and this project never submits to the QpiAI-Indus-1 QPU; simulators only
-
-  WHY MILP for the full schedule: it proves optimality (MILP gap 0) with capacity and dependencies exact; the full
-  16-asset plan solved in 0.1215 s locally; QAOA cannot hold the full schedule (|assets| x horizon binaries plus
-  continuous exposure variables; QAOA here is capped at 16 qubits). At n <= 16 random sampling also finds the optimum.
-
-========================================================================
-7. TESTS (latest runs)
-========================================================================
-
-  pytest (full suite, 2026-10-30):           519 passed, 3 skipped
-  pytest (schedule/qaoa/server subset, after QpiAI logging): 116 passed, 1 skipped
-  node --test atlas_web/jstests/*.test.mjs:  54 passed
-  python tools/route_check.py (demo):        312 page loads, 0 with problems
-
-========================================================================
-8. HOW TO RUN
-========================================================================
-
-  macOS / Linux:
-    git clone https://github.com/Yojan-ui/q-shield-atlas.git && cd q-shield-atlas
-    conda create -y -n pqc -c conda-forge python=3.12 openssl=3.6.5 && conda activate pqc
-    pip install -r requirements.txt
-    python -m atlas_web create-user --role admin
-    ./run.sh                    # then open http://127.0.0.1:8000
-
-  Windows (Anaconda Prompt):
-    git clone https://github.com/Yojan-ui/q-shield-atlas.git && cd q-shield-atlas
-    conda create -y -n pqc -c conda-forge python=3.12 openssl=3.6.5 && conda activate pqc
-    pip install -r requirements.txt
-    python -m atlas_web create-user --role admin
-    run.bat                     # then open http://127.0.0.1:8000
-
-  Tested on macOS (run.bat not tested on Windows; use WSL if anything fails). Without QpiAI keys the app runs on the
-  local simulator and shows recorded results; a new pipeline run needs a free QPIAI_OPT_API_KEY in .env.sh.
-
-========================================================================
-9. HONESTY
-========================================================================
-
-  REAL: TLS 1.3 handshakes on the lab services and with 60 public bank endpoints; static scans of two public
-        repositories at pinned commits; every solver run, signature and QAOA sample recorded with run_id and hashes.
-  SIMULATED: the demo inventory (synthetic mock bank), migrations (planned, never applied to real systems),
-        lab stand-ins for services, QAOA on simulators (one IBM ibm_fez hardware run, imported from a recorded package).
-  ASSUMPTIONS: risk, effort and shelf-life values (config/assumptions.json), with a sensitivity test.
-  No quantum advantage claimed: QAOA is a measured cross-check against the exact optimum.
-  No key recovery, factoring or decryption anywhere. No QCloud job was created (subscription required).
-
-========================================================================
-10. RAW QPIAI USAGE LOG (logs/qpiai_usage.log)
+5. RAW QPIAI LOG (logs/qpiai_usage.log)
 ========================================================================
 
 ========================================
@@ -476,3 +335,171 @@ DEMO  (SYNTHETIC 16-asset mock bank inventory; lab TLS handshakes real)
 [QCLOUD] 2026-10-29T21:12:44Z Received status check from UI (GET /api/quantum/status)
 [QCLOUD] SDK qpiai-quantum 0.3.0: login ok, devices 6: QpiAI-QSV-Simulator (active), QpiAI-QDM-Simulator (active), QpiAI-QTN-Simulator (active), QpiAI-QSV-Lite (active), QpiAI-QDM-Lite (active), QpiAI-Indus-1 (maintenance)
 ========================================
+
+
+########################################################################
+PART B - PROJECT DETAILS
+########################################################################
+========================================================================
+6. SUMMARY
+========================================================================
+
+PROBLEM
+  Harvest now, decrypt later: traffic protected by RSA or elliptic-curve key exchange can be recorded today and
+  read once a large quantum computer exists. In our scan of 60 public Indian bank endpoints (one TLS handshake each,
+  2026-10-29), 46 negotiated classical key exchange, 12 hybrid post-quantum, 2 were unreachable.
+
+WHAT ATLAS DOES (7 steps)
+  1 Detect        Find RSA / ECC / DH in code, configs and certificates (file:line evidence), plus live TLS probes
+  2 Prove         Sign the Detect evidence into an ML-DSA-65 hash-chained Proof Chain before anything else runs
+  3 Plan          Schedule the migration in weekly waves with a QpiAI Opt MILP, compared with FCFS and greedy
+  4 Test          Gate each wave on real TLS 1.3 lab services: hybrid X25519MLKEM768, downgrade refused, rollback
+  5 Cross-check   Check one week's cutover choice with QAOA on QpiAI QSV-Local against the exact optimum
+  6 Verify        Sign every result and re-verify the whole chain
+  7 Review        A person approves or rejects each result; the decision is signed too
+
+========================================================================
+7. ARCHITECTURE AND BACKEND
+========================================================================
+
+  Browser
+     |  HTTP JSON API + Server-Sent Events (127.0.0.1 only)
+     v
+  atlas_web server (Python 3.12 stdlib HTTP, SQLite auth, CSRF)
+     |
+     v
+  Pipeline runner (one subprocess per step, live log)
+     |
+     v
+  Pipeline modules  --->  workspace files (out/, runs/)  +  signed ledger (ML-DSA-65, SHA-256 chain, Merkle root)
+
+  7-step pipeline (contracts/stages.json):
+  1 Detect (detect/) -> 2 Proof: findings signed (ledger/) -> 3 Plan (schedule/, QpiAI Opt MILP)
+    -> 4 Handshake gates (capture/ + gates/) -> 5 Wave selection (qaoa/, QAOA) -> 6 Proof: post-quantum verified
+    (ledger/ ingest + verify, contracts/ assemble) -> 7 Review (atlas_web review, signed decision)
+
+BACKEND COMPONENTS
+
+  atlas_web server  | atlas_web/        | Python 3.12 stdlib HTTP, SSE, SQLite, scrypt, CSRF | UI + JSON API, workspaces, roles
+  Runner            | atlas_web/runner.py | subprocesses with timeouts                       | runs pipeline CLIs per workspace, live log
+  Detect            | detect/           | static scanner + OpenSSL s_client probe            | RSA/ECC/DH inventory with file:line evidence, drift
+  Schedule          | schedule/, solvers/ | QpiAI Opt MILP (local), FCFS, greedy             | weekly wave plan minimising weighted exposure
+  Capture           | capture/          | OpenSSL 3.6.5 s_server / s_client -brief -msg     | real TLS 1.3 lab services + handshake evidence
+  Gates             | gates/            | group allowlist, compatibility matrix              | PQ handshake, downgrade, compatibility, rollback per wave
+  Ledger            | ledger/           | SHA-256 hash chain, RFC 6962 Merkle, ML-DSA-65 (OpenSSL CLI) | signs every run; detects any edit
+  QAOA              | qaoa/             | numpy statevector, QpiAI QSV-Local (qpiai-quantum 0.3.0) | link cutover selection vs exact optimum
+  Benchmark         | bench/            | same solvers, 6-16 variables                       | classical vs quantum vs hybrid
+  Contracts         | contracts/        | JSON Schema                                        | validates outputs, assembles results.json, stage list
+
+========================================================================
+8. RESULTS ON REAL DATA (from each workspace's results.json)
+========================================================================
+
+REAL-BANKS  (real public TLS handshakes (60 Indian bank endpoints, CC0 dataset); plan simulated)
+  results.json generated 2026-10-29T20:59:19Z
+  systems to migrate: 58   vulnerable findings: 101   plan length: 20 weeks
+  proof chain: 52 ML-DSA-65 signed entries, verification ok=True
+  MILP exposure-years avoided vs FCFS: Z2030 0.0192 (weighted 0.1538); Z2032 0.0192 (weighted 0.1538); Z2035 0.0192 (weighted 0.1538)
+  MILP exposure-years avoided vs greedy: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
+  QAOA run d5d9f4be29db4502961721c12f07922b (14 variables):
+    qpiai-quantum local simulator (QpiAI-QSV-Local) p=1: feasible 0.7192, P(optimal set) 0.0132
+    qpiai-quantum local simulator (QpiAI-QSV-Local) p=2: feasible 0.8003, P(optimal set) 0.0234
+    qpiai-quantum local simulator (QpiAI-QSV-Local) p=3: feasible 0.7661, P(optimal set) 0.0161
+    random baseline: feasible 0.1724, P(optimal set) 0.0015
+
+ONLINE-BOUTIQUE  (real source scan of Google's microservices demo (pinned commit))
+  results.json generated 2026-10-29T20:59:36Z
+  systems to migrate: 3   vulnerable findings: 4   plan length: 2 weeks
+  proof chain: 93 ML-DSA-65 signed entries, verification ok=True
+  MILP exposure-years avoided vs FCFS: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
+  MILP exposure-years avoided vs greedy: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
+  QAOA run 92f690944abc4191810904a999df6b1f (7 variables):
+    qpiai-quantum local simulator (QpiAI-QSV-Local) p=1: feasible 0.9629, P(optimal set) 0.1079
+    qpiai-quantum local simulator (QpiAI-QSV-Local) p=2: feasible 0.9546, P(optimal set) 0.1016
+    qpiai-quantum local simulator (QpiAI-QSV-Local) p=3: feasible 0.9722, P(optimal set) 0.0986
+    random baseline: feasible 0.8813, P(optimal set) 0.1294
+
+OTEL-DEMO  (real source scan of the OpenTelemetry demo (pinned commit))
+  results.json generated 2026-10-29T12:15:51Z
+  systems to migrate: 0   vulnerable findings: 0   plan length: 0 weeks
+  proof chain: 10 ML-DSA-65 signed entries, verification ok=True
+  MILP exposure-years avoided vs FCFS: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
+  MILP exposure-years avoided vs greedy: Z2030 0.0000 (weighted 0.0000); Z2032 0.0000 (weighted 0.0000); Z2035 0.0000 (weighted 0.0000)
+  QAOA: not run (no systems to migrate)
+
+DEMO  (SYNTHETIC 16-asset mock bank inventory; lab TLS handshakes real)
+  results.json generated 2026-10-29T20:11:18Z
+  systems to migrate: 16   vulnerable findings: 29   plan length: 7 weeks
+  proof chain: 88 ML-DSA-65 signed entries, verification ok=True
+  MILP exposure-years avoided vs FCFS: Z2030 0.1731 (weighted 1.6923); Z2032 0.1538 (weighted 1.6346); Z2035 0.0962 (weighted 0.7500)
+  MILP exposure-years avoided vs greedy: Z2030 0.0192 (weighted 0.4808); Z2032 0.0385 (weighted 0.5385); Z2035 0.0577 (weighted 0.4231)
+  QAOA run 47f50f4f1bae455394c406105f60d8ae (14 variables):
+    qpiai-quantum local simulator (QpiAI-QSV-Local) p=1: feasible 0.1348, P(optimal set) 0.0137
+    ibm_fez p=1: feasible 0.0664, P(optimal set) 0.0088
+    qpiai-quantum local simulator (QpiAI-QSV-Local) p=2: feasible 0.2012, P(optimal set) 0.0186
+    ibm_fez p=2: feasible 0.0444, P(optimal set) 0.0044
+    qpiai-quantum local simulator (QpiAI-QSV-Local) p=3: feasible 0.1758, P(optimal set) 0.0171
+    ibm_fez p=3: feasible 0.0146, P(optimal set) 0.0029
+    random baseline: feasible 0.0034, P(optimal set) 0.0010
+
+
+  Exposure-years avoided are differences in scenario-weighted exposure between the MILP plan and each baseline on
+  the same data; 0 means the baseline already reached the optimum on that inventory.
+
+========================================================================
+9. OPTIMIZER COMPARISON (out/bench.json)
+========================================================================
+
+  method  |  family  |  guarantee  |  runtime
+  Exact (brute force)  |  classical  |  proven optimum (checks every choice)  |  0.0032 s
+  MILP (QpiAI Opt, local)  |  classical  |  proven optimum (MILP gap 0)  |  0.1171 s
+  Random sampling  |  baseline  |  none  |  0.0311 s
+  QAOA (numpy statevector) p=1  |  quantum (simulator)  |  none (sampling)  |  7.6212 s
+  QAOA (numpy statevector) p=2  |  quantum (simulator)  |  none (sampling)  |  13.9574 s
+  QAOA (numpy statevector) p=3  |  quantum (simulator)  |  none (sampling)  |  20.4254 s
+  QAOA (QpiAI QSV-Local) p=1  |  quantum (simulator)  |  none (sampling)  |  0.0422 s
+  Hybrid (QAOA + classical repair) p=1  |  hybrid (simulator + classical)  |  always feasible; optimum not guaranteed  |  7.7243 s
+  Hardware  |  quantum (hardware)  |  n/a  |  not run: QpiAI QCloud job creation needs an active subscription (blocked for this account), and this project never submits to the QpiAI-Indus-1 QPU; simulators only
+
+  WHY MILP for the full schedule: it proves optimality (MILP gap 0) with capacity and dependencies exact; the full
+  16-asset plan solved in 0.1215 s locally; QAOA cannot hold the full schedule (|assets| x horizon binaries plus
+  continuous exposure variables; QAOA here is capped at 16 qubits). At n <= 16 random sampling also finds the optimum.
+
+========================================================================
+10. TESTS, HOW TO RUN, HONESTY
+========================================================================
+TESTS (latest runs)
+
+  pytest (full suite, 2026-10-30):           519 passed, 3 skipped
+  pytest (schedule/qaoa/server subset, after QpiAI logging): 116 passed, 1 skipped
+  node --test atlas_web/jstests/*.test.mjs:  54 passed
+  python tools/route_check.py (demo):        312 page loads, 0 with problems
+
+HOW TO RUN
+
+  macOS / Linux:
+    git clone https://github.com/Yojan-ui/q-shield-atlas.git && cd q-shield-atlas
+    conda create -y -n pqc -c conda-forge python=3.12 openssl=3.6.5 && conda activate pqc
+    pip install -r requirements.txt
+    python -m atlas_web create-user --role admin
+    ./run.sh                    # then open http://127.0.0.1:8000
+
+  Windows (Anaconda Prompt):
+    git clone https://github.com/Yojan-ui/q-shield-atlas.git && cd q-shield-atlas
+    conda create -y -n pqc -c conda-forge python=3.12 openssl=3.6.5 && conda activate pqc
+    pip install -r requirements.txt
+    python -m atlas_web create-user --role admin
+    run.bat                     # then open http://127.0.0.1:8000
+
+  Tested on macOS (run.bat not tested on Windows; use WSL if anything fails). Without QpiAI keys the app runs on the
+  local simulator and shows recorded results; a new pipeline run needs a free QPIAI_OPT_API_KEY in .env.sh.
+
+HONESTY
+
+  REAL: TLS 1.3 handshakes on the lab services and with 60 public bank endpoints; static scans of two public
+        repositories at pinned commits; every solver run, signature and QAOA sample recorded with run_id and hashes.
+  SIMULATED: the demo inventory (synthetic mock bank), migrations (planned, never applied to real systems),
+        lab stand-ins for services, QAOA on simulators (one IBM ibm_fez hardware run, imported from a recorded package).
+  ASSUMPTIONS: risk, effort and shelf-life values (config/assumptions.json), with a sensitivity test.
+  No quantum advantage claimed: QAOA is a measured cross-check against the exact optimum.
+  No key recovery, factoring or decryption anywhere. No QCloud job was created (subscription required).
