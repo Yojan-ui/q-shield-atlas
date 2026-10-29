@@ -60,6 +60,16 @@ Platform account checks (2026-10-28):
   `QuantumSample`: `bitstring, count, probability, internal_energy, objective, feasible, solution, variable_assignment`.
   Note: `candidates` aggregate counts over *all* variational evaluations; `counts` is the final circuit only.
 
+## In-process circuit simulator — `qpiai_quantum.simulator` (verified 2026-10-29)
+- `StatevectorSimulator()`; `.name` -> `"QpiAI-QSV-Local"`;
+  `.run(circuit, shots=1024, seed=None, name=None, initial_state=None) -> QasmSimulatorResult`.
+- `QasmSimulatorResult`: `.counts` (dict bitstring -> int), `.statevector`, `.probabilities`.
+- Runs a `qpiai_quantum.Circuit` entirely in-process from its ICR: no login, no network, no job, no credits
+  (checked with socket connects blocked and both API keys unset; `tests/test_qaoa_qpiai_local.py`).
+  Also exported: `BaseSimulator`. Distinct from `qpiai_opt` `mode="local"`, which verifies the key online.
+- Used by `python -m qaoa --qpiai-local` (default in run_demo.sh): job_id null, reason
+  "local SDK simulation issues no job ID". Its exact statevector equals the numpy QAOA state (atol 1e-9).
+
 ## QCloud devices (live `JobManager().list_compute_resources()`)
 | device | status |
 |---|---|

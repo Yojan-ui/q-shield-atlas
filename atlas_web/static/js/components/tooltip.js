@@ -1,6 +1,6 @@
 // Provenance tooltip: any element with data-prov (JSON {run_id, solver, job_id, ledger_index, ts, note, title})
 // shows its source on hover, keyboard focus or tap. One instance for the whole app.
-import { h } from "../dom.js";
+import { append, h } from "../dom.js";
 
 const FIELDS = [["run_id", "run"], ["solver", "solver"], ["job_id", "job id"], ["ledger_index", "ledger"], ["ts", "time"], ["note", "note"]];
 
@@ -15,10 +15,9 @@ export function installTooltip(root = document) {
   const render = (el) => {
     let p;
     try { p = JSON.parse(el.getAttribute("data-prov")); } catch { return false; }
-    tip.replaceChildren(
-      p.title ? h("p", { class: "tip-title", text: p.title }) : null,
-      h("dl", {}, FIELDS.filter(([k]) => p[k] !== undefined && p[k] !== null).map(([k, label]) => [h("dt", { text: label }), h("dd", { text: String(p[k]) })])),
-    );
+    tip.replaceChildren(); // append() skips null children (replaceChildren would print "null")
+    append(tip, [p.title ? h("p", { class: "tip-title", text: p.title }) : null,
+      h("dl", {}, FIELDS.filter(([k]) => p[k] !== undefined && p[k] !== null).map(([k, label]) => [h("dt", { text: label }), h("dd", { text: String(p[k]) })]))]);
     return true;
   };
   const place = (el) => {

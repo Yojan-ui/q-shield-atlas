@@ -172,7 +172,11 @@ python -m atlas_web export                       # static read-only snapshot in 
 - **QpiAI platform status:** QpiAI Opt platform MILP submissions were rejected ("no active storage
   quota found for organization") and QCloud job creation was rejected ("an active subscription is
   required to run jobs"); no platform job was created. Scheduling uses free local QpiAI Opt solves
-  (`job_id: null` with a reason, run_id and input/output hashes) and QAOA uses the local simulator.
+  (`job_id: null` with a reason, run_id and input/output hashes). QAOA circuits are sampled on two free local
+  backends: our numpy statevector and the QpiAI SDK's in-process simulator (`qpiai-quantum` 0.3.0
+  `StatevectorSimulator`, "QpiAI-QSV-Local"; `python -m qaoa --qpiai-local`, default in run_demo.sh): no network,
+  no credits, `job_id: null` with the reason "local SDK simulation issues no job ID", SDK version, run_id and
+  input/output hashes, compared with the numpy rows by z-score.
   Rows for runs that did not happen show their status text, never numbers.
 - **Toolchain:** OpenSSL >= 3.5 is required (ML-KEM groups, ML-DSA); the system LibreSSL and older
   OpenSSL builds do not work.
@@ -208,7 +212,7 @@ run directory, refused past the daily cap, and stopped after the first failure; 
 python -m detect --lab-probe web-gw=legacy  # or --probe SERVICE=HOST:PORT
 python -m schedule --inventory out/inventory.json [--platform]
 python -m capture && python -m gates
-python -m qaoa [--qcloud]
+python -m qaoa [--qpiai-local] [--qcloud]
 python -m ledger ingest && python -m ledger verify   # also: python -m ledger proof N, keygen
 python -m contracts.assemble && python -m contracts validate results out/results.json
 python -m viz [--no-browser]
@@ -363,6 +367,10 @@ the anchor in `results.json` is only as trustworthy as wherever results.json is 
 - **Local QAOA** (`qaoa/local_sim.py`): numpy statevector, p = 1, 2, 3, angles from scipy COBYLA on the
   expected energy, 5 seeded restarts; samples drawn with a fixed seed. Baseline: the same number of
   uniformly random bitstrings.
+- **QpiAI SDK local simulator** (`qaoa/qpiai_local.py`, `python -m qaoa --qpiai-local`, default in `run_demo.sh`):
+  the same final circuit per p (2048 shots, seeded) run on `qpiai_quantum.simulator.StatevectorSimulator` in-process;
+  free, offline, no platform guard needed. Rows `qpiai_local` sit next to the numpy rows in `qaoa.table` with
+  z-scores against them; tests check that the SDK's exact statevector equals the numpy QAOA state.
 - **QCloud** (`qaoa/qcloud_run.py`, opt-in `python -m qaoa --qcloud`): submits only the final circuit per p
   (2048 shots, at most 3 jobs) to `QpiAI-QSV-Simulator` (usage rate 1; QPU `QpiAI-Indus-1` refused),
   through the same guard as the scheduler (announce, log, 10 jobs/UTC day shared, refused under pytest).

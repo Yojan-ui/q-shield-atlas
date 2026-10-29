@@ -110,8 +110,8 @@ export async function mount(ctx) {
   ctx.root.append(h("div", { class: "grid" },
     h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Pipeline", lede: "The eleven steps of run_demo.sh, run as the existing module CLIs with this workspace's paths. Each station lights when its step completes.",
       aside: h("div", { class: "hero-figure" }, h("p", { class: "eyebrow", text: "schedule solver" }), solverEl, why), actions: [runBtn, status] })),
-    h("div", { class: "span-12" }, stageEl),
     section("Stations", stationsEl),
+    h("div", { class: "span-12" }, stageEl),
     h("div", { class: "span-8" }, section("Output", h("div", {}, log, tail))),
     h("div", { class: "start-9" }, section("Preflight", pre)),
     h("div", { class: "span-12" }, honesty())));

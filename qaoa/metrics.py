@@ -66,7 +66,7 @@ def compute(q: WaveQUBO, counts: dict[str, int], E: np.ndarray, exact: dict) -> 
     }
 
 
-def compare(local: dict, cloud: dict, sigma: float) -> dict:
+def compare(local: dict, cloud: dict, sigma: float, other: str = "QCloud") -> dict:
     """Two-sample z-scores; never picks a winner, only flags large differences."""
     def z_prop(a, b, n1, n2):
         p = (a * n1 + b * n2) / (n1 + n2)
@@ -85,6 +85,6 @@ def compare(local: dict, cloud: dict, sigma: float) -> dict:
         "z_scores": z,
         "sigma_threshold": sigma,
         "differs": bool(big),
-        "note": ("local and QCloud sample statistics differ beyond the threshold; both are reported, neither is preferred"
-                 if big else "local and QCloud sample statistics agree within the threshold"),
+        "note": (f"numpy local and {other} sample statistics differ beyond the threshold; both are reported, neither is preferred"
+                 if big else f"numpy local and {other} sample statistics agree within the threshold"),
     }

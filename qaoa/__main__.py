@@ -1,4 +1,4 @@
-"""python -m qaoa [--qcloud [--allow-more]]  ->  out/qaoa.json, runs/<run_id>/
+"""python -m qaoa [--qpiai-local] [--qcloud [--allow-more]]  ->  out/qaoa.json, runs/<run_id>/
 
 QAOA on simulators. A measured cross-check against the exact optimum. No quantum advantage
 claimed; the problem is small enough for brute force.
@@ -18,7 +18,7 @@ import numpy as np
 from contracts.manifest import new_run_id, sha256_json, utc_now
 from schedule.platform_guard import DAILY_LIMIT, PlatformBudget
 
-from . import local_sim, metrics, qcloud_run
+from . import local_sim, metrics, qcloud_run, qpiai_local
 from .qubo import build, exact_optimum
 from .table import build_table
 
@@ -27,7 +27,7 @@ LABEL = ("QAOA on simulators. A measured cross-check against the exact optimum. 
          "No quantum advantage claimed; the problem is small enough for brute force.")
 
 
-def run(schedule: dict, cfg: dict, run_root: Path, qcloud: bool = False, budget=None) -> dict:
+def run(schedule: dict, cfg: dict, run_root: Path, qcloud: bool = False, budget=None, sdk_local: bool = False) -> dict:
     run_id = new_run_id()
     run_dir = run_root / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -57,6 +57,19 @@ def run(schedule: dict, cfg: dict, run_root: Path, qcloud: bool = False, budget=
                  "shots": cfg["shots"], "angles": None, "job_ids": [], "metrics": metrics.compute(q, rnd, E, exact)})
 
     comparisons, qcloud_status = [], {"requested": qcloud}
+    sdk_status = {"requested": sdk_local}
+    if sdk_local:  # free, in-process QpiAI SDK simulator: same final circuits, no network, no credits
+        for rec in qpiai_local.run(q, angle_sets, cfg, run_id, run_dir):
+            m = metrics.compute(q, rec["counts"], E, exact)
+            a = next(x for x in angle_sets if x["p"] == rec["p"])
+            runs.append({"p": rec["p"], "source": "qpiai_local", "backend": rec["backend"], "shots": m["shots"],
+                         "angles": {"gammas": a["gammas"], "betas": a["betas"]}, "energy_scale": a["energy_scale"],
+                         "job_ids": [], "job_id": None, "job_id_reason": rec["job_id_reason"], "sdk_version": rec["sdk_version"],
+                         "seed": rec["seed"], "inputs_sha256": rec["inputs_sha256"], "outputs_sha256": rec["outputs_sha256"], "metrics": m})
+            local = next(r for r in runs if r["source"] == "local" and r["p"] == rec["p"])
+            comparisons.append({"p": rec["p"], "against": "qpiai_local",
+                                **metrics.compare(local["metrics"], m, cfg["compare_sigma"], "QpiAI SDK local")})
+        sdk_status.update(device=qpiai_local.BACKEND, sdk_version=runs[-1]["sdk_version"])
     if qcloud:
         records = qcloud_run.run(q, angle_sets, cfg, budget, run_id, run_dir)
         qcloud_status.update(device=cfg["qcloud"]["device"], jobs=[{k: r.get(k) for k in ("p", "status", "job_id", "credits_used", "error")} for r in records])
@@ -68,7 +81,7 @@ def run(schedule: dict, cfg: dict, run_root: Path, qcloud: bool = False, budget=
                          "angles": {"gammas": a["gammas"], "betas": a["betas"]}, "energy_scale": a["energy_scale"],
                          "job_ids": [rec["job_id"]], "credits_used": rec["credits_used"], "metrics": m})
             local = next(r for r in runs if r["source"] == "local" and r["p"] == rec["p"])
-            comparisons.append({"p": rec["p"], **metrics.compare(local["metrics"], m, cfg["compare_sigma"])})
+            comparisons.append({"p": rec["p"], "against": "qcloud", **metrics.compare(local["metrics"], m, cfg["compare_sigma"])})
 
     section = {
         "label": LABEL,
@@ -88,6 +101,7 @@ def run(schedule: dict, cfg: dict, run_root: Path, qcloud: bool = False, budget=
         "runs": runs,
         "comparisons": comparisons,
         "qcloud": qcloud_status,
+        "qpiai_local": sdk_status,
     }
     (run_dir / "manifest.json").write_text(json.dumps(section, indent=1))
     return section
@@ -100,6 +114,7 @@ def main(argv=None):
     ap.add_argument("--out-dir", type=Path, default=REPO / "out")
     ap.add_argument("--runs", type=Path, default=REPO / "runs")
     ap.add_argument("--qcloud", action="store_true", help="opt-in: sample final circuits on a QpiAI QCloud simulator (paid)")
+    ap.add_argument("--qpiai-local", action="store_true", help="also sample the final circuits on the QpiAI SDK's in-process simulator (free, no network)")
     ap.add_argument("--allow-more", action="store_true", help=f"allow more than {DAILY_LIMIT} platform jobs per UTC day")
     ap.add_argument("--platform-log", type=Path, default=None,
                     help="shared daily-cap log (default RUNS/platform_jobs.log); point every workspace at one file")
@@ -111,7 +126,7 @@ def main(argv=None):
         qcloud_run.check_device(cfg["qcloud"]["device"], cfg["qcloud"]["allowed_devices"])
         budget = PlatformBudget(args.platform_log or args.runs / "platform_jobs.log", allow_more=args.allow_more)
         budget.check(len(cfg["reps"]))
-    section = run(json.loads(args.schedule.read_text()), cfg, args.runs, args.qcloud, budget)
+    section = run(json.loads(args.schedule.read_text()), cfg, args.runs, args.qcloud, budget, sdk_local=args.qpiai_local)
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "qaoa.json").write_text(json.dumps(section, indent=1))
 
@@ -131,7 +146,7 @@ def main(argv=None):
         print(f"{r['p'] if r['p'] is not None else '-':>2} {r['source']:7} {r['shots']:>5} {m['feasible_fraction']:>8.3f} {bf:>10} "
               f"{ar:>7} {m['energy_ratio']:>8.4f} {m['p_optimal']:>7.4f} {m['p_optimal_assets']:>10.4f}  {r['job_ids']}")
     for c in section["comparisons"]:
-        print(f"p={c['p']} local vs QCloud: {c['note']}; z={ {k: round(v, 2) for k, v in c['z_scores'].items()} }")
+        print(f"p={c['p']} numpy vs {c.get('against', 'qcloud')}: {c['note']}; z={ {k: round(v, 2) for k, v in c['z_scores'].items()} }")
 
 
 if __name__ == "__main__":

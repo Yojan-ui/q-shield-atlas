@@ -3,6 +3,7 @@
 QAOA on simulators. A measured cross-check against the exact optimum. No quantum advantage
 claimed; the problem is small enough for brute force.
 
+Rows per p: numpy local, QpiAI SDK local simulator (if --qpiai-local ran), QCloud.
 Row status: ok (metrics present) | failed | skipped | not_requested. Rows that are not ok carry
 `metrics: null` and a `status_text` such as
   "skipped: no QCloud subscription (attempt logged, ledger #7)"
@@ -45,8 +46,14 @@ def build_table(section: dict, ledger_index: int | None = None) -> list[dict]:
         return {"p": r["p"], "source": r["source"], "status": "ok", "status_text": None, "backend": r["backend"],
                 "shots": r["shots"], "job_ids": r["job_ids"], "metrics": r["metrics"]}
 
+    cmp_sdk = {c["p"]: c for c in section.get("comparisons", []) if c.get("against") == "qpiai_local"}
     for p in reps:
         rows.append(ok_row(next(r for r in runs if r["source"] == "local" and r["p"] == p)))
+        sdk = next((r for r in runs if r["source"] == "qpiai_local" and r["p"] == p), None)
+        if sdk is not None:  # free QpiAI SDK local simulator: no job ID (reason recorded), z-scores vs the numpy row
+            c = cmp_sdk.get(p)
+            rows.append({**ok_row(sdk), "job_id": None, "job_id_reason": sdk["job_id_reason"],
+                         "comparison": {k: c[k] for k in ("z_scores", "sigma_threshold", "differs")} if c else None})
         cloud = next((r for r in runs if r["source"] == "qcloud" and r["p"] == p), None)
         if cloud is not None:
             rows.append(ok_row(cloud))
