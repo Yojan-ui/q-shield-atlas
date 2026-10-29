@@ -1,0 +1,14 @@
+run_id,p,source,status,backend,shots,feasible_fraction,best_feasible_objective,approximation_ratio,energy_ratio,p_optimal,p_optimal_assets,hw_job_id,hw_backend,hw_transpiled_depth,hw_two_qubit_gates,hw_qpu_seconds,status_text
+152aa6e0425749068e04a75dd332fc4a,1,local,ok,numpy statevector (qaoa/local_sim.py),2048,0.09423828125,-0.3461538461538609,1.0,0.983250907964378,0.001953125,0.01318359375,,,,,,
+152aa6e0425749068e04a75dd332fc4a,1,qpiai_local,ok,qpiai-quantum local simulator (QpiAI-QSV-Local),2048,0.12158203125,-0.3461538461538609,1.0,0.9829684354532523,0.001953125,0.01708984375,,,,,,
+152aa6e0425749068e04a75dd332fc4a,1,qcloud,not_requested,QCloud,,,,,,,,,,,,,not run: QCloud sampling is opt-in (python -m qaoa --qcloud)
+152aa6e0425749068e04a75dd332fc4a,1,ibm,ok,ibm_fez,2048,0.06640625,-0.3461538461538609,1.0,0.9469387280183414,0.00048828125,0.0087890625,dbhnpos2d77s739d3sv0,ibm_fez,445,337,3,
+152aa6e0425749068e04a75dd332fc4a,2,local,ok,numpy statevector (qaoa/local_sim.py),2048,0.1826171875,-0.3461538461538609,1.0,0.9887962805838083,0.0029296875,0.01416015625,,,,,,
+152aa6e0425749068e04a75dd332fc4a,2,qpiai_local,ok,qpiai-quantum local simulator (QpiAI-QSV-Local),2048,0.1923828125,-0.3461538461538609,1.0,0.9884142901114128,0.00048828125,0.01708984375,,,,,,
+152aa6e0425749068e04a75dd332fc4a,2,qcloud,not_requested,QCloud,,,,,,,,,,,,,not run: QCloud sampling is opt-in (python -m qaoa --qcloud)
+152aa6e0425749068e04a75dd332fc4a,2,ibm,ok,ibm_fez,2048,0.04443359375,-0.3461538461538609,1.0,0.9107917249059777,0.00048828125,0.00439453125,dbhnpp42d77s739d3svg,ibm_fez,641,621,3,
+152aa6e0425749068e04a75dd332fc4a,3,local,ok,numpy statevector (qaoa/local_sim.py),2048,0.1865234375,-0.3461538461538609,1.0,0.9893089492680124,0.001953125,0.01416015625,,,,,,
+152aa6e0425749068e04a75dd332fc4a,3,qpiai_local,ok,qpiai-quantum local simulator (QpiAI-QSV-Local),2048,0.15625,-0.3461538461538609,1.0,0.9894880154814493,0.00048828125,0.01611328125,,,,,,
+152aa6e0425749068e04a75dd332fc4a,3,qcloud,not_requested,QCloud,,,,,,,,,,,,,not run: QCloud sampling is opt-in (python -m qaoa --qcloud)
+152aa6e0425749068e04a75dd332fc4a,3,ibm,ok,ibm_fez,2048,0.0146484375,-0.3461538461538609,1.0,0.852193263513134,0.0,0.0029296875,dbhnppene4hc73bd9480,ibm_fez,984,942,3,
+152aa6e0425749068e04a75dd332fc4a,,random,ok,"uniform random bitstrings (numpy, seed 1007)",2048,0.00341796875,-0.3461538461538609,1.0,0.8109342577023554,0.0,0.0009765625,,,,,,

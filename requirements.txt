@@ -11,3 +11,5 @@ qpiai-opt==0.0.9
 qpiai-quantum==0.3.0
 rich==15.0.0
 scipy==1.18.1
+# Optional: OS certificate store for TLS behind HTTPS-scanning antivirus (qaoa --ibm); verification stays on.
+truststore==0.10.5

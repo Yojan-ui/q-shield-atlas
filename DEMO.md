@@ -86,6 +86,20 @@ local simulator (QpiAI-QSV-Local, free, no network) give **0.1758** feasible at 
 **Say:** "QAOA on two simulators, ours and QpiAI's own SDK, measured against the exact optimum of a 14-variable wave problem:
 far more feasible plans than random, the two simulators agree, and we claim no quantum advantage."
 
+### 6b. Real hardware (15 s): same route, scroll to "Evidence & sources"
+
+<!-- Numbers below: separate run, python -m qaoa --qpiai-local --ibm on 2026-10-29 (Windows box), qaoa run 152aa6e0,
+     results.json generated_at 2026-10-29T17:09:27Z; same exact optimum and 14 variables as above. -->
+**On screen:** the middle cloud and the rows badged **Real hardware · IBM ibm_fez**, one per p, job IDs copyable
+(**dbhnpos2d77s739d3sv0**, **dbhnpp42d77s739d3svg**, **dbhnppene4hc73bd9480**) <!-- qaoa.table[source=ibm].hardware.job_id -->.
+Click p=1: feasible **0.0664** on ibm_fez vs **0.0942** on the simulator and **0.0034** random
+<!-- qaoa.table p=1 ibm / local, random metrics.feasible_fraction -->. Click p=3: ibm_fez drops to **0.0146** vs **0.1865**
+on the simulator <!-- qaoa.table p=3 ibm / local metrics.feasible_fraction --> as the circuit sent grows from depth **445** /
+**337** two-qubit gates (p=1) to **984** / **942** (p=3) <!-- qaoa.table[source=ibm].hardware.transpiled_depth, two_qubit_gates -->;
+**3** QPU s per job <!-- qaoa.table[source=ibm].hardware.qpu_seconds -->.
+**Say:** "Same problem on the exact solver, a simulator and IBM's 156-qubit ibm_fez; hardware noise lowers feasibility at
+this depth; it's a measured cross-check, not an advantage claim."
+
 ## 7. Close (10 s): rail key **1** (Pipeline)
 
 **On screen:** the twelve run_demo.sh stations in eight stages (Detect → Proof Chain → Plan → Handshakes → Gates → QAOA → Seal → Report) and the solver record "QpiAI Opt · local MILP · optimal · global optimum".

@@ -106,8 +106,11 @@ class Browser:
         self.proc = subprocess.Popen([binary, *flags, "about:blank"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         port_file = Path(self.profile) / "DevToolsActivePort"
         for _ in range(200):
-            if port_file.exists() and port_file.read_text().strip():
-                break
+            try:
+                if port_file.exists() and port_file.read_text().strip():
+                    break
+            except PermissionError:  # Windows: Chrome still holds the file open while writing it
+                pass
             time.sleep(0.05)
         port = int(port_file.read_text().split()[0])
         ver = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=10).read())

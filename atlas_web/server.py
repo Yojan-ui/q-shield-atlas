@@ -408,7 +408,7 @@ def make_handler(app: App):
                 return self.send_static(f, TYPES[".js"])
             if parts[:1] == ["assets"]:
                 f = (STATIC / "/".join(parts[1:])).resolve()
-                if not str(f).startswith(str(STATIC.resolve()) + "/") or not f.is_file() or f.suffix not in TYPES \
+                if not f.is_relative_to(STATIC.resolve()) or not f.is_file() or f.suffix not in TYPES \
                         or "vendor" in f.relative_to(STATIC.resolve()).parts[:1]:
                     return self.send_body(404, b"not found", TYPES[".txt"])
                 return self.send_static(f, TYPES[f.suffix])

@@ -168,8 +168,8 @@
             "required": ["p", "source", "status", "status_text", "backend", "shots", "job_ids", "metrics"],
             "properties": {
               "p": {"type": ["integer", "null"]},
-              "source": {"enum": ["local", "qpiai_local", "qcloud", "random"]},
-              "status": {"enum": ["ok", "failed", "skipped", "not_requested"]},
+              "source": {"enum": ["local", "qpiai_local", "qcloud", "ibm", "random"]},
+              "status": {"enum": ["ok", "failed", "skipped", "not_requested", "queued"]},
               "status_text": {"type": ["string", "null"]},
               "backend": {"type": "string"},
               "shots": {"type": ["integer", "null"]},
@@ -177,7 +177,14 @@
               "metrics": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/qaoa_metrics"}]},
               "job_id": {"type": "null"},
               "job_id_reason": {"type": "string", "minLength": 1},
-              "comparison": {"oneOf": [{"type": "null"}, {"type": "object", "required": ["z_scores", "sigma_threshold", "differs"]}]}
+              "comparison": {"oneOf": [{"type": "null"}, {"type": "object", "required": ["z_scores", "sigma_threshold", "differs"]}]},
+              "hardware": {
+                "type": "object",
+                "description": "Real QPU run (IBM). Transpiled depth and 2-qubit gate count of the circuit actually sent.",
+                "required": ["backend", "job_id", "qpu_seconds", "transpiled_depth", "two_qubit_gates"],
+                "properties": {"job_id": {"type": "string", "minLength": 1}, "transpiled_depth": {"type": "integer"},
+                               "two_qubit_gates": {"type": "integer"}, "qpu_seconds": {"type": ["number", "null"]}}
+              }
             },
             "allOf": [
               {"if": {"properties": {"source": {"const": "qpiai_local"}}, "required": ["source"]},
@@ -186,7 +193,9 @@
                "then": {"properties": {"metrics": {"type": "object"}, "status_text": {"type": "null"}}},
                "else": {"properties": {"metrics": {"type": "null"}, "status_text": {"type": "string", "minLength": 1}}}},
               {"if": {"properties": {"source": {"const": "qcloud"}, "status": {"const": "ok"}}, "required": ["source", "status"]},
-               "then": {"properties": {"job_ids": {"minItems": 1}}}}
+               "then": {"properties": {"job_ids": {"minItems": 1}}}},
+              {"if": {"properties": {"source": {"const": "ibm"}, "status": {"const": "ok"}}, "required": ["source", "status"]},
+               "then": {"required": ["hardware"], "properties": {"job_ids": {"minItems": 1}}}}
             ]
           }
         },
@@ -210,7 +219,7 @@
             "required": ["p", "source", "backend", "shots", "angles", "job_ids", "metrics"],
             "properties": {
               "p": {"type": ["integer", "null"], "minimum": 1},
-              "source": {"enum": ["local", "qpiai_local", "qcloud", "random"]},
+              "source": {"enum": ["local", "qpiai_local", "qcloud", "ibm", "random"]},
               "backend": {"type": "string"},
               "shots": {"type": "integer", "minimum": 1},
               "angles": {
@@ -225,6 +234,8 @@
             },
             "allOf": [
               {"if": {"properties": {"source": {"const": "qcloud"}}}, "then": {"properties": {"job_ids": {"minItems": 1}}}},
+              {"if": {"properties": {"source": {"const": "ibm"}}, "required": ["source"]},
+               "then": {"required": ["qpu_seconds", "transpiled_depth", "two_qubit_gates"], "properties": {"job_ids": {"minItems": 1}}}},
               {"if": {"properties": {"source": {"const": "qpiai_local"}}, "required": ["source"]},
                "then": {"required": ["job_id", "job_id_reason", "sdk_version", "inputs_sha256", "outputs_sha256"],
                         "properties": {"job_id": {"type": "null"}, "job_ids": {"maxItems": 0}}}}
@@ -232,7 +243,8 @@
           }
         },
         "comparisons": {"type": "array"},
-        "qcloud": {"type": "object", "required": ["requested"]}
+        "qcloud": {"type": "object", "required": ["requested"]},
+        "ibm": {"type": "object", "required": ["requested"]}
       }
     },
     "handshake_evidence": {

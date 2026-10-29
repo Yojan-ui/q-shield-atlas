@@ -10,8 +10,9 @@ arrival scenarios, and the plan is compared with first-come-first-served and gre
 the same data. Every wave is verified on real TLS 1.3 lab services: hybrid X25519MLKEM768 key
 exchange, no silent downgrade, a client compatibility matrix and a tested rollback. Every run is
 signed into an ML-DSA-65 hash-chained ledger with a Merkle root, and a QAOA run is measured against
-the brute-force optimum as a cross-check, not a claim of advantage. Everything is shown in a 2D
-dashboard and a 3D exposure tower that read only `out/results.json`.
+the brute-force optimum as a cross-check, not a claim of advantage: on two simulators and, once, on
+IBM's 156-qubit `ibm_fez` real hardware ([results below](#ibm-quantum-hardware-run-ibm_fez)). Everything
+is shown in a 2D dashboard and a 3D exposure tower that read only `out/results.json`.
 
 > Lab demo · local TLS lab services on 127.0.0.1 · local single-key test ledger without public
 > timestamping · simulator-scale QAOA, no quantum advantage claimed · risk, effort and shelf-life
@@ -278,6 +279,11 @@ python -m atlas_web export                       # static read-only snapshot in 
 - **QAOA:** simulator scale (at most 16 variables, `config/qaoa.json`), small enough for brute force; no quantum advantage
   claimed. The approximation ratio saturates at this size, so feasible fraction, energy ratio and
   P(optimal set) are the informative comparisons.
+- **IBM hardware:** one run of 3 jobs on `ibm_fez` (2026-10-29), angles tuned on the simulator and not re-tuned on
+  hardware, no error mitigation. Hardware noise lowers feasibility as the transpiled circuit grows (337 to 942
+  two-qubit gates for p = 1 to 3), so the hardware rows are worse than the simulator; this is reported as measured.
+  That run was made on a Windows machine where antivirus intercepts all TLS (even 127.0.0.1), so the
+  handshake capture and gates were skipped there; the handshake evidence comes from the macOS runs.
 - **QpiAI platform status:** QpiAI Opt platform MILP submissions were rejected ("no active storage
   quota found for organization") and QCloud job creation was rejected ("an active subscription is
   required to run jobs"); no platform job was created. Scheduling uses free local QpiAI Opt solves
@@ -298,17 +304,21 @@ Default runs never submit QpiAI Opt or QCloud jobs (`QSHIELD_FORBID_PLATFORM=1`;
 ./run_demo.sh --platform          # 2 QpiAI Opt platform jobs (main plan), same input also solved locally
 ./run_demo.sh --qcloud            # 3 QCloud jobs on QpiAI-QSV-Simulator only (one final circuit per p)
 ./run_demo.sh --qcloud --allow-more   # past the 10-submissions-per-UTC-day cap
+python -m qaoa --qpiai-local --ibm    # 3 IBM Quantum jobs on ibm_fez (real hardware, free Open Plan minutes)
+python -m qaoa --ibm-fetch            # pick up IBM jobs that were still queued; submits nothing
 ```
 
 Each submission is announced ("Submitting N ... jobs"), logged to `runs/platform_jobs.log` and the
 run directory, refused past the daily cap, and stopped after the first failure; real hardware
 (`QpiAI-Indus-1`) is refused. Platform and local results are reported side by side, never merged.
+IBM runs use the same guard plus a pre-submit QPU estimate (see [IBM Quantum hardware run](#ibm-quantum-hardware-run-ibm_fez)).
 
 ## Version pins
 
 - Python 3.12; `requirements.txt` pins the direct imports: cryptography 50.0.2, jsonschema 4.26.0,
   numpy 2.5.4, psutil 7.2.2, pytest 9.1.1, **qpiai-opt 0.0.9**, **qpiai-quantum 0.3.0**, rich 15.0.0,
-  scipy 1.18.1. `requirements-lock.txt` is the full environment snapshot; `environment.yml` adds
+  scipy 1.18.1, optional truststore 0.10.5. The IBM path also needs qiskit 2.6.1 and
+  qiskit-ibm-runtime 0.51.0 (imported only by `python -m qaoa --ibm`). `requirements-lock.txt` is the full environment snapshot; `environment.yml` adds
   conda-forge `openssl=3.6.5`.
 - OpenSSL: `config/lab.json` `openssl` records the binary path and version used
   (OpenSSL 3.6.5, conda-forge `h55eecbc_0`) and the required X25519MLKEM768 / ML-DSA-65 support.
@@ -321,7 +331,7 @@ run directory, refused past the daily cap, and stopped after the first failure; 
 python -m detect --lab-probe web-gw=legacy  # or --probe SERVICE=HOST:PORT
 python -m schedule --inventory out/inventory.json [--platform]
 python -m capture && python -m gates
-python -m qaoa [--qpiai-local] [--qcloud]
+python -m qaoa [--qpiai-local] [--qcloud] [--ibm] | --ibm-fetch
 python -m ledger ingest && python -m ledger verify   # also: python -m ledger proof N, keygen
 python -m contracts.assemble && python -m contracts validate results out/results.json
 python -m viz [--no-browser]
@@ -459,8 +469,8 @@ the anchor in `results.json` is only as trustworthy as wherever results.json is 
 
 ## QAOA cross-check (`qaoa/`)
 
-> **QAOA on simulators. A measured cross-check against the exact optimum. No quantum advantage
-> claimed; the problem is small enough for brute force.**
+> **QAOA on simulators and, once, on IBM ibm_fez hardware. A measured cross-check against the exact
+> optimum. No quantum advantage claimed; the problem is small enough for brute force.**
 
 - **QUBO** (`qaoa/qubo.py`): one week of the latest schedule. Candidates are assets not migrated
   before that week; at most 10 assets + ceil(log2(C+1)) slack bits, at most 16 variables. The candidate set is
@@ -488,7 +498,9 @@ the anchor in `results.json` is only as trustworthy as wherever results.json is 
   created: first `Experiment 'qshield-qaoa-crosscheck' not found` (the SDK cannot create experiments;
   now uses the existing `Default Experiment`, checked read-only before submitting), then
   `Failed to create job: an active subscription is required to run jobs`. The account shows 0 QCloud
-  jobs. All QAOA numbers so far come from the local numpy simulator and the random baseline.
+  jobs. QAOA numbers come from the local numpy simulator, the QpiAI SDK local simulator, the random
+  baseline and the IBM hardware run below.
+- **IBM Quantum** (`qaoa/ibm_run.py`, opt-in `python -m qaoa --ibm`): see the next section.
 - **Metrics** (`qaoa/metrics.py`): feasible fraction; best feasible objective; approximation ratio =
   best_feasible / exact_optimum (both <= 0, so 1 = optimum found); energy ratio
   (E_max - mean E)/(E_max - E_min); probability of the exact optimal bitstring and of the optimal asset set.
@@ -501,6 +513,95 @@ the anchor in `results.json` is only as trustworthy as wherever results.json is 
 - **Reading the results:** at this size the approximation ratio saturates at 1 even for random sampling
   (2048 shots over 2^14 states hit the optimum by chance), so feasible fraction, energy ratio and
   P(optimal set) are the informative comparisons. The QAOA run is signed into the ledger (`qaoa.run`).
+
+## IBM Quantum hardware run (`ibm_fez`)
+
+> **QAOA on one real QPU. A measured cross-check against the exact optimum. No quantum advantage claimed;
+> hardware noise is expected to lower feasibility at this circuit depth, and it does.**
+
+Same 14-variable wave problem as above (week 1, 10 assets + 4 slack bits; exact optimum −0.346154 = migrate
+`backup` and `statements`). The circuits are the final simulator-tuned circuits per p, rebuilt in Qiskit
+(gate conventions and bit order checked against the numpy state in `tests/test_qaoa_ibm.py`), transpiled
+for the backend (optimization level 3, seed 7) and sampled once per p with 2048 shots.
+
+**How it is run safely**
+- Token only from `$IBM_QUANTUM_TOKEN` (git-ignored `.env.sh`); never printed, logged or exported.
+- Backend allowlist (`config/qaoa.json` `ibm.allowed_backends`, only `ibm_fez`); at most 3 jobs per run
+  (`ibm.max_jobs_per_run`); refused under pytest; shares the platform guard (announce, `runs/platform_jobs.log`,
+  10 submissions per UTC day unless `--allow-more`).
+- Before anything is submitted, all circuits are transpiled and the run prints an estimated QPU time
+  (shots × (repetition delay + circuit duration) + 5 s per job: our conservative assumption, not IBM's billing
+  formula) and the instance's remaining budget from `QiskitRuntimeService.usage()`. It stops if the estimate
+  exceeds `ibm.max_estimated_qpu_s` (90 s) or the remaining budget.
+- One shared wait of `ibm.wait_s` (20 min); jobs still queued are saved with their IDs and collected later by
+  `python -m qaoa --ibm-fetch`, which submits nothing.
+- TLS: if the optional `truststore` package is installed, IBM connections are verified against the OS
+  certificate store (needed behind HTTPS-scanning antivirus that re-signs traffic with a root only the OS
+  trusts). Certificate verification is never disabled; without the package nothing changes.
+
+**Results** (run `152aa6e0`, 2026-10-29T17:07:44Z; pre-submit estimate 16.7 QPU s with 594 s left on the
+instance; all 3 jobs DONE; signed into the ledger as `qaoa.run`, entry #3)
+
+| p | backend | feasible | P(optimal set) | energy ratio | transpiled depth | 2-qubit gates (CZ) | QPU s | IBM job ID |
+|---|---|---|---|---|---|---|---|---|
+| 1 | numpy simulator | 0.0942 | 0.0132 | 0.9833 | – | – | – | none (local) |
+| 1 | **ibm_fez** | 0.0664 | 0.0088 | 0.9469 | 445 | 337 | 3 | `dbhnpos2d77s739d3sv0` |
+| 2 | numpy simulator | 0.1826 | 0.0142 | 0.9888 | – | – | – | none (local) |
+| 2 | **ibm_fez** | 0.0444 | 0.0044 | 0.9108 | 641 | 621 | 3 | `dbhnpp42d77s739d3svg` |
+| 3 | numpy simulator | 0.1865 | 0.0142 | 0.9893 | – | – | – | none (local) |
+| 3 | **ibm_fez** | 0.0146 | 0.0029 | 0.8522 | 984 | 942 | 3 | `dbhnppene4hc73bd9480` |
+| – | uniform random | 0.0034 | 0.0010 | 0.8109 | – | – | – | – |
+
+The QpiAI SDK local simulator rows of the same run (0.1216 / 0.1924 / 0.1562 feasible) agree with numpy within
+4σ. Source of every number: the tracked package `data/real_ibm_qaoa/` (exported by `python tools/export_ibm_run.py`
+from `out/results.json`, `runs/152aa6e0…/ibm_p*.json`, `runs/platform_jobs.log` and the ledger): schedule and config
+the QUBO was built from, the QUBO and exact optimum, angles per p, raw counts, job IDs, transpile stats and physical
+layout, QPU seconds, timestamps, metrics, package versions, and `manifest.json` with the SHA-256 of every file.
+
+**Reproducing the IBM rows on another machine (no IBM access needed)**
+```bash
+git pull                                                        # brings data/real_ibm_qaoa/
+python -m qaoa --qpiai-local --schedule data/real_ibm_qaoa/schedule.json   # same problem, local rows
+python -m qaoa --ibm-import data/real_ibm_qaoa                  # attach the ibm_fez rows
+python -m ledger ingest && python -m ledger verify && python -m contracts.assemble && python -m atlas report
+```
+The importer verifies every SHA-256 in the manifest, rebuilds the QUBO from the packaged schedule and config,
+refuses a QAOA section whose problem differs, and recomputes every metric from the raw counts, refusing if
+they differ from the saved metrics. The rows are labelled "IBM ibm_fez, imported from data/real_ibm_qaoa (run
+executed 2026-10-29 on another machine)" (shown in the provenance tooltips and the report); the job IDs are
+IBM's. If that machine's own `out/schedule.json` gives a different week-1 problem, the QAOA section then describes
+the packaged problem (its `schedule_sha256` is the packaged schedule's), not the local plan; if the problems are
+equal, the `--schedule` flag can be dropped. Tests: `tests/test_qaoa_ibm_import.py`, `tests/test_real_ibm_qaoa.py`.
+
+**Reading it honestly**
+- At p = 1 the hardware keeps about 70 % of the simulator's feasible share and stays well above random.
+- As p grows, the simulator improves slightly but the hardware gets worse: the circuit sent grows from 337 to
+  942 two-qubit gates across 14 physical qubits, and accumulated gate noise pushes the samples towards the
+  uniform distribution. At p = 3 the hardware's feasible share (0.0146) is about 4× random and 13× below the
+  simulator.
+- The z-score comparison against the simulator flags the hardware rows as different at every p
+  (feasible-fraction z = 3.3, 13.9, 18.3); both are reported, neither replaces the other.
+- No error mitigation, dynamical decoupling or hardware-aware angle re-tuning was used; these would be the
+  next things to try. The exact optimum is still found by brute force; QAOA here is a measured cross-check.
+
+**Where it shows up**
+- `out/results.json` `qaoa.table`: rows with `source: "ibm"` carry a `hardware` block (backend, job ID, QPU
+  seconds, transpiled depth, 2-qubit gate count); queued or failed jobs show their status text, never numbers
+  (`contracts/results.schema.json`).
+- atlas_web QAOA page (`/w/<ws>/qaoa`): a "Real hardware · IBM ibm_fez" badge, copyable job IDs, depth / 2q
+  gates / QPU seconds with provenance tooltips, a feasible-share card for the hardware, and a third (middle)
+  ibm_fez layer in the probability cloud.
+- `out/report.html` (`python -m atlas report`): a "Real hardware" table in the QAOA section.
+- `DEMO.md` section 6b: a 15-second hardware beat.
+
+**Rerun**
+```bash
+source .env.sh                         # IBM_QUANTUM_TOKEN (and QPIAI_OPT_API_KEY for the schedule step)
+python -m qaoa --qpiai-local --ibm     # prints the estimate, then "Submitting 1 IBM Quantum jobs" x3
+python -m qaoa --ibm-fetch             # only if jobs were still queued
+python -m ledger ingest && python -m ledger verify && python -m contracts.assemble && python -m atlas report
+python tools/export_ibm_run.py         # rewrite the data/real_ibm_qaoa/ package from this run
+```
 
 ## Visualisation (`viz/`)
 
