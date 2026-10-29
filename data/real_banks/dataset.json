@@ -1,0 +1,16 @@
+{
+ "url": "https://github.com/CCAgentOrg/bank-in-domains",
+ "commit": "7b161ae37caa39703db0e9fd6b51ab8521a02da4",
+ "license": "CC0 1.0",
+ "csv_sha256": {
+  "data/bank_domains_ct_expansion.csv": "87c7ddf8f2f98c9bd5078079a1d0410bd56f95112182f04436ab92cc7484d497",
+  "data/bank_domains_status.csv": "a5d707c00716ff65d42686544bee692213692b11dc97d6a19633bde8f14c4d41",
+  "data/bank_tld_domains_status.csv": "b70cf642641e57a6f3bdf7e9e3c5e69145ea956a31ee05c68c29a92e035909ca",
+  "data/ct_new_subdomains.csv": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "data/fin_in_domains_status.csv": "4ffe33513209da8997908d5d71effb1393ddb2cca6f6ed2a24b28ce8ea97979e",
+  "data/insurance_in_domains_status.csv": "dcee96a6a45b44a416dd5ea99d2dbc70b7fb420d30befe426a2ec97eff44ad96",
+  "data/nbfc_in_domains_status.csv": "a12b8f068d44c0b9416cae90b8b97d86073b7b664e73999ec47c57eb566105b7",
+  "data/npci_in_domains_status.csv": "664b800732a709aeb13e1c2ccc9ec278dd195df559a476cc505b3faae3373307"
+ },
+ "selection": "(deterministic): https_works == True; host names whose tokens contain uat/dev/test/stg/staging/sit/\npreprod/cug/internal/vpn/admin are excluded; only the apex, www. and netbanking. host of each bank (at most 3);\nbanks taken in SHA-256(bank name) order (a reproducible spread, not a ranking) until 60 hosts."
+}

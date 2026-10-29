@@ -81,6 +81,12 @@ The UI's step names are generated from that file (`python -m contracts.stages --
 - `data/real_crypto_observations.csv` is **real**. It holds static-scan findings in two public repositories at pinned
   commits (Online Boutique, OpenTelemetry Demo), plus live TLS 1.3 handshakes with `pq.cloudflareresearch.com`
   (X25519MLKEM768) and `www.gnu.org` (X25519, classical).
+- `data/real_banks/` is **real**. It holds one polite TLS 1.3 handshake with each of 60 public Indian bank endpoints,
+  chosen from the CC0 [bank-in-domains](https://github.com/CCAgentOrg/bank-in-domains) dataset at commit `7b161ae`
+  (`python tools/scan_banks.py targets|scan|publish`).
+  - Each endpoint is classified as hybrid post-quantum, classical, or unreachable.
+  - The scan is signed into the `real-banks` workspace's Proof Chain.
+  - Any migration Atlas shows for these endpoints is a planned migration (simulation); no bank system is changed.
 - `data/SYNTHETIC_mock_bank_assets.csv` is **synthetic**. It is the fictional 16-asset mock-bank inventory the demo
   schedules. The names are invented and this is not real data.
 - Risk, effort and shelf-life values are assumptions (`config/assumptions.json`), not data.

@@ -6,6 +6,7 @@ so every row can be traced back to a logged run (`run_id`, `observed_at_utc`).
 | File | Real or synthetic | What it is |
 |---|---|---|
 | `real_crypto_observations.csv` | **Real** | Crypto found in two public repositories at pinned commits, plus live TLS 1.3 handshakes with two public endpoints |
+| `real_banks/targets.csv`, `real_banks/scan_<date>.csv` | **Real** | One TLS handshake with each of 60 public Indian bank endpoints (CC0 dataset, pinned). See `real_banks/DATA_DICTIONARY.md` |
 | `SYNTHETIC_mock_bank_assets.csv` | **Synthetic** | The fictional 16-asset mock-bank inventory the demo schedules. All names are invented. Not real data |
 
 What is *not* here:
