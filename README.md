@@ -250,6 +250,24 @@ size, 16 variables (`out/bench.json`, run `f1e23e14…`, 2026-10-29):
 
 ## Quickstart
 
+### Fresh clone (judges)
+
+```bash
+git clone https://github.com/Yojan-ui/q-shield-atlas.git && cd q-shield-atlas
+conda create -n pqc -c conda-forge python=3.12 openssl=3.6.5 -y
+conda activate pqc
+pip install -r requirements.txt
+pip install qpiai-opt==0.0.9 qpiai-quantum==0.3.0     # QpiAI SDKs (already pinned in requirements.txt)
+cp .env.example .env.sh                              # optional: fill in your keys
+python -m atlas_web create-user --role admin         # first user; password prompt
+./run.sh                                             # then open http://127.0.0.1:8000
+```
+
+Without keys, the web app runs and shows the recorded results, and QAOA uses the local QpiAI-QSV-Local simulator.
+Starting a new pipeline run needs a free `QPIAI_OPT_API_KEY`, because local QpiAI Opt solves check the key online.
+
+### Full setup
+
 ```bash
 # 1. Environment: Python 3.12 + OpenSSL 3.6.5 + the pinned QpiAI SDKs (qpiai-opt 0.0.9, qpiai-quantum 0.3.0)
 conda env create -f environment.yml && conda activate pqc
