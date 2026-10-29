@@ -21,7 +21,7 @@ export const POSES = {
 export function createWorld(host) {
   const w = {
     host, webgl: false, THREE: null, ready: null, layer: null, pose: "void", stats: { fps: 0, worstFrameMs: 0, drawCalls: 0, dpr: 1 },
-    go, mount, focus, frameStage, onPick, uniforms: null, reduced: prefersReducedMotion(), shake() {}, lift() {},
+    go, mount, focus, fit, frameStage, onPick, uniforms: null, reduced: prefersReducedMotion(), shake() {}, lift() {},
   };
   window.__atlasWorld = w;
   // three.js (~690 KB) is fetched only when a page first opens a 3D stage or mounts a layer, never on 2D-only pages.
@@ -37,7 +37,10 @@ export function createWorld(host) {
   function go(name, opts) { w._go = [name, opts]; if (w._init) w._go2(name, opts); }
   function mount(name, factory) { w._mount = [name, factory]; if (factory) start(); if (w._init) return w._mount2(name, factory); return null; }
   function focus(v, d) { if (w._init) w._focus2(v, d); }
-  function frameStage(el) { w.stage = el || null; if (el) start(); }
+  // camera auto-fit: points (in `group`'s local space) fill ~`fill` of the stage's smaller field of view; the request
+  // is remembered and re-applied when the stage resizes or the layer is replaced
+  function fit(group, points, fill = 0.8) { w._fit = points && points.length ? { group, points, fill } : null; if (w._init) w._fit2(); }
+  function frameStage(el) { w.stage = el || null; if (el) start(); if (w._observeStage) w._observeStage(w.stage); }
   function onPick(fn) { w.pick = fn; }
   return w;
 }
@@ -100,6 +103,22 @@ function init(w, THREE) {
     w.pose = name;
     flyTo(new THREE.Vector3(...p.pos), new THREE.Vector3(...p.at), direction);
   };
+  w._fit2 = () => {
+    const f = w._fit, el = w.stage;
+    if (!f || !el) return;
+    const sr = el.getBoundingClientRect();
+    if (sr.width < 2 || sr.height < 2) return;  // not laid out yet: the ResizeObserver refits once it has a size
+    f.group.updateMatrixWorld(true);
+    const P = f.points.map((p) => f.group.localToWorld(new THREE.Vector3(p[0], p[1], p[2])));
+    const lo = P.reduce((a, p) => a.min(p), P[0].clone()), hi = P.reduce((a, p) => a.max(p), P[0].clone());
+    const c = lo.clone().add(hi).multiplyScalar(0.5), R = Math.max(0.5, ...P.map((p) => p.distanceTo(c)));
+    const b = el.getBoundingClientRect(), v = (camera.fov * Math.PI) / 360, hz = Math.atan(Math.tan(v) * (b.width / Math.max(1, b.height)));
+    // a bounding sphere is loose around flat or deep layouts: aim it slightly past the view edge so the data fills ~fill
+    w._focus2([c.x, c.y, c.z], R / Math.sin(Math.min(1.45, (f.fill / 0.8) * 1.05 * Math.min(v, hz))) / Math.hypot(0.6, 0.45, 0.8));
+  };
+  let fitTimer = 0;
+  const ro = typeof ResizeObserver === "function" ? new ResizeObserver(() => { clearTimeout(fitTimer); fitTimer = setTimeout(() => w._fit2(), 150); }) : null;
+  w._observeStage = (el) => { if (ro) { ro.disconnect(); if (el) ro.observe(el); } };
   w._focus2 = (v, dist = 7) => {
     const at = new THREE.Vector3(...v);
     flyTo(at.clone().add(new THREE.Vector3(dist * 0.6, dist * 0.45, dist * 0.8)), at, "forward");
@@ -117,7 +136,7 @@ function init(w, THREE) {
   // ---- layers ----
   w._mount2 = (name, factory) => {
     if (w.layer) { try { w.layer.dispose && w.layer.dispose(); } catch (e) { setTimeout(() => { throw e; }, 0); } disposeTree(w.layer.group); root.remove(w.layer.group); }
-    w.layer = null;
+    w.layer = null; w._fit = null;  // a new layer asks for its own fit
     w.uniforms.uWeek.value = 1e6; w.uniforms.uScenario.value = 0; // each route starts from the recorded end state
     if (!factory) return null;
     const group = new THREE.Group();
@@ -261,6 +280,7 @@ function init(w, THREE) {
   w._init = true;
   loop();
   if (w._go) w._go2(...w._go);
+  if (w._observeStage) w._observeStage(w.stage);
   if (w._mount) w._mount2(...w._mount);
   return w;
 }

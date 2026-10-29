@@ -36,7 +36,7 @@ export function buildLanes3d({ THREE, world, group }, lanes, { labelsEl, stageEl
     const cur = document.createElement("span"); cur.className = "pl3-label"; cur.hidden = true; labelsEl.append(cur);  // shown once placed
     return { y, z, pk, title, cur, shown: -2 };
   });
-  world.focus([0, ((lanes.length - 1) * LANE) / 2, 0], 13 + lanes.length * 1.5);
+  world.fit(group, [[SX - 1.6, -0.7, -0.8], [RX + 1.6, (lanes.length - 1) * LANE + 1.9, 0.8]]);  // auto-fit, refit on resize
   const v = new THREE.Vector3();
   const LB = [...L.map((l) => ({ e: l.title, x: 0, y: 0 })), ...L.map((l) => ({ e: l.cur, x: 0, y: 0, below: true }))], placed = [];  // titles first
   const place = (k, x, y, z, b) => {

@@ -299,8 +299,8 @@ dialog.confirm .actions { display: flex; justify-content: flex-end; gap: var(--s
 }
 
 /* ---------- 3D stage window + debug HUD ---------- */
-.stage { position: relative; height: clamp(260px, 50vh, 540px); border-top: var(--rule) solid var(--hairline); border-bottom: var(--rule) solid var(--hairline); cursor: default; }
-.stage.tall { height: clamp(320px, 64vh, 680px); }
+.stage { position: relative; height: max(360px, min(60vh, 640px)); border-top: var(--rule) solid var(--hairline); border-bottom: var(--rule) solid var(--hairline); cursor: default; }
+.stage.tall { height: max(360px, 60vh); }
 .stage.flat { height: auto; border: 0; }
 .stage .stage-note { padding: var(--s-3) 0; }
 .stage-legend { position: absolute; left: 0; bottom: var(--s-3); display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); font-size: var(--fs-16); color: var(--text-2); pointer-events: none; }

@@ -56,6 +56,7 @@ export function buildLedger(L, { stageEl, onPick }) {
     const shard = new THREE.Mesh(new THREE.TetrahedronGeometry(0.3), new THREE.MeshBasicMaterial({ color: 0xff4d5e }));
     shard.visible = false; group.add(shard);
     group.position.y = -0.5;
+    world.fit(group, nodes.map((d) => [d.x, d.y, 0]));  // the whole tower, auto-fit
     let anim = null;
     return {
       pickables: [leafMesh],

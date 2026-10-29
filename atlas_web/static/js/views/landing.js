@@ -30,19 +30,8 @@ export async function mount(ctx) {
     world.uniforms.uWeek.value = 0; // HARVEST: before any wave, everything is still classical
     world.uniforms.uIntro.value = world.reduced ? 1 : 0;
     if (world.reduced) reveal();
-    // camera auto-fit to the scene bounds: the sphere is loose around this deep layout, so it is fitted slightly past the view edge (the data itself then fills ~80 %); refit on resize
     const pts = (scene.nodes || []).map((n) => n.pos);
-    const fit = () => {
-      if (!pts.length) return;
-      const c = [0, 1, 2].map((k) => (Math.min(...pts.map((p) => p[k])) + Math.max(...pts.map((p) => p[k]))) / 2);
-      const R = Math.max(1, ...pts.map((p) => Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]))) + 0.7;
-      const b = stageEl.getBoundingClientRect(), v = (world.camera.fov * Math.PI) / 360, hz = Math.atan(Math.tan(v) * (b.width / Math.max(1, b.height)));
-      world.focus([c[0] + group.position.x, c[1] + group.position.y, c[2] + group.position.z], R / Math.sin(1.05 * Math.min(v, hz)) / Math.hypot(0.6, 0.45, 0.8));
-    };
-    fit();
-    let rt = 0;
-    const ro = new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(fit, 150); });
-    ro.observe(stageEl);
+    world.fit(group, pts, 0.85);  // camera auto-fit to the data, refit on resize
     // labels for the three systems with the highest risk weight (results.json assets)
     const top = [], tmp = new THREE.Vector3();
     resultsP.then((res) => {
@@ -64,7 +53,7 @@ export async function mount(ctx) {
           t.e.style.transform = `translate(${((tmp.x + 1) / 2) * b.width}px, ${((1 - tmp.y) / 2) * b.height}px) translate(-50%, -100%)`;
         }
       }
-    }, dispose() { ro.disconnect(); clearTimeout(rt); labels3d.replaceChildren(); if (base.dispose) base.dispose(); } };
+    }, dispose() { labels3d.replaceChildren(); if (base.dispose) base.dispose(); } };
   })).catch(reveal);
   const go = (to) => (ctx.me ? to : `/signin?next=${encodeURIComponent(to)}`);
   const numsEl = h("div", { class: "ld-nums" }, statSkeleton());

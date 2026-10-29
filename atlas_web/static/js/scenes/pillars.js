@@ -30,7 +30,7 @@ export function buildPillars({ THREE, world, group }, items, { labelsEl, stageEl
   const v = new THREE.Vector3(), L = items.map((it, i) => ({ e: labels[i], x: 0, y: 0, below: i % 2 === 1, off: false })), placed = [];
   let clock = 0;
   const tallest = Math.max(...items.map((it) => pillarHeight(it.h)));
-  world.focus([0, tallest / 2, 0], Math.max(8, n * GAP * 0.55 + 4, tallest * 1.8 + 4));
+  world.fit(group, [[pillarX(0, n) - 1.2, -0.7, -0.6], [pillarX(n - 1, n) + 1.2, tallest + 0.9, 0.6]]);  // auto-fit, refit on resize
   const set = (i, state) => {
     const it = items[i]; if (!it) return;
     it.state = state;

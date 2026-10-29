@@ -168,7 +168,9 @@ export function buildGraph({ THREE, world, group }, G, L, { reduced, labelsEl, s
     hg.setDrawRange(0, k * 2); hg.attributes.position.needsUpdate = true;
     if (onSelect) onSelect(i >= 0 ? nodes[i] : null);
   };
-  const reset = () => { graph.rotation.set(0, 0, 0); if (world.resetOrbit) world.resetOrbit(); world.focus([0, 0, 0], L.radius * 2.6 + 6); };
+  const step = Math.max(1, Math.floor(n / 400)), FITPTS = [];  // a sample of node positions is enough to frame the graph
+  for (let i = 0; i < n; i += step) FITPTS.push([P[i * 3], P[i * 3 + 1], P[i * 3 + 2]]);
+  const reset = () => { graph.rotation.set(0, 0, 0); if (world.resetOrbit) world.resetOrbit(); world.fit(graph, FITPTS); };
   reset();
   return {
     pickables: [mesh],
