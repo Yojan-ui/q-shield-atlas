@@ -69,7 +69,7 @@ void main() {
 }`;
 const EDGE_FS = `varying float vGlow; void main() { gl_FragColor = vec4(0.36, 0.88, 0.90, vGlow); }`;
 
-export function buildLattice(THREE, group, scene, uniforms, { beamScale = 0.5, grid = true } = {}) {
+export function buildLattice(THREE, group, scene, uniforms, { beamScale = 0.5, grid = true, nodeScale = 1 } = {}) {
   const nodes = scene.nodes || [];
   const scen = (scene.scenarios || []).map((s) => s.name);
   const U = { ...uniforms, uBeamScale: { value: beamScale } };
@@ -79,7 +79,7 @@ export function buildLattice(THREE, group, scene, uniforms, { beamScale = 0.5, g
   const attrs = (count) => ({ state: new Float32Array(count), week: new Float32Array(count), exp: new Float32Array(count * 3), seed: new Float32Array(count), from: new Float32Array(count * 3) });
   const a = attrs(n);
   const m = new THREE.Matrix4();
-  const crystals = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.42, 0),
+  const crystals = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.42 * nodeScale, 0),
     new THREE.ShaderMaterial({ vertexShader: CRYSTAL_VS, fragmentShader: CRYSTAL_FS, uniforms: U, transparent: true }), n);
   const beams = new THREE.InstancedMesh(new THREE.BoxGeometry(0.05, 1, 0.05).translate(0, 0.5, 0),
     new THREE.ShaderMaterial({ vertexShader: BEAM_VS, fragmentShader: BEAM_FS, uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), n);
