@@ -3,6 +3,9 @@ import { createApi, ApiError } from "./api.js";
 import { installTooltip } from "./components/tooltip.js";
 import { installToasts, toast } from "./components/toast.js";
 import { installRailKeys, strip as makeStrip } from "./components/strip.js";
+import { installPalette } from "./components/palette.js";
+import { sound } from "./sound.js";
+import { MOTION, prefersReducedMotion } from "./motion.js";
 import { h } from "./dom.js";
 import { ROUTES } from "./routes.js";
 import { createTable, direction, resolve, safeNext } from "./router.js";
@@ -137,6 +140,11 @@ async function render(dir = "replace") {
   world.mount("none", null);
   world.frameStage(null);
   world.go(forbidden ? "void" : route.camera, { direction: dir });
+  if (dir !== "replace" && !prefersReducedMotion()) {  // a route change is a shot: brief letterbox while the camera flies
+    document.body.classList.remove("shot"); void document.body.offsetWidth; document.body.classList.add("shot");
+    setTimeout(() => document.body.classList.remove("shot"), MOTION.shotMs);
+  }
+  sound.hum(route.name === "landing");
 
   let mod;
   try { mod = await loadModule(`/assets/js/views/${viewName}.js`); }
@@ -175,6 +183,7 @@ async function boot() {
   if (app.kiosk) top.querySelectorAll(".user button").forEach((b) => b.remove());
   await loadWorkspaces();
   installRailKeys((to) => navigate(to), () => (app.me ? app.ws : null));
+  installPalette({ navigate, store, getState: () => ({ me: app.me, ws: app.ws, workspaces: app.workspaces }) });
   await render("replace");
   document.body.dataset.ready = "1";
   document.body.dataset.readyAt = String(Math.round(performance.now()));

@@ -107,7 +107,7 @@ export async function mount(ctx) {
 
   const stageEl = stage(ctx, { label: "The workspace's services in THE LATTICE; the world reflects the latest results of this workspace." });
   ctx.store.get(ctx.ws, "scene", { signal: ctx.signal }).then((scene) => mountScene(ctx, "pipeline", scene, ({ THREE, world, group }) => {
-    buildLattice(THREE, group, scene, world.uniforms); world.uniforms.uWeek.value = 1e6; return {};
+    const L = buildLattice(THREE, group, scene, world.uniforms); world.uniforms.uWeek.value = 1e6; return L.hooks(ctx, stageEl);
   })).catch(() => {});
   ctx.root.append(h("div", { class: "grid" },
     h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Pipeline", lede: "The eleven steps of run_demo.sh, run as the existing module CLIs with this workspace's paths. Each station lights when its step completes.",

@@ -21,7 +21,7 @@ export const POSES = {
 export function createWorld(host) {
   const w = {
     host, webgl: false, THREE: null, ready: null, layer: null, pose: "void", stats: { fps: 0, worstFrameMs: 0, drawCalls: 0, dpr: 1 },
-    go, mount, focus, frameStage, onPick, uniforms: null, reduced: prefersReducedMotion(),
+    go, mount, focus, frameStage, onPick, uniforms: null, reduced: prefersReducedMotion(), shake() {}, lift() {},
   };
   window.__atlasWorld = w;
   if (!hasWebGL() || new URLSearchParams(location.search).has("no3d")) { w.ready = Promise.resolve(w); return w; }
@@ -54,14 +54,40 @@ function init(w, THREE) {
   const root = new THREE.Group();
   scene.add(root);
   Object.assign(w, { scene, camera, root });
-  w.uniforms = { uTime: { value: 0 }, uWeek: { value: 1e6 }, uScenario: { value: 0 }, uPulse: { value: 0 }, uMorph: { value: 1 } };
+  w.uniforms = { uTime: { value: 0 }, uWeek: { value: 1e6 }, uScenario: { value: 0 }, uPulse: { value: 0 }, uMorph: { value: 1 },
+    uIntro: { value: 1 }, uFocus: { value: -1 }, uLift: { value: 0 } };
+  // post pass: film grain 3 %, vignette, chromatic aberration <= 0.6 px at the frame edges only (no bloom on text: text is DOM)
+  const rt = new THREE.WebGLRenderTarget(4, 4, { samples: 4 });
+  const post = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+    uniforms: { tScene: { value: rt.texture }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: w.uniforms.uTime, uCA: { value: 1 } },
+    vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
+    fragmentShader: `uniform sampler2D tScene; uniform vec2 uRes; uniform float uTime; uniform float uCA; varying vec2 vUv;
+      void main(){ vec2 d = vUv - 0.5; float r = dot(d, d); vec2 off = d * r * uCA * 2.4 / uRes;
+        vec3 c = vec3(texture2D(tScene, vUv + off).r, texture2D(tScene, vUv).g, texture2D(tScene, vUv - off).b);
+        c *= 1.0 - smoothstep(0.18, 0.62, r) * 0.55;
+        float g = fract(sin(dot(vUv * uRes + uTime * 61.0, vec2(12.9898, 78.233))) * 43758.5453);
+        gl_FragColor = vec4(c + (g - 0.5) * 0.03, 1.0); }`, depthTest: false, depthWrite: false }));
+  const postScene = new THREE.Scene(), postCam = new THREE.Camera();
+  postScene.add(post);
+  let fx = 2; // quality ladder: 2 = post + chromatic, 1 = post only, 0 = direct render
+  // drifting dust in the fog: the only idle motion besides breathing (shader-driven, one draw call)
+  const dustN = 360, dustPos = new Float32Array(dustN * 3);
+  for (let i = 0; i < dustN; i++) dustPos.set([(Math.random() - 0.5) * 40, (Math.random() - 0.5) * 18, (Math.random() - 0.7) * 40], i * 3);
+  const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute("position", new THREE.BufferAttribute(dustPos, 3));
+  scene.add(new THREE.Points(dustGeo, new THREE.ShaderMaterial({ uniforms: { uTime: w.uniforms.uTime }, transparent: true, depthWrite: false,
+    vertexShader: "uniform float uTime; varying float vA; void main(){ vec3 p = position; p.y += sin(uTime * 0.07 + position.x) * 0.6; p.x += uTime * 0.05; p.x = mod(p.x + 20.0, 40.0) - 20.0; vec4 mv = modelViewMatrix * vec4(p, 1.0); vA = clamp(1.0 - (-mv.z) / 45.0, 0.0, 1.0); gl_PointSize = 1.6; gl_Position = projectionMatrix * mv; }",
+    fragmentShader: "varying float vA; void main(){ gl_FragColor = vec4(0.55, 0.62, 0.7, 0.35 * vA); }" })));
 
   // ---- camera flights (spline, ease-in-out-cubic with soft settle; reverse arc on back) ----
   const cam = { pos: new THREE.Vector3(...POSES.void.pos), at: new THREE.Vector3(...POSES.void.at) };
   camera.position.copy(cam.pos); camera.lookAt(cam.at);
   let flight = null;
+  const orbit = { yaw: 0, pitch: 0, vy: 0, vp: 0, dolly: 1, drag: null }, shake = { t: 0 }, spring = { x: 0, v: 0, target: 0 };
+  w.shake = () => { if (!w.reduced) shake.t = 200; };
+  w.lift = (on) => { spring.target = on ? 1 : 0; };
   w._go2 = (name, { direction = "forward" } = {}) => {
     const p = POSES[name] || POSES.void;
+    Object.assign(orbit, { yaw: 0, pitch: 0, vy: 0, vp: 0, dolly: 1 });
     w.pose = name;
     flyTo(new THREE.Vector3(...p.pos), new THREE.Vector3(...p.at), direction);
   };
@@ -111,7 +137,21 @@ function init(w, THREE) {
     parallax = [(e.clientX / innerWidth - 0.5) * 2, (e.clientY / innerHeight - 0.5) * 2];
     if (w.layer && w.layer.hover) w.layer.hover(pickAt(e), e);
   }, { passive: true });
-  addEventListener("click", (e) => { if (w.layer && w.layer.click) { const hit = pickAt(e); if (hit) w.layer.click(hit, e); } });
+  addEventListener("click", (e) => { if (w.layer && w.layer.click && !orbit.moved) { const hit = pickAt(e); if (hit) w.layer.click(hit, e); } });
+  addEventListener("dblclick", (e) => { if (w.layer && w.layer.dblclick) { const hit = pickAt(e); if (hit) w.layer.dblclick(hit, e); } });
+  // grab and orbit (inertia + damping); pinch / ⌥-scroll dollies (plain scroll keeps scrolling the page)
+  addEventListener("pointerdown", (e) => { if (e.target instanceof Element && e.target.closest("[data-stage]") && w.layer) { orbit.drag = [e.clientX, e.clientY]; orbit.moved = false; } });
+  addEventListener("pointermove", (e) => {
+    if (!orbit.drag) return;
+    const dx = e.clientX - orbit.drag[0], dy = e.clientY - orbit.drag[1];
+    if (Math.abs(dx) + Math.abs(dy) > 3) orbit.moved = true;
+    orbit.vy = -dx * 0.005; orbit.vp = dy * 0.003; orbit.drag = [e.clientX, e.clientY];
+  }, { passive: true });
+  addEventListener("pointerup", () => { orbit.drag = null; setTimeout(() => { orbit.moved = false; }, 0); });
+  addEventListener("wheel", (e) => {
+    if (!(e.ctrlKey || e.altKey) || !(e.target instanceof Element && e.target.closest("[data-stage]"))) return;
+    e.preventDefault(); orbit.dolly = Math.min(1.8, Math.max(0.45, orbit.dolly * (1 + e.deltaY * 0.002)));
+  }, { passive: false });
 
   // ---- loop: paused when hidden or when no stage is on screen ----
   let last = performance.now(), frames = 0, acc = 0, worst = 0, running = false;
@@ -132,7 +172,10 @@ function init(w, THREE) {
     // (a consecutive-slow-frames test never fires when frames alternate 16.7 / 33 ms, which is the common case)
     win.t += dt; win.n++;
     if (win.t >= 2000) {
-      if (win.t / win.n > 20 && dpr > 0.75) { dpr = Math.max(0.75, dpr - 0.25); renderer.setPixelRatio(dpr); }
+      if (win.t / win.n > 20) {  // drop effects in order: chromatic -> post pass -> DPR (floor 0.75)
+        if (fx > 0) { fx--; post.material.uniforms.uCA.value = fx === 2 ? 1 : 0; }
+        else if (dpr > 0.75) { dpr = Math.max(0.75, dpr - 0.25); renderer.setPixelRatio(dpr); }
+      }
       win.t = 0; win.n = 0;
     }
     w.uniforms.uTime.value = now / 1000;
@@ -152,6 +195,17 @@ function init(w, THREE) {
       const deg = (MOTION.parallaxMaxDeg * Math.PI) / 180;
       camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), -parallax[0] * deg);
     }
+    orbit.yaw += orbit.vy; orbit.pitch = Math.max(-0.5, Math.min(0.5, orbit.pitch + orbit.vp));
+    const damp = orbit.drag ? 0.5 : 0.92; orbit.vy *= damp; orbit.vp *= damp;
+    if (orbit.yaw || orbit.pitch || orbit.dolly !== 1) {
+      const off = camera.position.clone().sub(cam.at).multiplyScalar(orbit.dolly);
+      off.applyAxisAngle(new THREE.Vector3(0, 1, 0), orbit.yaw);
+      off.applyAxisAngle(new THREE.Vector3().crossVectors(off, new THREE.Vector3(0, 1, 0)).normalize(), orbit.pitch);
+      camera.position.copy(cam.at).add(off);
+    }
+    if (shake.t > 0) { shake.t -= dt; const k = 0.04 * (shake.t / 200); camera.position.add(new THREE.Vector3((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, 0)); }
+    const f = 180 * (spring.target - spring.x) - 22 * spring.v; spring.v += f * dt / 1000; spring.x += spring.v * dt / 1000;  // stiffness 180, damping 22
+    w.uniforms.uLift.value = spring.x;
     camera.lookAt(cam.at);
     if (w.layer && w.layer.update) w.layer.update(dt / 1000, now / 1000);
     render();
@@ -172,7 +226,13 @@ function init(w, THREE) {
     renderer.setScissorTest(true);
     camera.aspect = r.width / r.height;
     camera.updateProjectionMatrix();
-    renderer.render(scene, camera);
+    if (fx === 0 || w.reduced) { renderer.render(scene, camera); return; }
+    const pw = Math.round(r.width * dpr), ph = Math.round(r.height * dpr);
+    if (rt.width !== pw || rt.height !== ph) rt.setSize(pw, ph);
+    renderer.setRenderTarget(rt); renderer.setScissorTest(false); renderer.clear(); renderer.render(scene, camera); renderer.setRenderTarget(null);
+    renderer.setViewport(r.left, y, r.width, r.height); renderer.setScissor(r.left, y, r.width, r.height); renderer.setScissorTest(true);
+    post.material.uniforms.uRes.value.set(pw, ph);
+    renderer.render(postScene, postCam);
   }
   function loop() { if (!running) { running = true; requestAnimationFrame(frame); } }
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { last = performance.now(); loop(); } });

@@ -11,10 +11,11 @@ test("tokens.css mirrors motion.js", () => {
   assert.equal(token("dur-exit"), `${MOTION.exitMs}ms`);
   assert.equal(token("dur-stagger"), `${MOTION.staggerMs}ms`);
   assert.equal(token("dur-roll"), `${MOTION.rollMs}ms`);
+  assert.equal(token("dur-shot"), `${MOTION.shotMs}ms`);
   assert.equal(token("rise"), `${MOTION.riseIn}px`);
   assert.equal(token("ease-overlay"), `cubic-bezier(${MOTION.overlayEase.join(", ")})`);
   assert.deepEqual(MOTION.overlayEase, [0.2, 0.8, 0.2, 1]);
-  assert.equal(MOTION.overlayMs, 280); assert.equal(MOTION.exitMs, 180); assert.equal(MOTION.staggerMs, 60); assert.equal(MOTION.riseIn, 24);
+  assert.equal(MOTION.overlayMs, 280); assert.equal(MOTION.exitMs, 180); assert.equal(MOTION.staggerMs, 40); assert.equal(MOTION.riseIn, 24);
 });
 
 test("easing", () => {
@@ -42,5 +43,5 @@ test("rolling numbers never jump (except reduced motion) and land on the target"
 test("idle breathing <= 1.5 %, none when reduced", () => {
   for (let t = 0; t < 16000; t += 250) { const s = breathe(t); assert.ok(s >= 1 && s <= 1.015 + 1e-12); }
   assert.equal(breathe(4000, true), 1);
-  assert.equal(staggerDelay(3), 180);
+  assert.equal(staggerDelay(3), 120);
 });

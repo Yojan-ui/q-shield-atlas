@@ -84,6 +84,7 @@ def export(dest: Path = DIST) -> Path:
         shutil.rmtree(dest)
     (dest / "assets").mkdir(parents=True)
     shutil.copyfile(STATIC / "favicon.svg", dest / "assets" / "favicon.svg")
+    shutil.copytree(STATIC / "fonts", dest / "assets" / "fonts")  # vendored OFL fonts (licences + MANIFEST included)
     html = (STATIC / "index.html").read_text()
     html = re.sub(r'\s*<link rel="stylesheet"[^>]*>', "", html)
     html = re.sub(r'\s*<link rel="modulepreload"[^>]*>', "", html)
@@ -94,7 +95,7 @@ def export(dest: Path = DIST) -> Path:
     (dest / "assets" / "boot.js").write_text(BOOT)
     html = html.replace('<script type="module" src="/assets/js/main.js"></script>',
                         '<script src="assets/snapshot.js"></script>\n  <script src="assets/boot.js"></script>')
-    html = html.replace("</head>", f"  <style>{_all_css()}</style>\n</head>")
+    html = html.replace("</head>", f"  <style>{_all_css().replace('url(\"/assets/fonts/', 'url(\"assets/fonts/')}</style>\n</head>")
     (dest / "index.html").write_text(html)
     return dest
 

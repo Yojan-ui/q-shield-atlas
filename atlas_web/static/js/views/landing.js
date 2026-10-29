@@ -1,5 +1,5 @@
 // Landing (public): the story told from the demo snapshot. Stage 4 turns each chapter into a scene in THE LATTICE.
-import { h } from "../dom.js";
+import { h, stagger } from "../dom.js";
 import { stat, statSkeleton } from "../components/stat.js";
 import { chip } from "../components/chip.js";
 import { lines } from "../components/states.js";
@@ -14,12 +14,25 @@ export async function mount(ctx) {
   const aside = h("aside", { class: "start-9" }, lines(3));
   let lattice = null;
   const stageEl = stage(ctx, { label: "THE LATTICE: the demo inventory. Red flickering crystals rely on classical crypto; red beams rise with each asset's exposure-years in the selected Q-day scenario; cyan cells passed the lab gates.", tall: true });
+  // Title sequence (<= 3 s, any input skips, reduced motion = instant): crystals ignite red one by one with beams
+  // rising, the headline wipes in, then the waves turn crystals cyan in plan order (red threat -> system -> cyan).
+  const reveal = () => { if (ctx.root.classList.contains("intro-hold")) { ctx.root.classList.remove("intro-hold"); stagger(heroEl); } };
+  ctx.root.classList.add("intro-hold");
+  const skip = () => { if (ctx.world.uniforms) ctx.world.uniforms.uIntro.value = 1; reveal(); };
+  for (const ev of ["pointerdown", "keydown", "wheel"]) addEventListener(ev, skip, { once: true, signal: ctx.signal });
+  setTimeout(reveal, 1700);
   ctx.store.get("demo", "scene", { signal: ctx.signal }).then((scene) => mountScene(ctx, "landing", scene, ({ THREE, world, group }) => {
     lattice = buildLattice(THREE, group, scene, world.uniforms, { beamScale: 0.35 });
     if (scenario) lattice.setScenario(scenario);
     world.uniforms.uWeek.value = 0; // HARVEST: before any wave, everything is still classical
-    return { update(dt) { if (world.uniforms.uWeek.value < 1e3) world.uniforms.uWeek.value += dt * 0.6; } };
-  })).catch(() => {});
+    world.uniforms.uIntro.value = world.reduced ? 1 : 0;
+    if (world.reduced) reveal();
+    return { ...lattice.hooks(ctx, stageEl), update(dt) {
+      const u = world.uniforms;
+      if (u.uIntro.value < 1) { u.uIntro.value = Math.min(1, u.uIntro.value + dt / 2.6); if (u.uIntro.value > 0.6) reveal(); }
+      else if (u.uWeek.value < 1e3) u.uWeek.value += dt * 0.6;
+    } };
+  })).catch(reveal);
   const body = dataView(ctx, {
     keys: ["results", "scene"],
     skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton())),
@@ -29,15 +42,25 @@ export async function mount(ctx) {
       const scen = m.scenarios.map((s) => s.name);
       if (!scen.includes(scenario)) scenario = scen[Math.min(1, scen.length - 1)];
       const figure = h("div", { class: "hero-figure" });
-      const dial = h("div", { class: "sg-row", role: "radiogroup", "aria-label": "Q-day scenario" });
+      const idx = () => Math.max(0, scen.indexOf(scenario));
+      const range = h("input", { type: "range", min: "0", max: String(scen.length - 1), step: "0.01", value: String(idx()), "aria-label": "Q-day scenario",
+        "aria-valuetext": scenario });
+      const ticks = h("div", { class: "ticks", "aria-hidden": "true" });
+      const dial = h("label", { class: "q-dial" }, h("span", { class: "eyebrow", style: { margin: 0 }, text: "Drag Q-Day · beams follow live" }), range, ticks);
+      const snap = (i) => { scenario = scen[i]; range.value = String(i); range.setAttribute("aria-valuetext", scenario); ctx.setQuery({ scenario }); if (lattice) lattice.setScenario(scenario); drawFigure(); };
+      range.addEventListener("input", () => { if (lattice) lattice.setScenarioValue(Number(range.value)); }, { signal: ctx.signal });
+      range.addEventListener("change", () => snap(Math.round(Number(range.value))), { signal: ctx.signal });
+      addEventListener("keydown", (e) => {
+        if (e.target instanceof Element && e.target.closest("input, textarea, select, dialog")) return;
+        if (e.key === "[" || e.key === "]") snap(Math.min(scen.length - 1, Math.max(0, idx() + (e.key === "]" ? 1 : -1))));
+      }, { signal: ctx.signal });
       const drawFigure = () => {
         const a = headlineAvoided(m, scenario);
         const s = m.scenarios.find((x) => x.name === scenario);
         figure.replaceChildren(h("p", { class: "eyebrow", text: `Q-day ${s ? s.year : ""} · exposure-years avoided vs FCFS` }),
-          stat({ label: "QpiAI Opt plan vs first-come-first-served", cell: a.fcfs, unit: "exposure-years, unweighted", tone: "accent" }),
+          stat({ label: "QpiAI Opt plan vs first-come-first-served", cell: a.fcfs, unit: "exposure-years, unweighted", tone: "hero accent" }),
           h("p", { class: "fine" }, "vs greedy ", cellText(a.greedy), ". Small and honest: long shelf lives lock most exposure in."));
-        dial.replaceChildren(...m.scenarios.map((x) => h("button", { class: `btn${x.name === scenario ? " primary" : ""}`, type: "button", role: "radio",
-          "aria-checked": String(x.name === scenario), onclick: () => { scenario = x.name; ctx.setQuery({ scenario }); if (lattice) lattice.setScenario(scenario); drawFigure(); }, text: String(x.year) })));
+        ticks.replaceChildren(...m.scenarios.map((x) => (x.name === scenario ? h("b", { text: String(x.year) }) : h("span", { text: String(x.year) }))));
         ctx.announce(`Scenario ${scenario}: ${a.fcfs.text} exposure-years avoided versus first-come-first-served.`);
       };
       drawFigure();
@@ -75,7 +98,8 @@ export async function mount(ctx) {
         h("div", { class: "span-12" }, honesty()));
     },
   });
-  ctx.root.append(h("div", { class: "grid", style: { marginBottom: "var(--s-6)" } }, hero(ctx), aside, h("div", { class: "span-12" }, stageEl)), body);
+  const heroEl = hero(ctx);
+  ctx.root.append(h("div", { class: "grid", style: { marginBottom: "var(--s-6)" } }, heroEl, aside, h("div", { class: "span-12" }, stageEl)), body);
 }
 
 function hero(ctx) {

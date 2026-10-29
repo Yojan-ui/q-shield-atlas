@@ -51,7 +51,9 @@ def test_no_cdn_no_web_fonts_no_inline_script():
         # no resource is loaded from another origin (example URLs in form placeholders are allowed)
         assert not re.search(r"""(\bfrom\s*|\bimport\s*\(\s*|\bsrc\s*[=:]\s*|\bhref\s*[=:]\s*|url\(\s*|fetch\(\s*|EventSource\(\s*)["'`]?https?://""", text), \
             f"external resource in {p}"
-        assert "@font-face" not in text and "fonts.googleapis" not in text, p
+        assert "fonts.googleapis" not in text and "fonts.gstatic" not in text, p
+        for src in re.findall(r"@font-face\s*{[^}]*?src:\s*([^;]+);", text):  # only vendored local files or local() fallbacks
+            assert all(u.startswith("/assets/fonts/") for u in re.findall(r'url\("([^"]+)"\)', src)), (p, src)
     html = (STATIC / "index.html").read_text()
     assert re.search(r"<script(?![^>]*\bsrc=)[^>]*>", html) is None  # CSP script-src 'self': no inline scripts
 
@@ -111,3 +113,17 @@ def test_viz_data_layer_served_only_exact_files(server):
     assert r.status == 200 and body == (REPO / "viz" / "data.js").read_bytes()
     for p in ("/viz/__main__.py", "/viz/index.html", "/viz/vendor/MANIFEST.json", "/viz/app.js"):
         assert c.request("GET", p, raw=True)[0].status == 404, p
+
+
+def test_vendored_fonts_match_manifest_and_are_served(server):
+    """Inter Tight + JetBrains Mono (OFL) are vendored locally with SHA-256s and licences; no web-font service."""
+    fonts = STATIC / "fonts"
+    mf = json.loads((fonts / "MANIFEST.json").read_text())
+    assert {"OFL-inter-tight.txt", "OFL-jetbrains-mono.txt"} <= set(mf["files"])
+    for name, digest in mf["files"].items():
+        assert hashlib.sha256((fonts / name).read_bytes()).hexdigest() == digest, name
+    assert all(p["license"] == "OFL-1.1" for p in mf["packages"].values())
+    r, body = Client(server.server_address[1]).request("GET", "/assets/fonts/jetbrains-mono-latin-400-normal.woff2", raw=True)
+    assert r.status == 200 and r.headers["Content-Type"] == "font/woff2" and body[:4] == b"wOF2"
+    css = (STATIC / "css" / "tokens.css").read_text()
+    assert "font-display: swap" in css and "size-adjust" in css and "googleapis" not in css

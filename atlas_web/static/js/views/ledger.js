@@ -1,4 +1,5 @@
 // Ledger: Merkle tower, inclusion proofs, tamper demo on a server-side copy.
+import { sound } from "../sound.js";
 import { h, icon } from "../dom.js";
 import { stat, statSkeleton } from "../components/stat.js";
 import { chip } from "../components/chip.js";
@@ -53,14 +54,15 @@ export async function mount(ctx) {
         }
       };
 
-      const tamper = h("button", { class: "btn primary", type: "button" }, icon("warn"), "Tamper a copy");
-      tamper.addEventListener("click", async () => {
+      const tamper = h("button", { class: "btn primary hold", type: "button", "aria-describedby": "lg-hold" }, icon("warn"), "Hold to tamper a copy");
+      const run = async () => {
         tamper.disabled = true;
         clearTimeout(timer);
         try {
           const t = await ctx.api.post(`/api/workspaces/${ws}/tamper-demo`, { index: Math.min(2, L.entry_count - 1) });
           const reduced = prefersReducedMotion();
           layer?.tamper(t.edited_index, reduced);
+          setTimeout(() => { ctx.world.shake(); sound.crack(); }, (reduced ? 0 : TAMPER.flyS) * 1000);  // the shard strikes the leaf
           out.className = "lg-out cracked";
           out.replaceChildren(chip("tampered", `copy fails verification at #${t.index ?? "?"}`),
             kv(["edited", mono(`entry #${t.edited_index}, field "${t.edited_field}" (temporary copy)`)], ["reason", mono(t.reason)]));
@@ -72,19 +74,28 @@ export async function mount(ctx) {
               kv(["before", hc(t.real_ledger_sha256_before, "real ledger SHA-256 before")], ["after", hc(t.real_ledger_sha256_after, "real ledger SHA-256 after")],
                 ["unchanged", mono(String(t.real_ledger_unchanged))]),
               h("p", { class: "fine", text: `${t.note}. Not recorded.` }));
+            if (same) sound.chord();
             }, ((reduced ? 0 : TAMPER.flyS + TAMPER.crackS) + TAMPER.holdS) * 1000);
         } catch (err) {
           if (err.status === 429) toast("one tamper demo per second", { tone: "info" });
           else if (err.code !== "aborted") toast(err.message, { tone: "error", detail: err.code });
         } finally { setTimeout(() => { tamper.disabled = false; }, 1000); }
-      }, { signal: ctx.signal });
+      };
+      // press-and-hold 800 ms (pointer, or Space / Enter held): a deliberate act, cancelled by releasing early
+      let hold = 0;
+      const start = (e) => { if (tamper.disabled || hold || (e.repeat)) return; tamper.classList.add("holding"); hold = setTimeout(() => { hold = 0; tamper.classList.remove("holding"); run(); }, 800); };
+      const stop = () => { clearTimeout(hold); hold = 0; tamper.classList.remove("holding"); };
+      tamper.addEventListener("pointerdown", start, { signal: ctx.signal });
+      for (const ev of ["pointerup", "pointerleave", "pointercancel", "blur"]) tamper.addEventListener(ev, stop, { signal: ctx.signal });
+      tamper.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); start(e); } }, { signal: ctx.signal });
+      tamper.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") stop(); }, { signal: ctx.signal });
       ctx.signal.addEventListener("abort", () => clearTimeout(timer), { once: true });
 
       mountScene(ctx, "ledger", L, buildLedger(L, { stageEl, onPick: select })).then((l) => { layer = l; });
       ctx.announce(`${L.entry_count} signed entries, ${v.ok ? "verified" : "not verified"}.`);
       return h("div", { class: "grid" },
         h("div", { class: "span-12 stats" },
-          stat({ label: "entries", cell: num(L.entry_count, src), unit: "ML-DSA-65 signed, hash-chained" }),
+          stat({ label: "entries", cell: num(L.entry_count, src), unit: "ML-DSA-65 signed, hash-chained", tone: "hero" }),
           st("Merkle root (RFC 6962)", hc(L.root, "Merkle root", 16)),
           st("live verification",
             v.ok === true ? chip("verified", `verified, ${v.entries_checked ?? L.entry_count} entries`) : v.ok === false ? chip("FAIL", `fails at #${v.first_failure && v.first_failure.index}`) : chip("NOT_RUN", v.status_text || "not verified"),
@@ -94,7 +105,7 @@ export async function mount(ctx) {
         h("aside", { class: "span-4 lg-side" },
           h("p", { class: "eyebrow", text: "tamper demo" }),
           h("p", { class: "fine", text: "Edits one entry in a temporary copy and runs python -m ledger verify on it. The real ledger is never touched; its hash is compared before and after." }),
-          tamper, out, detail),
+          tamper, h("p", { id: "lg-hold", class: "fine", text: "Press and hold for 0.8 s (mouse, touch, or Space / Enter)." }), out, detail),
         section("Entries", table({ caption: "Ledger entries", rows: L.entries, signal: ctx.signal, onRow: (e) => select(e.index), columns: [
           { label: "#", key: "index", numeric: true }, { label: "type", key: "type", mono: true }, { label: "payload", key: "payload_ref", mono: true, optional: true },
           { label: "payload SHA-256", render: (e) => hc(e.payload_hash, "payload hash", 8) }, { label: "time", key: "ts", mono: true, optional: true }] })));

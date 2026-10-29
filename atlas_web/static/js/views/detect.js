@@ -167,7 +167,7 @@ export async function mount(ctx) {
         return h("div", { class: "grid" },
           h("div", { class: "span-12 stats" },
             stat({ label: "files scanned", cell: d.files, unit: "code, configs, certificates" }),
-            stat({ label: "vulnerable findings", cell: d.vulnerable, unit: "RSA / ECC / DH / DSA", tone: "exposure" }),
+            stat({ label: "vulnerable findings", cell: d.vulnerable, unit: "RSA / ECC / DH / DSA", tone: "hero exposure" }),
             stat({ label: "assets to migrate", cell: d.assets, unit: `not vulnerable: ${d.notVulnerable.join(", ") || "none"}` }),
             stat({ label: "drift", cell: d.drift, unit: "static vs live handshake" })),
           section("Services", table({ caption: "Services to migrate", rows: m.assets, rowHref: (a) => `/w/${ctx.ws}/asset/${encodeURIComponent(a.id)}`, signal: ctx.signal, columns: [

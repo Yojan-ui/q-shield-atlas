@@ -1,5 +1,6 @@
 // Top strip: wordmark, workspace switcher, route rail (keys 1–6), run button, user menu.
 import { h } from "../dom.js";
+import { sound } from "../sound.js";
 import { RAIL } from "../routes.js";
 import { href } from "../router.js";
 
@@ -9,9 +10,11 @@ export function strip({ onSignOut, onWorkspace, kiosk }) {
   const ws = h("label", { class: "ws-switch" }, h("span", { class: "ws-label", text: "Workspace" }), wsSelect, badge);
   const rail = h("nav", { class: "rail", "aria-label": "Routes" });
   const user = h("div", { class: "user" });
+  const snd = h("button", { class: "btn quiet sound-toggle", type: "button", "aria-pressed": String(sound.on), title: "Sound (off by default)" }, sound.on ? "Sound on" : "Sound off");
+  snd.addEventListener("click", () => { const on = sound.toggle(); snd.setAttribute("aria-pressed", String(on)); snd.textContent = on ? "Sound on" : "Sound off"; if (on && location.pathname === "/") sound.hum(true); });
   const el = h("header", { class: "strip" },
     h("a", { class: "wordmark", href: "/", "aria-label": "Q-Shield Atlas home" }, logo(), h("span", { text: "Q-Shield Atlas" })),
-    ws, rail, h("div", { class: "strip-actions" }), user);
+    ws, rail, h("div", { class: "strip-actions" }, snd), user);
   wsSelect.addEventListener("change", () => onWorkspace(wsSelect.value));
 
   el.update = ({ me, workspaces, wsId, routeName }) => {

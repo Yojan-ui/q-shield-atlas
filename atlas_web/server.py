@@ -36,7 +36,7 @@ VIZ_VENDOR = REPO / "viz" / "vendor"
 ADDONS = STATIC / "vendor" / "three-addons"
 TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
          ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".txt": "text/plain; charset=utf-8",
-         ".glsl": "text/plain; charset=utf-8", ".ico": "image/x-icon"}
+         ".glsl": "text/plain; charset=utf-8", ".ico": "image/x-icon", ".woff2": "font/woff2"}
 DENY_PREFIXES = {"keys", "runs", "config", "out", "data", "src", "atlas_web", "ledger", "tests", "detect", "schedule",
                  "capture", "gates", "qaoa", "contracts", "atlas", "site", "docs", ".git", ".cache", "workspaces"}
 DENY_SUFFIXES = (".py", ".pyc", ".sh", ".env", ".key", ".pem", ".db", ".jsonl", ".log", ".zip")

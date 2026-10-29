@@ -9,9 +9,9 @@ let memory = null;
 export const STATE = { classical: 0, hybrid: 1, ghost: 2, rolled_back: 3, rollback_failed: 3, clean: 4 };
 
 const CRYSTAL_VS = `
-attribute float aState; attribute float aWeek; attribute vec3 aExp; attribute float aSeed; attribute vec3 aFrom;
-uniform float uTime; uniform float uWeek; uniform float uMorph;
-varying vec3 vColor; varying float vAlpha; varying vec3 vN;
+attribute float aState; attribute float aWeek; attribute vec3 aExp; attribute float aSeed; attribute vec3 aFrom; attribute float aIdx;
+uniform float uTime; uniform float uWeek; uniform float uMorph; uniform float uIntro; uniform float uFocus; uniform float uLift;
+varying vec3 vColor; varying float vAlpha; varying vec3 vN; varying vec3 vV;
 void main() {
   bool migrated = aState == 1.0 && aWeek > 0.0 && uWeek >= aWeek;
   vec3 red = vec3(1.0, 0.30, 0.37), amber = vec3(0.96, 0.62, 0.29), cyan = vec3(0.36, 0.88, 0.90);
@@ -24,24 +24,31 @@ void main() {
   else if (aState == 4.0) { vColor = vec3(0.35, 0.42, 0.5); vAlpha = 0.7; s = 0.8; }
   float m = smoothstep(0.0, 1.0, uMorph);
   vColor = mix(vec3(0.35, 0.42, 0.5), vColor, m);  // workspace switch: colours tween in from neutral
+  s *= smoothstep(aSeed * 0.7, aSeed * 0.7 + 0.3, uIntro);  // title sequence: crystals ignite one by one
+  bool focused = uFocus >= 0.0 && abs(aIdx - uFocus) < 0.5;
+  if (uFocus >= 0.0 && !focused) vAlpha *= 0.3;            // focus mode: everything else dims to 30 %
   vec4 wp = modelMatrix * instanceMatrix * vec4(position * s, 1.0);
+  if (focused) wp.y += 0.35 * uLift;                        // hovered crystal lifts on a spring
   wp.xyz += (mat3(modelMatrix) * (aFrom - instanceMatrix[3].xyz)) * (1.0 - m);  // positions tween from the previous workspace
   vN = normalize(mat3(modelMatrix * instanceMatrix) * normal);
+  vV = normalize(cameraPosition - wp.xyz);
   gl_Position = projectionMatrix * viewMatrix * wp;
 }`;
 const CRYSTAL_FS = `
-varying vec3 vColor; varying float vAlpha; varying vec3 vN;
+varying vec3 vColor; varying float vAlpha; varying vec3 vN; varying vec3 vV;
 void main() {
-  float l = 0.45 + 0.55 * max(dot(vN, normalize(vec3(0.4, 0.8, 0.5))), 0.0);
-  gl_FragColor = vec4(vColor * l * 1.25, vAlpha);
+  float l = 0.4 + 0.5 * max(dot(vN, normalize(vec3(0.4, 0.8, 0.5))), 0.0);
+  float rim = pow(1.0 - max(dot(normalize(vN), vV), 0.0), 3.0);  // fresnel rim light on the facets
+  gl_FragColor = vec4(vColor * (l * 1.2 + rim * 0.9), vAlpha);
 }`;
 const BEAM_VS = `
-attribute float aState; attribute float aWeek; attribute vec3 aExp; attribute vec3 aFrom;
-uniform float uWeek; uniform float uScenario; uniform float uBeamScale; uniform float uMorph;
+attribute float aState; attribute float aWeek; attribute vec3 aExp; attribute vec3 aFrom; attribute float aSeed;
+uniform float uWeek; uniform float uScenario; uniform float uBeamScale; uniform float uMorph; uniform float uIntro; uniform float uFocus;
 varying float vY; varying float vOn;
 void main() {
   bool migrated = aState == 1.0 && aWeek > 0.0 && uWeek >= aWeek;
-  float e = uScenario < 0.5 ? aExp.x : (uScenario < 1.5 ? aExp.y : aExp.z);
+  float e = uScenario < 1.0 ? mix(aExp.x, aExp.y, uScenario) : mix(aExp.y, aExp.z, clamp(uScenario - 1.0, 0.0, 1.0));  // live while dragging the Q-Day dial
+  e *= smoothstep(aSeed * 0.7 + 0.15, aSeed * 0.7 + 0.5, uIntro) * (uFocus >= 0.0 ? 0.3 : 1.0);
   vOn = (migrated || aState == 4.0) ? 0.0 : 1.0;
   float m = smoothstep(0.0, 1.0, uMorph);
   vec3 p = position; p.y *= e * uBeamScale * vOn * m; vY = position.y;
@@ -53,10 +60,11 @@ const BEAM_FS = `
 varying float vY; varying float vOn;
 void main() { if (vOn < 0.5) discard; gl_FragColor = vec4(1.0, 0.30, 0.37, 0.55 * (1.0 - vY)); }`;
 const EDGE_VS = `
-attribute float aOrder; uniform float uWeek; uniform float uTime; varying float vGlow;
+attribute float aOrder; attribute vec2 aEnds; uniform float uWeek; uniform float uTime; uniform float uFocus; uniform float uIntro; varying float vGlow;
 void main() {
   float lit = step(aOrder, uWeek);
-  vGlow = 0.18 + 0.5 * lit * (0.5 + 0.5 * sin(uTime * 2.0 - aOrder));
+  vGlow = (0.18 + 0.5 * lit * (0.5 + 0.5 * sin(uTime * 2.0 - aOrder))) * uIntro;
+  if (uFocus >= 0.0) vGlow = (abs(aEnds.x - uFocus) < 0.5 || abs(aEnds.y - uFocus) < 0.5) ? 0.95 : vGlow * 0.3;  // focused node's conduits
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`;
 const EDGE_FS = `varying float vGlow; void main() { gl_FragColor = vec4(0.36, 0.88, 0.90, vGlow); }`;
@@ -97,20 +105,23 @@ export function buildLattice(THREE, group, scene, uniforms, { beamScale = 0.5, g
     mesh.geometry.setAttribute("aExp", new THREE.InstancedBufferAttribute(a.exp, 3));
     mesh.geometry.setAttribute("aSeed", new THREE.InstancedBufferAttribute(a.seed, 1));
     mesh.geometry.setAttribute("aFrom", new THREE.InstancedBufferAttribute(a.from, 3));
+    mesh.geometry.setAttribute("aIdx", new THREE.InstancedBufferAttribute(Float32Array.from({ length: n }, (_, i) => i), 1));
     mesh.frustumCulled = false;
     group.add(mesh);
   }
   // dependency conduits: one line segment per edge; aOrder = the dependent's planned week (pulse in dependency order)
   const edges = (scene.edges || []).filter((e) => byId[e.from] && byId[e.to]);
   if (edges.length) {
-    const pos = new Float32Array(edges.length * 6), ord = new Float32Array(edges.length * 2);
+    const pos = new Float32Array(edges.length * 6), ord = new Float32Array(edges.length * 2), ends = new Float32Array(edges.length * 4);
     edges.forEach((e, i) => {
       pos.set(byId[e.to].pos, i * 6); pos.set(byId[e.from].pos, i * 6 + 3);
       ord[i * 2] = byId[e.to].node.week ?? 0; ord[i * 2 + 1] = byId[e.from].node.week ?? 0;
+      ends.set([byId[e.to].index, byId[e.from].index, byId[e.to].index, byId[e.from].index], i * 4);
     });
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     g.setAttribute("aOrder", new THREE.BufferAttribute(ord, 1));
+    g.setAttribute("aEnds", new THREE.BufferAttribute(ends, 2));
     group.add(new THREE.LineSegments(g, new THREE.ShaderMaterial({ vertexShader: EDGE_VS, fragmentShader: EDGE_FS, uniforms: U, transparent: true, depthWrite: false })));
   }
   // PQ-authentication halos (ML-DSA on the stand-in)
@@ -121,7 +132,10 @@ export function buildLattice(THREE, group, scene, uniforms, { beamScale = 0.5, g
     group.add(ring);
   }
   if (grid) group.add(latticeGrid(THREE, nodes));
-  return { crystals, beams, byId, uniforms: U, scenarios: scen, setScenario: (name) => { U.uScenario.value = Math.max(0, scen.indexOf(name)); } };
+  if (U.uFocus) U.uFocus.value = -1;
+  const setScenario = (name) => { U.uScenario.value = Math.max(0, scen.indexOf(name)); };
+  return { crystals, beams, byId, uniforms: U, scenarios: scen, setScenario, setScenarioValue: (v) => { U.uScenario.value = v; },
+    hooks: (ctx, stageEl) => hooks(ctx, stageEl, nodes, U, crystals, scen) };
 }
 
 // The module lattice itself: a cubic grid of faint edges around the services (one draw call).
@@ -136,4 +150,35 @@ export function latticeGrid(THREE, nodes, step = 2) {
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(pts), 3));
   return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x5ce1e6, transparent: true, opacity: 0.06, depthWrite: false }));
+}
+
+// Shared interaction for every lattice route: hover = focus mode + mono tooltip with provenance, Esc clears,
+// double-click flies to the crystal and opens its asset page.
+function hooks(ctx, stageEl, nodes, U, crystals, scen) {
+  const tip = document.createElement("div");
+  tip.className = "stage-tip"; tip.hidden = true;
+  if (stageEl) stageEl.append(tip);
+  const clear = () => { U.uFocus.value = -1; tip.hidden = true; ctx.world.lift(false); if (stageEl) stageEl.classList.remove("hot"); };
+  addEventListener("keydown", (e) => { if (e.key === "Escape") clear(); }, { signal: ctx.signal });
+  return {
+    pickables: [crystals],
+    hover(hit, e) {
+      const n = hit && hit.object === crystals ? nodes[hit.instanceId] : null;
+      if (!n) { if (U.uFocus.value >= 0) clear(); return; }
+      if (U.uFocus.value !== hit.instanceId) { U.uFocus.value = hit.instanceId; ctx.world.lift(true); }
+      stageEl.classList.add("hot");
+      const s = scen[Math.round(U.uScenario.value)] || scen[0];
+      const ey = n.exposure_years ? n.exposure_years[s] : null;
+      tip.textContent = [n.id, n.data_class || "not vulnerable", n.week ? `wave ${n.week}` : "no wave",
+        ey === null || ey === undefined ? null : `${ey.toFixed(3)} exposure-years (${s})`, n.status.replaceAll("_", " ")].filter(Boolean).join(" · ");
+      const r = stageEl.getBoundingClientRect();
+      tip.style.left = `${Math.min(e.clientX - r.left + 14, r.width - 320)}px`; tip.style.top = `${e.clientY - r.top + 14}px`; tip.hidden = false;
+    },
+    dblclick(hit) {
+      const n = hit && hit.object === crystals ? nodes[hit.instanceId] : null;
+      if (!n || !n.vulnerable) return;
+      ctx.world.focus(n.pos, 6);
+      setTimeout(() => ctx.navigate(`/w/${ctx.ws}/asset/${encodeURIComponent(n.id)}`), 600);
+    },
+  };
 }

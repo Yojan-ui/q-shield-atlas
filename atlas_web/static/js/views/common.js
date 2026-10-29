@@ -66,6 +66,7 @@ export function honesty() {
 export function stage(ctx, { label, fallback = null, tall = false } = {}) {
   const el = h("div", { class: `stage${tall ? " tall" : ""}`, "data-stage": "", role: "img", "aria-label": label });
   ctx.world.frameStage(el);
+  ctx.stageEl = el;
   ctx.world.ready.then((w) => {
     if (!w.webgl && !ctx.signal.aborted) {
       el.classList.add("flat");
@@ -78,6 +79,7 @@ export function stage(ctx, { label, fallback = null, tall = false } = {}) {
 // Mount a layer once the scene data and the engine are both ready. build({THREE, world, group, scene}) -> layer.
 export async function mountScene(ctx, name, scene, build) {
   const w = await ctx.world.ready;
+  if (scene && scene.available === false && ctx.stageEl) ctx.stageEl.hidden = true;  // nothing to show: no empty black stage
   if (!w.webgl || ctx.signal.aborted || !scene || scene.available === false) return null;
   return w.mount(name, (env) => build({ ...env, scene }));
 }

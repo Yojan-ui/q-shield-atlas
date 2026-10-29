@@ -33,7 +33,7 @@ export async function mount(ctx) {
       group.add(ring);
       queueMicrotask(() => { if (!ctx.signal.aborted) world.focus(hit.pos, 6); });
     }
-    return {};
+    return lattice.hooks(ctx, stageEl);
   })).catch(() => {});
 
   const back = h("a", { class: "btn", href: `/w/${ctx.ws}/detect`, text: "Back to the inventory" });
