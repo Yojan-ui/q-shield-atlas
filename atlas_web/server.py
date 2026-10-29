@@ -503,6 +503,25 @@ def make_handler(app: App):
                 if idx is not None and not isinstance(idx, int):
                     raise ApiError(422, "bad_index", "index must be an integer")
                 return self.send_json(200, tamper_demo(ws, idx))
+            if name == "estimate" and len(sub) == 1:  # time estimate vs the user's threshold
+                from .estimate import estimate, parse_threshold
+
+                if method == "GET":
+                    try:
+                        q = parse_threshold(self.query.get("threshold_weeks"))
+                    except ValueError as e:
+                        raise ApiError(422, "bad_threshold", str(e))
+                    t = q if q is not None else ws.settings.get("time_threshold_weeks")
+                    return self.send_json(200, {**estimate(load_results(ws), t), "saved_threshold_weeks": ws.settings.get("time_threshold_weeks")})
+                if method == "PUT":
+                    self.need("operator")
+                    wsmod.require_writable(ws)
+                    try:
+                        t = parse_threshold(self.body_json().get("threshold_weeks"))
+                    except ValueError as e:
+                        raise ApiError(422, "bad_threshold", str(e))
+                    wsmod.update_settings(app.store, ws, time_threshold_weeks=t)
+                    return self.send_json(200, {**estimate(load_results(ws), t), "saved_threshold_weeks": t})
             if name == "bench" and len(sub) == 1:
                 if method == "GET":
                     return self.send_json(200, bench_payload(ws))

@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .config import REPO, STATIC
 from .scene import build_scene
+from .estimate import estimate
 from .server import bench_payload, ledger_payload, load_results, tamper_demo
 from .workspaces import demo
 
@@ -55,6 +56,7 @@ def _data() -> dict:
         "/api/workspaces/demo/ledger": ledger_payload(ws),
         "/api/workspaces/demo/runs": {"runs": [], "active": None},
         "/api/workspaces/demo/bench": bench_payload(ws),
+        "/api/workspaces/demo/estimate": {**estimate(r, None), "saved_threshold_weeks": None},
     }
     led = data["/api/workspaces/demo/ledger"]
     if led.get("available"):

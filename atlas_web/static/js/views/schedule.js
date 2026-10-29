@@ -9,6 +9,7 @@ import { headlineAvoided } from "../model.js";
 import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
 import { buildLattice } from "../engine/lattice.js";
 import { sound } from "../sound.js";
+import { estimateBlock } from "../components/estimate.js";
 
 export async function mount(ctx) {
   let scenario = ctx.query.get("scenario");
@@ -67,7 +68,7 @@ export async function mount(ctx) {
       draw();
       const a = m.results.assumptions;
       return h("div", { class: "grid" },
-        h("div", { class: "span-12" }, picker), statsEl, stageWrap,
+        h("div", { class: "span-12" }, picker), statsEl, estimateBlock(ctx), stageWrap,
         h("p", { class: "span-12 fine", text: "Chart values are unweighted exposure-years; the optimiser minimises the risk- and scenario-weighted total, so in some weeks its unweighted curve can sit above a baseline." }),
         section("Waves", table({ caption: "Migration waves", rows: m.waves, columns: [
           { label: "week", render: (w) => h("span", { class: "num", tabindex: "0", "data-prov": provAttr(w.source, `wave week ${w.week}`), text: String(w.week) }), numeric: true },
