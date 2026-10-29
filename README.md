@@ -73,6 +73,18 @@ The UI's step names are generated from that file (`python -m contracts.stages --
 - `hybrid`: QAOA samples are repaired classically, and the classical step decides feasibility.
 - Unsupported pairs, such as QAOA on the full schedule, raise `solvers.Unsupported` with the reason.
 
+## Data (`data/`)
+
+`python tools/export_csv.py` writes the data as CSV. Column meaning, unit and source are in `data/DATA_DICTIONARY.md`, and
+`data/sources.json` holds the SHA-256 of every input and output.
+
+- `data/real_crypto_observations.csv` is **real**. It holds static-scan findings in two public repositories at pinned
+  commits (Online Boutique, OpenTelemetry Demo), plus live TLS 1.3 handshakes with `pq.cloudflareresearch.com`
+  (X25519MLKEM768) and `www.gnu.org` (X25519, classical).
+- `data/SYNTHETIC_mock_bank_assets.csv` is **synthetic**. It is the fictional 16-asset mock-bank inventory the demo
+  schedules. The names are invented and this is not real data.
+- Risk, effort and shelf-life values are assumptions (`config/assumptions.json`), not data.
+
 ## Quickstart (one command)
 
 ```bash

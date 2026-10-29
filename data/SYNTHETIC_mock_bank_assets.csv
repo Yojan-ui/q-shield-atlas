@@ -1,0 +1,17 @@
+asset_id,name,kind,data_class,algorithm,depends_on,synthetic
+web-gw,Public web TLS gateway,tls_gateway,customer_pii,ECDHE-P256 / RSA-2048 cert,root-ca,true
+cdn,Marketing CDN edge,cdn_edge,public_content,ECDHE-P256,,true
+root-ca,Internal root CA,root_ca,regulatory_records,RSA-4096,hsm,true
+hsm,Payments HSM cluster,hsm,payments,RSA-2048,,true
+auth,Auth / session service,service_mtls,auth_session,ECDSA-P256 JWT,root-ca,true
+payments-api,Payments API,service_mtls,payments,RSA-2048 mTLS,hsm;root-ca,true
+ledger-db,Core ledger database link,database_tls,payments,RSA-2048 TLS,root-ca,true
+kyc-db,KYC document store,database_tls,customer_pii,ECDHE-P384,root-ca,true
+backup,Encrypted backup vault,batch_sftp,archive_backup,RSA-3072 key wrap,,true
+vpn,Branch site-to-site VPN,vpn,internal_ops,IKEv2 ECDH-P256,,true
+bus,Internal message bus,message_bus,trade_secrets,RSA-2048 mTLS,root-ca,true
+sftp-reg,Regulator SFTP drop,batch_sftp,regulatory_records,RSA-2048 SSH host key,,true
+crm,CRM integration,service_mtls,customer_pii,RSA-2048 mTLS,bus,true
+risk-engine,Risk model service,service_mtls,trade_secrets,ECDHE-P256,bus,true
+statements,Statement archive export,batch_sftp,archive_backup,RSA-2048 PGP,backup,true
+ops-dash,Ops dashboard,tls_gateway,internal_ops,ECDHE-P256,root-ca,true

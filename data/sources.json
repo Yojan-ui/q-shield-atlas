@@ -1,0 +1,36 @@
+{
+ "real": [
+  {
+   "path": "out/real_repos/online-boutique.json",
+   "sha256": "87a0cadf2a73fe793ed01a859f3fa3bafffb62261429613c805e7974ccb88a70"
+  },
+  {
+   "path": "out/real_repos/opentelemetry-demo.json",
+   "sha256": "2024d80db4ad1bdd9b80f35c6b73df66b114c0caddb9e6485b9e943807e99944"
+  },
+  {
+   "path": "atlas_web/data/workspaces/otel-demo/out/detect.json",
+   "sha256": "9d762cef6001e5c364cde9e7901207c3d428c4496620707ae86d5db6412458f7"
+  },
+  {
+   "path": "atlas_web/data/workspaces/online-boutique/out/detect.json",
+   "sha256": "68416795e2acf1330bdc7e124655717eb38c29775f7563c65edfc08eef2ce5ca"
+  }
+ ],
+ "synthetic": [
+  {
+   "path": "schedule/data/mock_bank_assets.json",
+   "sha256": "59be70d6ac9efa12daacf2701c7a52d140894299f590458a22cd71abe5acb290"
+  }
+ ],
+ "outputs": [
+  {
+   "path": "data/real_crypto_observations.csv",
+   "sha256": "026fe99d0a0c8d2f350249a46efbfc91d676be174ca03c80bc18dc54d34d33ab"
+  },
+  {
+   "path": "data/SYNTHETIC_mock_bank_assets.csv",
+   "sha256": "723eb6e09e329e318edd206518e0fe967acb6be66a82649e32ab23a26c65deab"
+  }
+ ]
+}
