@@ -2,6 +2,31 @@
 
 **Find quantum-breakable crypto. Fix it in order. Prove it.** Hackathon project, Post-Quantum Cryptography track, PQC-01.
 
+## Quickstart
+
+**macOS / Linux**
+
+```bash
+git clone https://github.com/Yojan-ui/q-shield-atlas.git && cd q-shield-atlas
+conda create -y -n pqc -c conda-forge python=3.12 openssl=3.6.5 && conda activate pqc
+pip install -r requirements.txt
+python -m atlas_web create-user --role admin
+./run.sh                    # then open http://127.0.0.1:8000
+```
+
+**Windows (Anaconda Prompt)**
+
+```bat
+git clone https://github.com/Yojan-ui/q-shield-atlas.git && cd q-shield-atlas
+conda create -y -n pqc -c conda-forge python=3.12 openssl=3.6.5 && conda activate pqc
+pip install -r requirements.txt
+python -m atlas_web create-user --role admin
+run.bat                     &:: then open http://127.0.0.1:8000
+```
+
+Tested on macOS. On Windows, use WSL if anything fails. Without QpiAI keys the app runs on the local simulator and shows
+the recorded results. Starting a new pipeline run needs a free `QPIAI_OPT_API_KEY` in `.env.sh` (copy `.env.example`).
+
 ## Architecture
 
 **A. How a run flows**
@@ -60,6 +85,7 @@ flowchart TB
 
 ## Contents
 
+- [Quickstart](#quickstart)
 - [Architecture](#architecture)
 - [The problem in 30 seconds](#the-problem-in-30-seconds)
 - [What Q-Shield Atlas does](#what-q-shield-atlas-does)
@@ -69,7 +95,7 @@ flowchart TB
 - [Real data](#real-data)
 - [Quantum](#quantum)
 - [Optimizer comparison](#optimizer-comparison)
-- [Quickstart](#quickstart)
+- [Full setup](#full-setup)
 - [Honesty and safety rules](#honesty-and-safety-rules)
 - [Testing](#testing)
 - [Repo layout](#repo-layout)
@@ -248,25 +274,8 @@ size, 16 variables (`out/bench.json`, run `f1e23e14…`, 2026-10-29):
 - QAOA cannot hold the full schedule: it has |assets| × horizon binaries plus continuous exposure variables, and QAOA
   here is capped at 16 qubits.
 
-## Quickstart
+## Full setup
 
-### Fresh clone (judges)
-
-```bash
-git clone https://github.com/Yojan-ui/q-shield-atlas.git && cd q-shield-atlas
-conda create -n pqc -c conda-forge python=3.12 openssl=3.6.5 -y
-conda activate pqc
-pip install -r requirements.txt
-pip install qpiai-opt==0.0.9 qpiai-quantum==0.3.0     # QpiAI SDKs (already pinned in requirements.txt)
-cp .env.example .env.sh                              # optional: fill in your keys
-python -m atlas_web create-user --role admin         # first user; password prompt
-./run.sh                                             # then open http://127.0.0.1:8000
-```
-
-Without keys, the web app runs and shows the recorded results, and QAOA uses the local QpiAI-QSV-Local simulator.
-Starting a new pipeline run needs a free `QPIAI_OPT_API_KEY`, because local QpiAI Opt solves check the key online.
-
-### Full setup
 
 ```bash
 # 1. Environment: Python 3.12 + OpenSSL 3.6.5 + the pinned QpiAI SDKs (qpiai-opt 0.0.9, qpiai-quantum 0.3.0)
