@@ -8,7 +8,7 @@ import { emptyState } from "../components/states.js";
 import { prefersReducedMotion } from "../motion.js";
 import { HNDL } from "../model.js";
 import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
-import { stageFacts } from "../components/overview.js";
+import { flowFacts } from "../components/overview.js";
 import { bullets, detailsList, nextStep, pageHead } from "../components/page.js";
 
 export const LANES = [
@@ -33,14 +33,19 @@ export function progress(assets, week) {
 
 export async function mount(ctx) {
   let reduced = prefersReducedMotion(), timer = 0, layer = null;
-  const stageEl = stage(ctx, { label: "3D view of the migration: each sphere is a system moving from old encryption (left) to post-quantum (right); white spheres passed every lab check. The thin gates are the pipeline stages.", fallback: h("span") });
-  const stageWrap = h("div", { class: "span-12 mg-stage" }, stageEl);
+  const stageEl = stage(ctx, { label: "3D view of the planned migration: clusters are banks or system groups, each sphere is one endpoint moving from old encryption (left) to post-quantum (right); white spheres passed their lab gate. Thin gates are the pipeline steps; moving dots are transactions. Click a sphere to open its review.", fallback: h("span") });
+  const legend3d = h("ul", { class: "legend", "aria-label": "3D legend" }, [["", "dark grey: still classical (quantum-exposed)"], ["moved", "light grey: moved by the plan, not lab-verified"],
+    ["white", "white: hybrid post-quantum, passed its gate"], ["", "moving dots: transactions passing the steps"], ["", "thin lines: the 7 pipeline steps"]].map(([c, t]) =>
+    h("li", {}, h("span", { class: `lg-dot mono-${c || "dark"}`, "aria-hidden": "true" }), t)), h("li", { text: "click a sphere to open its review" }));
+  const stageWrap = h("div", { class: "span-12 mg-stage" }, stageEl, legend3d);
   const body = dataView(ctx, {
     keys: ["results"],
     skeleton: () => h("p", { class: "fine", text: "Loading the plan…" }),
     render: ({ model: m }) => {
       const r = m && m.results;
       if (!r || !r.assets || !r.assets.length) return emptyState(r && r.assets ? { title: "Nothing to migrate", body: "The scan found no RSA / ECC to replace in this workspace.", action: null } : notRun(ctx, "Migration"));
+      const wr = r.gates && r.gates.wave_run_id;
+      const reviewHref = (a) => `/w/${ctx.ws}/review${wr ? `?item=${encodeURIComponent(`wave:${wr}:${a.planned_week}`)}` : ""}`;
       const assets = [...r.assets].sort((a, b) => a.planned_week - b.planned_week || a.id.localeCompare(b.id));
       const last = Math.max(...assets.map((a) => a.planned_week)) + 1;
       let week = Math.min(last, Math.max(0, Number(ctx.query.get("week") ?? last)));
@@ -49,7 +54,7 @@ export async function mount(ctx) {
         const res = RESULT[a.status] || RESULT.planned;
         const t = h("li", { class: "mg-tile", "data-id": a.id },
           h("a", { href: `/w/${ctx.ws}/asset/${encodeURIComponent(a.id)}`, class: "mg-name", text: a.name }),
-          h("span", { class: "mg-meta fine", text: `${a.algorithm} · wave ${a.planned_week}` }),
+          h("span", { class: "mg-meta fine" }, `${a.algorithm} · wave ${a.planned_week} · `, h("a", { href: reviewHref(a), text: "review" })),
           h("span", { class: "mg-res" }, chip(...res)));
         return [a.id, t];
       }));
@@ -101,7 +106,7 @@ export async function mount(ctx) {
         if (reduced) { if (layer) { ctx.world.mount("migration", null); layer = null; } return; }
         if (layer) return;
         import("../scenes/migration.js").then(({ buildMigration }) => mountScene(ctx, "migration", { available: true }, (env) =>
-          buildMigration(env, { assets, doneStages: new Set(Object.keys(stageFacts(r))) }, week))).then((l) => { layer = l; if (!l) stageWrap.hidden = true; }).catch(() => { stageWrap.hidden = true; });
+          buildMigration(env, { assets, doneStages: new Set(Object.keys(flowFacts(r))), onPick: (a) => ctx.navigate(reviewHref(a)) }, week))).then((l) => { layer = l; if (!l) stageWrap.hidden = true; }).catch(() => { stageWrap.hidden = true; });
       };
       motionBtn.addEventListener("click", () => { reduced = !reduced; draw(); show3d(); }, { signal: ctx.signal });
       ctx.signal.addEventListener("abort", stop, { once: true });

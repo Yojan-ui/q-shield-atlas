@@ -149,3 +149,4 @@
 .bn-key { width: 24px; height: 8px; }
 .bn-why .pg-list { color: var(--text); }
 table.data td.n { white-space: nowrap; }
+.lg-dot.mono-dark { background: #6e6e6e; } .lg-dot.mono-moved { background: #b0b0b0; } .lg-dot.mono-white { background: #ffffff; }

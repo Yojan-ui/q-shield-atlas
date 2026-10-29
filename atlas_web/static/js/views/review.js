@@ -50,6 +50,7 @@ export async function mount(ctx) {
       const n = (x) => ({ kind: "number", value: x, text: String(x), digits: 0, source: { run_id: "reviews", solver: "review decisions", ts: "" } });
       const why = R.read_only ? "Read-only demo snapshot: decisions cannot be recorded here." : !R.can_decide ? "Viewers can see decisions; an operator or admin records them." : null;
       const focus = ctx.query.get("item");
+      if (focus) requestAnimationFrame(() => { const el = ctx.root.querySelector(".rv-item.hl"); if (el) el.scrollIntoView({ block: "center" }); });
       return h("div", {},
         keyStats([
           { label: "awaiting review", cell: n(pending.length), unit: "results", mean: why || "Each needs a person's approve or reject, with a reason." },
