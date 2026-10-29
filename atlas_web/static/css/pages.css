@@ -1,0 +1,15 @@
+/* Benchmark, Review and Migration pages */
+.bn-claim { display: flex; gap: var(--s-3); align-items: center; }
+.bn-claim p { margin: 0; color: var(--text-2); }
+.bn-chart { width: 100%; max-width: 760px; height: auto; display: block; }
+.bn-grid { stroke: var(--hairline); stroke-width: 1; }
+.bn-tick, .bn-axis { fill: var(--text-3); font-family: var(--font-mono); font-size: 11px; }
+.bn-axis { fill: var(--text-2); }
+.bn-line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+.bn-dot { stroke: var(--surface-solid); stroke-width: 2; }
+.bn-dot:hover { r: 6; }
+.bn-label { fill: var(--text-2); font-size: 11px; }
+.bn-legend { list-style: none; padding: 0; margin: var(--s-3) 0; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); font-size: var(--fs-12); color: var(--text-2); }
+.bn-legend li { display: flex; align-items: center; gap: 6px; }
+.bn-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.bn-limits { margin: 0; padding-left: 1.2em; color: var(--text-2); display: grid; gap: var(--s-2); max-width: 80ch; }

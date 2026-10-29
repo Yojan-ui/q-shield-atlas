@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .config import REPO, STATIC
 from .scene import build_scene
-from .server import ledger_payload, load_results, tamper_demo
+from .server import bench_payload, ledger_payload, load_results, tamper_demo
 from .workspaces import demo
 
 DIST = REPO / "atlas_web" / "dist"
@@ -54,6 +54,7 @@ def _data() -> dict:
         "/api/workspaces/demo/scene": build_scene("demo", r, ws.src),
         "/api/workspaces/demo/ledger": ledger_payload(ws),
         "/api/workspaces/demo/runs": {"runs": [], "active": None},
+        "/api/workspaces/demo/bench": bench_payload(ws),
     }
     led = data["/api/workspaces/demo/ledger"]
     if led.get("available"):

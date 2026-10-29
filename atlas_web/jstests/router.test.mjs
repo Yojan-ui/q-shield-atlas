@@ -59,6 +59,6 @@ test("href, direction, rail", () => {
   assert.equal(direction(3, 2), "back");
   assert.equal(direction(2, 3), "forward");
   assert.equal(direction(2, 2), "replace");
-  assert.deepEqual(RAIL.map((r) => r.rail), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(RAIL.map((r) => r.rail), [1, 2, 3, 4, 5, 6, 7]);
   assert.ok(ROUTES.every((r) => r.title && r.view && r.camera));
 });

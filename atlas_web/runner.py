@@ -195,6 +195,15 @@ def pipeline_steps(ws: Workspace, probes: list[str], platform: bool = False, qcl
     return steps
 
 
+def bench_steps(ws: Workspace) -> list[tuple[str, list[str]]]:
+    """python -m bench on this workspace's schedule, then sign it (bench.run) and verify the whole chain."""
+    py = [sys.executable, "-m"]
+    out, runs = str(ws.out), str(ws.runs)
+    led = ["--ledger", str(ws.out / "ledger.jsonl"), "--out-dir", out, "--runs", runs, "--root", str(ws.root), "--keys-dir", str(ws.keys)]
+    return [("bench", [*py, "bench", "--schedule", str(ws.out / "schedule.json"), "--out-dir", out, "--runs", runs]),
+            ("ledger_ingest", [*py, "ledger", "ingest", *led]), ("ledger_verify", [*py, "ledger", "verify", *led])]
+
+
 # ---------------- runs ----------------
 
 class Run:

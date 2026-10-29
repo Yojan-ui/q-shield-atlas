@@ -1,7 +1,7 @@
 """JSON contracts shared by all Q-Shield Atlas modules.
 
 Modules exchange data only through documents that validate against the schemas in this
-folder: capture.json, results.json and ledger entries.
+folder: capture.json, results.json, bench.json and ledger entries.
 """
 
 import json
@@ -15,6 +15,7 @@ SCHEMAS = {
     "capture": "capture.schema.json",
     "results": "results.schema.json",
     "ledger_entry": "ledger_entry.schema.json",
+    "bench": "bench.schema.json",
 }
 
 

@@ -1,0 +1,32 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "bench.json: the same link cutover instances solved by classical, simulated-quantum and hybrid solvers",
+ "type": "object",
+ "required": ["label", "run_id", "ts", "schedule_sha256", "subproblem", "qaoa_config", "environment", "instances", "rows", "full_schedule", "hardware", "limits"],
+ "properties": {
+  "label": {"type": "string", "pattern": "No quantum advantage claimed"},
+  "run_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+  "ts": {"type": "string"},
+  "schedule_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+  "subproblem": {"const": "link_cutover"},
+  "instances": {"type": "array", "items": {"type": "object", "required": ["id", "n_variables", "asset_variables", "optimum"],
+   "properties": {"n_variables": {"type": "integer", "minimum": 1, "maximum": 16}, "optimum": {"type": "number"}}}},
+  "rows": {"type": "array", "items": {"$ref": "#/$defs/row"}},
+  "hardware": {"type": "string", "pattern": "^not run"},
+  "limits": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+ },
+ "$defs": {
+  "row": {
+   "type": "object",
+   "required": ["instance", "n_variables", "solver", "family", "p", "status", "status_text", "objective", "optimum", "feasible", "approximation_ratio", "runtime_s"],
+   "properties": {
+    "solver": {"enum": ["exact", "milp", "random", "qaoa", "hybrid", "hardware"]},
+    "status": {"enum": ["ok", "error", "not_requested", "not_run"]}
+   },
+   "if": {"properties": {"status": {"const": "ok"}}},
+   "then": {"properties": {"runtime_s": {"type": "number", "minimum": 0}, "status_text": {"type": "null"}, "feasible": {"type": "boolean"}}},
+   "else": {"properties": {"objective": {"type": "null"}, "runtime_s": {"type": "null"}, "approximation_ratio": {"type": "null"},
+                           "feasible": {"type": "null"}, "status_text": {"type": "string", "minLength": 1}}}
+  }
+ }
+}

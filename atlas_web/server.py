@@ -30,7 +30,7 @@ from . import workspaces as wsmod
 from .auth import AuthError, Store, has_role
 from .config import REPO, STATIC, data_dir, limits
 from .config import settings
-from .runner import RunManager, parse_probes, pipeline_steps, preflight, reference_presets
+from .runner import RunManager, bench_steps, parse_probes, pipeline_steps, preflight, reference_presets
 from .workspaces import WorkspaceError
 
 VIZ_VENDOR = REPO / "viz" / "vendor"
@@ -108,6 +108,18 @@ def load_results(ws) -> dict | None:
         return json.loads(ws.results.read_text())
     except (OSError, ValueError):
         return None
+
+
+def bench_payload(ws) -> dict:
+    f = ws.out / "bench.json"
+    if not f.exists():
+        return {"workspace": ws.id, "bench": None, "ledger_index": None,
+                "status_text": "not in this snapshot (python -m bench)" if ws.read_only else "not yet run"}
+    b = json.loads(f.read_text())
+    entries = ((load_results(ws) or {}).get("ledger") or {}).get("entries", [])
+    ref = f"runs/{b['run_id']}/manifest.json"
+    idx = next((e["index"] for e in entries if e["type"] == "bench.run" and e["payload_ref"].endswith(ref)), None)
+    return {"workspace": ws.id, "bench": b, "ledger_index": idx, "status_text": None}
 
 
 def ledger_path(ws, results) -> Path | None:
@@ -491,6 +503,17 @@ def make_handler(app: App):
                 if idx is not None and not isinstance(idx, int):
                     raise ApiError(422, "bad_index", "index must be an integer")
                 return self.send_json(200, tamper_demo(ws, idx))
+            if name == "bench" and len(sub) == 1:
+                if method == "GET":
+                    return self.send_json(200, bench_payload(ws))
+                if method == "POST":  # python -m bench, then sign it into the Proof Chain and verify the chain
+                    u = self.need("operator")
+                    wsmod.require_writable(ws)
+                    if not (ws.out / "schedule.json").exists():
+                        raise ApiError(409, "not_run", "run the pipeline first: the benchmark uses this workspace's schedule")
+                    run = app.runs.start(ws, u["username"], bench_steps(ws), "bench", {"bench": True}, False,
+                                         needs_keygen=not (ws.keys / "ledger_mldsa65.key").exists())
+                    return self.send_json(202, {"run_id": run.id})
             if name == "manifests":
                 a = json.loads(ws.assumptions.read_text())
                 if method == "GET":

@@ -1,4 +1,4 @@
-// Route table. `rail` = position in the route rail (keys 1–6). Views are lazy-loaded modules.
+// Route table. `rail` = position in the route rail (keys 1–9). Views are lazy-loaded modules.
 export const ROUTES = [
   { name: "landing", path: "/", title: "Post-quantum migration, proven", view: "landing", camera: "harvest" },
   { name: "signin", path: "/signin", title: "Sign in", view: "signin", guestOnly: true, camera: "cell" },
@@ -8,6 +8,7 @@ export const ROUTES = [
   { name: "handshakes", path: "/w/:ws/handshakes", title: "Handshakes", view: "handshakes", auth: true, rail: 5, label: "Handshakes", short: "TLS", camera: "handshakes" },
   { name: "ledger", path: "/w/:ws/ledger", title: "Proof Chain", view: "ledger", auth: true, rail: 3, label: "Proof Chain", short: "Proof", camera: "ledger" },
   { name: "qaoa", path: "/w/:ws/qaoa", title: "QAOA cross-check", view: "qaoa", auth: true, rail: 6, label: "QAOA", short: "QAOA", camera: "qaoa" },
+  { name: "bench", path: "/w/:ws/bench", title: "Benchmark", view: "bench", auth: true, rail: 7, label: "Benchmark", short: "Bench", camera: "settings" },
   { name: "asset", path: "/w/:ws/asset/:assetId", title: "Asset", view: "asset", auth: true, camera: "asset" },
   { name: "users", path: "/settings/users", title: "Users", view: "users", auth: true, role: "admin", camera: "settings" },
   { name: "styleguide", path: "/styleguide", title: "Styleguide", view: "styleguide", dev: true, camera: "settings" },
