@@ -62,6 +62,17 @@ Modules exchange data only through the JSON contracts in `contracts/`.
 
 The UI's step names are generated from that file (`python -m contracts.stages --write-js`), and a test keeps them in sync.
 
+**Solvers** (`solvers/`, defaults in `config/solvers.json`): `solvers.solve(subproblem, instance, solver)` returns one
+`Solution` (assignment, objective, feasibility, runtime, problem size). There are two subproblems:
+
+| Subproblem | What it decides | Default solver | Other solvers |
+|---|---|---|---|
+| `migration_schedule` | The full multi-week wave plan | `milp` (QpiAI Opt local) | `fcfs`, `greedy` |
+| `link_cutover` | Which links cut over to post-quantum key exchange in one change window. A "link" is one asset's TLS endpoint; there is no network-transmission model | `qaoa` (statevector simulator) | `exact`, `hybrid`, `milp` |
+
+- `hybrid`: QAOA samples are repaired classically, and the classical step decides feasibility.
+- Unsupported pairs, such as QAOA on the full schedule, raise `solvers.Unsupported` with the reason.
+
 ## Quickstart (one command)
 
 ```bash

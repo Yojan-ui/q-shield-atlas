@@ -3,7 +3,7 @@
 QAOA on simulators. A measured cross-check against the exact optimum. No quantum advantage
 claimed; the problem is small enough for brute force.
 
-Builds the wave-selection QUBO for one week of the latest schedule (out/schedule.json), solves it
+Builds the link cutover selection QUBO (solvers subproblem "link_cutover") for one week of the latest schedule (out/schedule.json), solves it
 exactly by brute force, runs local statevector QAOA for each p, samples it, and compares with the
 same number of uniformly random bitstrings. --qcloud additionally samples the final circuits on
 a QpiAI QCloud simulator (paid, guarded, opt-in).
@@ -15,11 +15,12 @@ from pathlib import Path
 
 import numpy as np
 
+import solvers
 from contracts.manifest import new_run_id, sha256_json, utc_now
 from schedule.platform_guard import DAILY_LIMIT, PlatformBudget
 
 from . import local_sim, metrics, qcloud_run, qpiai_local
-from .qubo import build, exact_optimum
+from .qubo import build
 from .table import build_table
 
 REPO = Path(__file__).resolve().parent.parent
@@ -33,7 +34,7 @@ def run(schedule: dict, cfg: dict, run_root: Path, qcloud: bool = False, budget=
     run_dir.mkdir(parents=True, exist_ok=True)
     q = build(schedule, cfg)
     E = q.energies()
-    exact = {**exact_optimum(q), "run_id": run_id}
+    exact = {**solvers.solve("link_cutover", q, "exact").record, "run_id": run_id}  # the reference optimum
     if abs(float(E.min()) - exact["objective"]) > 1e-9:
         raise AssertionError("QUBO minimum differs from the brute-force constrained optimum")
 
@@ -89,6 +90,8 @@ def run(schedule: dict, cfg: dict, run_root: Path, qcloud: bool = False, budget=
         "ts": utc_now(),
         "schedule_sha256": sha256_json(schedule),
         "problem": {
+            "subproblem": "link_cutover",
+            "subproblem_label": f"link cutover selection: which links (asset TLS endpoints) cut over to post-quantum key exchange in week {q.week}",
             "week": q.week, "assets": q.assets, "values": q.values, "weights": q.weights,
             "capacity": q.capacity, "weight_scale": q.weight_scale, "slack_bits": q.slack_bits,
             "n_variables": q.n, "A": q.A, "B": q.B, "dependencies": [[q.assets[i], q.assets[j]] for i, j in q.deps],

@@ -10,10 +10,11 @@ from pathlib import Path
 
 from qpiai_opt.opt_solvers import Client
 
+import solvers
 from contracts.manifest import sha256_json
 
 from .baselines import run_baselines
-from .milp import STAGES, optimize
+from .milp import STAGES
 from .platform_guard import DAILY_LIMIT, PlatformBudget
 from .problem import DEFAULT_ASSUMPTIONS, DEFAULT_INVENTORY, REPO, load_problem, remaining_series
 from .sensitivity import horizon_for, run_sensitivity
@@ -55,7 +56,9 @@ def build_section(problem, client, run_dir, with_sensitivity=True, mode="local",
     if not problem.assets:
         return empty_section(problem)
     baselines = run_baselines(problem)
-    optimized, runs = optimize(problem, client, horizon_for(problem, baselines), run_dir, mode=mode, budget=budget)
+    sol = solvers.solve("migration_schedule", {"problem": problem, "client": client, "horizon": horizon_for(problem, baselines),
+                                               "run_dir": run_dir, "mode": mode, "budget": budget})  # config/solvers.json: milp
+    optimized, runs = sol.record
     weeks = optimized["completion_week"]
     horizon = max(p["makespan_weeks"] for p in (optimized, *baselines.values()))
     for plan in (optimized, *baselines.values()):  # common week axis for all plans

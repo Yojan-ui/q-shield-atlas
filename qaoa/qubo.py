@@ -1,4 +1,7 @@
-"""Wave-selection QUBO for one scheduled week.
+"""Link cutover selection QUBO for one scheduled week (solvers subproblem "link_cutover").
+
+A "link" is one asset's TLS endpoint cutting over to post-quantum key exchange in that change window;
+there is no network-transmission model.
 
 QAOA on simulators. A measured cross-check against the exact optimum. No quantum advantage
 claimed; the problem is small enough for brute force.

@@ -1,0 +1,7 @@
+{
+ "about": "Default solver per optimisation subproblem (solvers/__init__.py). Swap a value to change the solver; the pipeline records which one ran. QAOA is simulator-only; no quantum advantage is claimed.",
+ "default": {
+  "migration_schedule": "milp",
+  "link_cutover": "qaoa"
+ }
+}
