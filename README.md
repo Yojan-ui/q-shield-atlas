@@ -179,6 +179,28 @@ python -m atlas_web export                       # static read-only snapshot in 
 - **Public PQ reference endpoints:** a probe preset with `pq.cloudflareresearch.com:443` (hybrid X25519MLKEM768) and
   `www.gnu.org:443` (refused an X25519MLKEM768-only offer when verified on 2026-10-29, so classical): one standard TLS
   handshake each, no scanning; shown in drift, as live strands on Handshakes, and on asset pages.
+- **Pages:** the route rail follows the stage order. Keys 1–9: Pipeline, Detect, Proof Chain, Plan, Handshakes, QAOA, Benchmark, Review, Migration.
+  - **Pipeline** opens with "At a glance": one card per stage, each with a plain name, one status (Done / Running /
+    Failed / Not run), the key number and a "what this means" line.
+  - Every page footer carries the colour legend.
+  - **Plan** shows the time estimate: the MILP makespan, plus a capacity lower bound of total assumed effort ÷ weekly
+    capacity. You can set a deadline in weeks, and the page flags clearly when the estimate exceeds it. The deadline
+    is saved per workspace for operators; otherwise it is kept in this browser only.
+  - **Benchmark** (`python -m bench`, or the button) solves the same link cutover instances (6–16 QUBO variables)
+    with exact, QpiAI Opt MILP, random sampling, QAOA p=1–3 (simulator) and hybrid. It shows one table and a
+    log-scale runtime chart, and states its limits.
+    - The hardware row says "not run": the QCloud subscription is blocked, and the project never uses QpiAI-Indus-1.
+    - At this size random sampling also finds the optimum. No advantage is claimed.
+  - **Review** lists the latest run's plan, waves, QAOA run and benchmark as items awaiting review. Operators
+    approve or reject each one with a required reason. Each decision is signed into the Proof Chain as
+    `review.decision` and bound to the item's run_id and evidence SHA-256, and the chain is then re-verified.
+  - **Migration** shows every system moving through three lanes (old encryption → moving now → post-quantum), week
+    by week, following the logged plan.
+    - Each tile carries its wave's lab gate result, and the lab-tested connections are listed.
+    - "Verified in lab" is the strongest state shown. Nothing claims a production migration.
+    - Play animates the weeks. With reduced motion (OS setting or the Motion toggle) tiles change lanes without
+      animation.
+    - This view is 2D. The 3D week-by-week view is the LATTICE on Plan.
 - **Roles:** viewer (read), operator (run, upload, calibrate), admin (users; paid QpiAI runs, which stay disabled in
   `config/atlas_web.json` until the account issues are fixed). scrypt passwords, hashed session tokens, CSRF
   double-submit, login rate limit.

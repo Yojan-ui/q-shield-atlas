@@ -114,6 +114,13 @@ Report exposure-years avoided vs both baselines on the same data.
   route scenes in js/scenes/, `python -m atlas_web export` (static, file://), crash recovery (INTERRUPTED runs).
   Verify with pytest, `node --test atlas_web/jstests/*.test.mjs`, `python tools/route_check.py`, `tools/bench_api.py`.
 
+## Mentor pass (user, 2026-10-29)
+- Stages live in contracts/stages.json (Detect -> Proof Chain -> Plan -> Handshakes -> Gates -> QAOA -> Seal -> Report);
+  after editing it run `python -m contracts.stages --write-js`. "Proof Chain" is the UI name only; code/API keep `ledger`.
+- Solvers: solvers.solve(); QAOA's subproblem is "link cutover selection" (one asset's TLS endpoint per variable; no
+  network-transmission model). MILP for the full schedule. Benchmark: python -m bench (signed as bench.run).
+- data/SYNTHETIC_* files are synthetic; data/real_* only from logged real runs (tools/export_csv.py).
+
 ## Workflow
 - Build order is fixed: schedule → detect → capture (handshake evidence) → gates → ledger → qaoa → viz → run_demo.
   Do not skip ahead.

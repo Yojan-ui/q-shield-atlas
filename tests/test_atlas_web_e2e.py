@@ -16,7 +16,7 @@ from .atlas_web_helpers import PASSWORD, Client, sse_events, start_server
 from .test_atlas_web_pipeline import STEPS, repo_state
 
 REPO = Path(__file__).resolve().parent.parent
-ROUTES = ["pipeline", "detect", "schedule", "handshakes", "ledger", "qaoa"]
+ROUTES = ["pipeline", "detect", "schedule", "handshakes", "ledger", "qaoa", "bench", "review", "migration"]
 
 
 def zip_tree(root: Path) -> bytes:
@@ -57,9 +57,12 @@ def browser_check(port, cookies, paths):
                 page.wait_for("document.body && document.body.dataset.ready === '1'", 20)
                 page.wait_for("!document.querySelector('.skel')", 10)
                 info = page.eval("({route: document.body.dataset.route, empty: !!document.querySelector('.state.empty, .state.error'),"
+                                 " error: !!document.querySelector('.state.error'), text: document.body.innerText,"
                                  " errors: window.__atlasErrors || []})")
                 bad = list(info["errors"])
-                if info["empty"]:
+                if path.endswith("/bench") and not info["error"] and "Benchmark: not yet run" in info["text"]:
+                    pass  # the benchmark is a separate run (python -m bench); its honest empty state is expected here
+                elif info["empty"]:
                     bad.append("empty/error state shown although the workspace has results")
                 for m, p in page.events:
                     if m == "Runtime.exceptionThrown" or (m == "Runtime.consoleAPICalled" and p["type"] in ("error", "warning")):

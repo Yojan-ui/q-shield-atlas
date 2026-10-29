@@ -35,15 +35,20 @@ export function runtimeChart(rows, instances) {
   }
   for (const n of xs) svg.append(h("text", { ns: "svg", x: X(n), y: H - B + 18, class: "bn-tick", "text-anchor": "middle" }, String(n)));
   svg.append(h("text", { ns: "svg", x: (L + W - R) / 2, y: H - 6, class: "bn-axis", "text-anchor": "middle" }, "problem size (QUBO variables)"));
+  const ends = [];
   for (const s of SERIES) {
     const line = pts.filter((r) => seriesKey(r) === s.key).sort((a, b) => a.n_variables - b.n_variables);
     if (!line.length) continue;
-    svg.append(h("polyline", { ns: "svg", points: line.map((r) => `${X(r.n_variables)},${Y(r.runtime_s)}`).join(" "), class: "bn-line", stroke: s.color }));
+    // hybrid reuses QAOA p=1 samples, so the two lines can coincide: hybrid is dashed so both stay visible
+    svg.append(h("polyline", { ns: "svg", points: line.map((r) => `${X(r.n_variables)},${Y(r.runtime_s)}`).join(" "), class: "bn-line", stroke: s.color,
+      "stroke-dasharray": s.key === "hybrid" ? "6 4" : null }));
     for (const r of line) svg.append(h("circle", { ns: "svg", cx: X(r.n_variables), cy: Y(r.runtime_s), r: 4, fill: s.color, class: "bn-dot" },
       h("title", { ns: "svg" }, `${s.label} · n = ${r.n_variables}: ${secs(r.runtime_s)}, objective ${fmt(r.objective, 4)} (optimum ${fmt(r.optimum, 4)})`)));
     const last = line[line.length - 1];
-    svg.append(h("text", { ns: "svg", x: X(last.n_variables) + 8, y: Y(last.runtime_s) + 4, class: "bn-label" }, s.label.split(" (")[0]));
+    ends.push({ x: X(last.n_variables) + 8, y: Y(last.runtime_s) + 4, text: s.label.split(" (")[0] });
   }
+  ends.sort((a, b) => a.y - b.y).forEach((e, i, all) => { if (i && e.y - all[i - 1].y < 14) e.y = all[i - 1].y + 14; });  // no overlapping end labels
+  for (const e of ends) svg.append(h("text", { ns: "svg", x: e.x, y: e.y, class: "bn-label" }, e.text));
   return svg;
 }
 

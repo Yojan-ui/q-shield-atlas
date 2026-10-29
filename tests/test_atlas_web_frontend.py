@@ -15,7 +15,8 @@ from .atlas_web_helpers import PASSWORD, Client, start_server
 REPO = Path(__file__).resolve().parent.parent
 STATIC = REPO / "atlas_web" / "static"
 NODE = shutil.which("node")
-BUDGET = 250 * 1024
+BUDGET = 300 * 1024  # raised from 250 KB by the user (2026-10-29) for the lazy-loaded Benchmark/Review/Migration views
+FIRST_LOAD_BUDGET = 120 * 1024  # index.html + every stylesheet + main.js and its static imports (views load lazily)
 needs_node = pytest.mark.skipif(NODE is None, reason="node not installed")
 
 
@@ -43,6 +44,21 @@ def test_node_unit_tests():
 def test_own_assets_within_budget():
     total = sum(p.stat().st_size for p in own_assets())
     assert total <= BUDGET, f"own JS+CSS+shaders+HTML {total} B > {BUDGET} B"
+
+
+def test_first_load_within_budget():
+    seen = set()
+
+    def walk(p):
+        if p in seen or not p.exists():
+            return
+        seen.add(p)
+        for m in re.findall(r'^\s*(?:import|export)[^;]*?from\s+"(\.[^"]+)"', p.read_text(), re.M):
+            walk((p.parent / m).resolve())
+
+    walk((STATIC / "js" / "main.js").resolve())
+    total = sum(f.stat().st_size for f in seen) + sum(f.stat().st_size for f in (STATIC / "css").glob("*.css")) + (STATIC / "index.html").stat().st_size
+    assert total <= FIRST_LOAD_BUDGET, f"first load {total} B > {FIRST_LOAD_BUDGET} B"
 
 
 def test_no_cdn_no_web_fonts_no_inline_script():
