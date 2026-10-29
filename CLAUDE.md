@@ -121,6 +121,13 @@ Report exposure-years avoided vs both baselines on the same data.
   network-transmission model). MILP for the full schedule. Benchmark: python -m bench (signed as bench.run).
 - data/SYNTHETIC_* files are synthetic; data/real_* only from logged real runs (tools/export_csv.py).
 
+## Quantum backends (2026-10-30)
+- docs/QUANTUM.md + README section: every value from out/results.json, runs/, data/real_ibm_qaoa. quantum-sdk/ is a
+  git-ignored reference clone (v0.7.5), unused; the pipeline uses PyPI qpiai-quantum 0.3.0 / qpiai-opt 0.0.9.
+- Wave selection page: components/backends.js status rows (Opt, QSV-Local, QCloud, IBM only if results have ibm rows).
+- run_demo.sh runs `qaoa --ibm-import data/real_ibm_qaoa` inside the QAOA stage (not a stages.json step; --no-ibm).
+- Frontend size budget (tests/test_atlas_web_frontend.py) has ~4 B headroom: trim before adding JS/CSS.
+
 ## Workflow
 - Build order is fixed: schedule → detect → capture (handshake evidence) → gates → ledger → qaoa → viz → run_demo.
   Do not skip ahead.
