@@ -2,12 +2,12 @@
 // (ledger signature status). Height and colour come only from the caller's real fields; an item without data is a
 // low wireframe column ("not yet run"). Colour means status only: green passed / verified, red failed, white running
 // (pulses), grey idle. Labels are HTML, projected each frame, no per-frame allocation. Same world, same camera.
-export const STATE_COLOR = { ok: 0x4ade80, fail: 0xff4d5e, running: 0xffffff, idle: 0x3a3a3a, missing: 0x9a9a9a };
+export const STATE_COLOR = { ok: 0x4ade80, fail: 0xff4d5e, pqc: 0x5ed3f3, running: 0xffffff, idle: 0x3a3a3a, missing: 0x9a9a9a };
 export const pillarHeight = (h) => 0.35 + 5 * Math.max(0, Math.min(1, h ?? 0));
 export const GAP = 2.4;
 export const pillarX = (i, n) => (i - (n - 1) / 2) * GAP;
 
-export function buildPillars({ THREE, world, group }, items, { labelsEl, stageEl, reduced, onPick }) {
+export function buildPillars({ THREE, world, group }, items, { labelsEl, stageEl, reduced, onPick, reveal = false }) {
   const n = items.length;
   group.rotation.y = Math.asin(0.6);  // world.focus looks along (-0.6, -0.8): turn the row square to the camera
   group.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -46,6 +46,7 @@ export function buildPillars({ THREE, world, group }, items, { labelsEl, stageEl
       const b = stageEl.getBoundingClientRect();
       group.updateMatrixWorld();
       for (let i = 0; i < n; i++) {
+        if (reveal && !reduced) { const on = clock > i * 0.15; meshes[i].visible = on; labels[i].style.visibility = on ? "" : "hidden"; }  // pop in, one per item
         if (items[i].state === "running") meshes[i].material.emissive.setScalar(pulse);
         const below = i % 2 === 1;  // alternate above / below so neighbouring labels never collide
         v.set(meshes[i].position.x, below ? -0.35 : pillarHeight(items[i].h) + 0.35, 0).applyMatrix4(group.matrixWorld).project(world.camera);

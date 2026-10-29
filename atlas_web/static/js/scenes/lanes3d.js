@@ -6,9 +6,9 @@ import { flight, packetsOf } from "../components/channel.js";
 
 export const UNIT = 0.0036;  // scene units per recorded byte
 export const packetLength = (bytes) => Math.max(0.12, (bytes || 0) * UNIT);
-const SX = -6.5, RX = 6.5, LANE = 2.6, TONE = { exp: 0xff4d5e, ok: 0x4ade80, neutral: 0xffffff };
+const SX = -6.5, RX = 6.5, LANE = 2.6, TONE = { exp: 0xff4d5e, ok: 0x4ade80, pqc: 0x5ed3f3, neutral: 0xffffff };
 
-export function buildLanes3d({ THREE, world, group }, lanes, { labelsEl, stageEl }) {
+export function buildLanes3d({ THREE, world, group }, lanes, { labelsEl, stageEl, autoplay = false, reduced = false }) {
   group.rotation.y = Math.asin(0.6);  // square to the world.focus view direction
   group.add(new THREE.AmbientLight(0xffffff, 0.8));
   const key = new THREE.DirectionalLight(0xffffff, 1.0); key.position.set(5, 10, 8); group.add(key);
@@ -46,7 +46,8 @@ export function buildLanes3d({ THREE, world, group }, lanes, { labelsEl, stageEl
   return {
     pickables: [],
     set(x) { t = x; },
-    update() {
+    update(dt) {
+      if (autoplay && !reduced) { const n = Math.max(1, ...L.map((l) => l.pk.length)); t = (t + dt * 1.1) % (n + 1.6); }  // guided run: loop the recorded messages
       const b = stageEl.getBoundingClientRect();
       group.updateMatrixWorld();
       for (const l of L) {

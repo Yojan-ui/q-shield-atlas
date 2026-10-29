@@ -1,0 +1,24 @@
+/* Guided run (components/guided.js): 3D stage + terminal log + stepper. Loaded by the Pipeline page. */
+.gd{display:grid;gap:var(--s-3);margin:var(--s-5) 0;padding:var(--s-4);border:var(--rule) solid var(--hairline-strong)}
+.gd[hidden]{display:none}
+.gd-top{display:flex;justify-content:space-between;align-items:center;gap:var(--s-3)}
+.gd-mode{margin:0;color:var(--text-2);font-size:var(--fs-16)}
+.gd-body{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:var(--s-4)}
+.gd-view{display:grid;gap:var(--s-3);min-width:0}
+.stage.gd-stage{height:max(56vh,440px)}
+.gd-head{margin:0;font-size:var(--fs-28);font-weight:600;line-height:1.2}
+.gd-chips{display:flex;flex-wrap:wrap;gap:var(--s-2)}
+.gd-side{display:grid;grid-template-rows:auto 1fr;min-width:0;border-left:var(--rule) solid var(--hairline);padding-left:var(--s-3)}
+.gd-k{margin:0 0 var(--s-2);color:var(--text-2);font-size:var(--fs-16);text-transform:uppercase;letter-spacing:var(--track-label)}
+.gd-log{list-style:none;margin:0;padding:0;max-height:max(56vh,440px);overflow:auto;font:16px/1.45 var(--font-mono);color:var(--text-2)}
+.gd-log li{white-space:pre-wrap;word-break:break-word}.gd-log .ok{color:var(--pass)}.gd-log .bad{color:var(--exposure)}
+.gd-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--s-2)}
+.gd-step{all:unset;cursor:pointer;display:flex;gap:var(--s-2);align-items:baseline;width:100%;box-sizing:border-box;padding:var(--s-2);border-top:3px solid var(--hairline-strong);font-size:var(--fs-16);color:var(--text-2)}
+.gd-step:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.gd-steps li.on .gd-step{color:var(--text);border-top-color:var(--text)}
+.gd-steps li[data-state=ok] .gd-step{border-top-color:var(--pass)}.gd-steps li[data-state=fail] .gd-step{border-top-color:var(--exposure)}
+.gd-steps li[data-state=running] .gd-step{border-top-color:var(--text);animation:gd-pulse 1s ease-in-out infinite alternate}
+@keyframes gd-pulse{from{opacity:1}to{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.gd-steps li[data-state=running] .gd-step{animation:none}}
+.gd-ctl{display:flex;flex-wrap:wrap;gap:var(--s-3);align-items:center}
+@media (max-width:900px){.gd-body{grid-template-columns:1fr}.gd-side{border-left:0;padding-left:0}.gd-steps{grid-template-columns:repeat(4,minmax(0,1fr))}}

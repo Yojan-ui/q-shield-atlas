@@ -11,6 +11,7 @@ import { num, missing, solverLabel, source, STAGE_OF, STEPS, stationsModel } fro
 import { honesty, mountScene, stage, viewCss } from "./common.js";
 import { FLOW } from "../flow.js";
 import { buildPillars } from "../scenes/pillars.js";
+import { guidedRun } from "../components/guided.js";
 import { flowCards, flowFacts } from "../components/overview.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";
@@ -28,7 +29,7 @@ export function flowStates(model) {
 export const resultStates = (facts) => FLOW.map((f) => (facts[f.id] ? "ok" : "missing"));
 
 export async function mount(ctx) {
-  await viewCss("pillars");
+  await Promise.all([viewCss("pillars"), viewCss("guided"), viewCss("graph")]);
   const ro = !ctx.wsInfo || ctx.wsInfo.read_only;
   const canRun = ctx.me.role !== "viewer" && !ro;
   const runBtn = h("button", { class: "btn primary", type: "button", disabled: !canRun }, icon("play"), "Run pipeline");
@@ -42,15 +43,21 @@ export async function mount(ctx) {
   const pre = h("div", {}, lines(4));
   const ovEl = h("div", {}, lines(3));
   let current = {}; // step -> {status, duration}
+  // guided run (non-demo workspaces): 3D stage per step + live log; replays the latest recorded run on request
+  const guided = ro ? null : guidedRun(ctx);
+  const replayBtn = guided ? h("button", { class: "btn", type: "button", onclick: () => guided.replay() }, icon("rewind"), "Replay last run") : null;
   // 3D: the seven steps as columns, lit from the real run status; the running step pulses (live SSE step events)
   const labels3d = h("div", { class: "gr-labels", "aria-hidden": "true" });
   const stageEl = stage(ctx, { label: "The seven pipeline steps as columns: green done, red failed, white pulsing running, grey not run.", fallback: h("span") });
   stageEl.append(labels3d);
   const items3d = FLOW.map((f, i) => ({ id: f.id, label: `${i + 1} ${f.label}`, h: 0.55, state: "idle" }));
   let layer3d = null, lastStates = items3d.map((x) => x.state);
-  mountScene(ctx, "pipeline", { available: true }, (env) => buildPillars(env, items3d, { labelsEl: labels3d, stageEl, reduced: ctx.world.reduced,
-    onPick: (it) => { const f = FLOW.find((x) => x.id === it.id); if (f) ctx.navigate(`/w/${ctx.ws}/${f.route}`); } }))
-    .then((l) => { layer3d = l; if (l) lastStates.forEach((st, i) => l.set(i, st)); }).catch(() => {});
+  const mountRow = () => { ctx.world.frameStage(stageEl); ctx.stageEl = stageEl; stageEl.hidden = false;
+    return mountScene(ctx, "pipeline", { available: true }, (env) => buildPillars(env, items3d, { labelsEl: labels3d, stageEl, reduced: ctx.world.reduced,
+      onPick: (it) => { const f = FLOW.find((x) => x.id === it.id); if (f) ctx.navigate(`/w/${ctx.ws}/${f.route}`); } }))
+      .then((l) => { layer3d = l; if (l) lastStates.forEach((st, i) => l.set(i, st)); }).catch(() => {}); };
+  mountRow();
+  if (guided) guided.onToggle((open) => { if (open) { layer3d = null; stageEl.hidden = true; } else mountRow(); });  // one stage owns the world at a time
 
   const drawStations = (model) => {
     lastStates = flowStates(model);
@@ -105,13 +112,14 @@ export async function mount(ctx) {
     log.clear(); tail.replaceChildren();
     current = Object.fromEntries(STEPS.map((s) => [s, { status: "pending" }]));
     es = new EventSource(`/api/workspaces/${ctx.ws}/runs/${runId}/events`);
+    if (guided) guided.start(runId);
     const draw = () => drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: current[step].status,
       duration: current[step].dur !== undefined ? num(current[step].dur, { run_id: runId, solver: "atlas_web runner", job_id: "none", ledger_index: "n/a", ts: new Date().toISOString() }, 1) : missing(current[step].status) })));
     draw();
     runBtn.disabled = true;
-    es.addEventListener("step_start", (e) => { const d = JSON.parse(e.data); if (current[d.step]) { current[d.step].status = "running"; draw(); } log.push(`$ python ${d.argv.join(" ")}`, d.step); });
-    es.addEventListener("line", (e) => { const d = JSON.parse(e.data); log.push(d.text, d.step); });
-    es.addEventListener("step_end", (e) => { const d = JSON.parse(e.data); if (current[d.step]) { current[d.step] = { status: d.exit_code === 0 ? "ok" : "fail", dur: d.duration_s }; draw(); ctx.announce(`${d.step} ${d.exit_code === 0 ? "done" : "failed"} in ${d.duration_s} seconds`); } });
+    es.addEventListener("step_start", (e) => { const d = JSON.parse(e.data); if (current[d.step]) { current[d.step].status = "running"; draw(); } log.push(`$ python ${d.argv.join(" ")}`, d.step); if (guided) guided.stepStart(d.step); });
+    es.addEventListener("line", (e) => { const d = JSON.parse(e.data); log.push(d.text, d.step); if (guided) guided.line(d.text); });
+    es.addEventListener("step_end", (e) => { const d = JSON.parse(e.data); if (current[d.step]) { current[d.step] = { status: d.exit_code === 0 ? "ok" : "fail", dur: d.duration_s }; draw(); ctx.announce(`${d.step} ${d.exit_code === 0 ? "done" : "failed"} in ${d.duration_s} seconds`); } if (guided) guided.stepEnd(d.step, d.exit_code, d.duration_s); });
     es.addEventListener("run_end", (e) => {
       const d = JSON.parse(e.data);
       es.close(); es = null;
@@ -119,7 +127,8 @@ export async function mount(ctx) {
       status.replaceChildren(chip(d.status, `run ${runId} · ${d.status} in ${d.duration_s} s`));
       if (d.status !== "PASS") showTail(d.tail, d.hint);
       toast(d.status === "PASS" ? "Pipeline finished: PASS" : "Pipeline failed", { tone: d.status === "PASS" ? "success" : "error" });
-      ctx.store.invalidate(ctx.ws, ["results", "scene", "ledger", "runs", "calibration"]);
+      ctx.store.invalidate(ctx.ws, ["results", "scene", "ledger", "runs", "calibration", "move", "inventory", "reviews"]);
+      if (guided) guided.end(d.status);
     });
     es.onerror = () => { if (es && es.readyState === EventSource.CLOSED) { es = null; runBtn.disabled = !canRun; } };
   };
@@ -161,7 +170,8 @@ export async function mount(ctx) {
       "Effort, risk and shelf-life values are assumptions in config/assumptions.json.",
       "QAOA runs on simulators; no quantum advantage is claimed."]) }]);
   ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
-    pageHead(ctx, { route: "pipeline", title: "Overview", headline: "Where does each system stand on its way to post-quantum encryption, and what happens next?", actions: [runBtn, status] }),
+    pageHead(ctx, { route: "pipeline", title: "Overview", headline: "Where does each system stand on its way to post-quantum encryption, and what happens next?", actions: [runBtn, replayBtn, status] }),
+    guided ? guided.el : null,
     stageEl, h("p", { class: "mv-how", text: "How to read this: one column per pipeline step, lit from this workspace's real run status: green done, red failed, white pulsing while it runs, grey not run. Click a column to open that step." }),
     ovEl, runDetails, nextStep(ctx, "pipeline", { route: "detect", text: "Start: 1 Detect" }), honesty())));
   drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: "idle", duration: missing("…") })));
