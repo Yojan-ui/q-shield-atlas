@@ -1,0 +1,4 @@
+/* 3D pillar / lane layers (scenes/pillars.js, scenes/lanes3d.js): label overlay. Loaded by Pipeline, Benchmark, Review, Move. */
+.p3-wrap{position:relative}
+.gr-labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pl3-label{position:absolute;left:0;top:0;font:16px/1.2 var(--font-mono);color:var(--text);white-space:nowrap;text-shadow:0 0 4px #000,0 0 2px #000}

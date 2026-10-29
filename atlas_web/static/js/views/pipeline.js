@@ -8,12 +8,27 @@ import { toast } from "../components/toast.js";
 import { provAttr } from "../components/tooltip.js";
 import { confirmDialog } from "../components/dialog.js";
 import { num, missing, solverLabel, source, STAGE_OF, STEPS, stationsModel } from "../model.js";
-import { honesty } from "./common.js";
-import { flowCards } from "../components/overview.js";
+import { honesty, mountScene, stage, viewCss } from "./common.js";
+import { FLOW } from "../stages.js";
+import { buildPillars } from "../scenes/pillars.js";
+import { flowCards, flowFacts } from "../components/overview.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";
 
+// station model (step -> status) -> one state per flow step: fail > running > ok (all steps ok) > idle
+const STATE = { ok: "ok", fail: "fail", running: "running", pending: "idle", idle: "idle" };
+export function flowStates(model) {
+  return FLOW.map((f) => {
+    const st = model.filter((s) => f.stages.includes(s.stage.id)).map((s) => STATE[s.status] || "idle");
+    return !st.length ? "missing" : st.includes("fail") ? "fail" : st.includes("running") ? "running" : st.every((x) => x === "ok") ? "ok" : "idle";
+  });
+}
+
+// no run recorded in this workspace's run log (e.g. a snapshot or a copied workspace): what results.json holds
+export const resultStates = (facts) => FLOW.map((f) => (facts[f.id] ? "ok" : "missing"));
+
 export async function mount(ctx) {
+  await viewCss("pillars");
   const ro = !ctx.wsInfo || ctx.wsInfo.read_only;
   const canRun = ctx.me.role !== "viewer" && !ro;
   const runBtn = h("button", { class: "btn primary", type: "button", disabled: !canRun }, icon("play"), "Run pipeline");
@@ -27,8 +42,19 @@ export async function mount(ctx) {
   const pre = h("div", {}, lines(4));
   const ovEl = h("div", {}, lines(3));
   let current = {}; // step -> {status, duration}
+  // 3D: the seven steps as columns, lit from the real run status; the running step pulses (live SSE step events)
+  const labels3d = h("div", { class: "gr-labels", "aria-hidden": "true" });
+  const stageEl = stage(ctx, { label: "The seven pipeline steps as columns: green done, red failed, white pulsing running, grey not run.", fallback: h("span") });
+  stageEl.append(labels3d);
+  const items3d = FLOW.map((f, i) => ({ id: f.id, label: `${i + 1} ${f.label}`, h: 0.55, state: "idle" }));
+  let layer3d = null, lastStates = items3d.map((x) => x.state);
+  mountScene(ctx, "pipeline", { available: true }, (env) => buildPillars(env, items3d, { labelsEl: labels3d, stageEl, reduced: ctx.world.reduced,
+    onPick: (it) => { const f = FLOW.find((x) => x.id === it.id); if (f) ctx.navigate(`/w/${ctx.ws}/${f.route}`); } }))
+    .then((l) => { layer3d = l; if (l) lastStates.forEach((st, i) => l.set(i, st)); }).catch(() => {});
 
   const drawStations = (model) => {
+    lastStates = flowStates(model);
+    lastStates.forEach((st, i) => { items3d[i].state = st; if (layer3d) layer3d.set(i, st); });
     stationsEl.replaceChildren(...model.map((s) => h("li", { class: `station ${s.status}`, "aria-label": `${STAGE_OF[s.step].label} stage, step ${s.step}: ${s.status}` },
       h("span", { class: "s-idx", text: String(s.index).padStart(2, "0") }),
       h("span", { class: "s-name" }, h("span", { class: "s-stage", text: STAGE_OF[s.step].label }), h("span", { class: "s-step mono", text: s.step })),
@@ -57,6 +83,7 @@ export async function mount(ctx) {
       status.replaceChildren(r ? chip("recorded", `snapshot from ./run_demo.sh, results.json ${r.generated_at}`) : chip("not yet run"));
     } else {
       drawStations(stationsModel(runs));
+      if (!last && r) { lastStates = resultStates(flowFacts(r)); lastStates.forEach((st, i) => { items3d[i].state = st; if (layer3d) layer3d.set(i, st); }); }
       status.replaceChildren(last ? chip(["PASS", "running", "INTERRUPTED"].includes(last.status) ? last.status : "FAIL", `${last.kind} run ${last.id} · ${last.status}`) : chip("not yet run", "no run in this workspace yet"));
       if (last && !["PASS", "running"].includes(last.status) && last.detail.tail) showTail(last.detail.tail, last.detail.hint);
       if (runs.active) follow(runs.active);
@@ -135,6 +162,7 @@ export async function mount(ctx) {
       "QAOA runs on simulators; no quantum advantage is claimed."]) }]);
   ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
     pageHead(ctx, { route: "pipeline", title: "Overview", headline: "Where does each system stand on its way to post-quantum encryption, and what happens next?", actions: [runBtn, status] }),
+    stageEl, h("p", { class: "mv-how", text: "How to read this: one column per pipeline step, lit from this workspace's real run status: green done, red failed, white pulsing while it runs, grey not run. Click a column to open that step." }),
     ovEl, runDetails, nextStep(ctx, "pipeline", { route: "detect", text: "Start: 1 Detect" }), honesty())));
   drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: "idle", duration: missing("…") })));
   try { await load(); } catch (err) { if (err.code !== "aborted") status.replaceChildren(chip("FAIL", err.message)); }
