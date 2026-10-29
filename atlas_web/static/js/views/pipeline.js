@@ -9,6 +9,7 @@ import { confirmDialog } from "../components/dialog.js";
 import { num, missing, solverLabel, source, STAGE_OF, STEPS, stationsModel } from "../model.js";
 import { header, honesty, mountScene, section, stage, wsEyebrow } from "./common.js";
 import { buildLattice } from "../engine/lattice.js";
+import { overview } from "../components/overview.js";
 
 export async function mount(ctx) {
   const ro = !ctx.wsInfo || ctx.wsInfo.read_only;
@@ -22,6 +23,7 @@ export async function mount(ctx) {
   const status = h("div", { class: "sg-row" });
   const tail = h("div");
   const pre = h("div", {}, lines(4));
+  const ovEl = h("div", { class: "span-12" }, lines(3));
   let current = {}; // step -> {status, duration}
 
   const drawStations = (model) => {
@@ -40,6 +42,7 @@ export async function mount(ctx) {
     solverEl.replaceChildren(sr ? h("span", { class: "num", tabindex: "0", "data-prov": provAttr(source(r, { run_id: sr.run_id, solver: sr.solver, job_id: sr.job_id, job_id_reason: sr.job_id_reason, ts: sr.ts }), "schedule solver record"), text: solverLabel(r) })
       : h("span", { class: "fine", text: "schedule: not yet run" }));
     const last = runs.runs[0];
+    ovEl.replaceChildren(overview(r, last && last.kind !== "bench" ? last : null));
     if (ro) {
       log.replaceWith(h("p", { class: "fine", style: { padding: "var(--s-4) 0" }, text: "This snapshot was produced by ./run_demo.sh in a terminal (its step logs are in out/demo_logs/). Runs started from this page stream their output here, line by line." }));
       drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: r ? "ok" : "idle", duration: missing(r ? "snapshot" : "not yet run") })));
@@ -111,8 +114,9 @@ export async function mount(ctx) {
     const L = buildLattice(THREE, group, scene, world.uniforms); world.uniforms.uWeek.value = 1e6; return L.hooks(ctx, stageEl);
   })).catch(() => {});
   ctx.root.append(h("div", { class: "grid" },
-    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Pipeline", lede: "Detect, then Proof Chain, then the rest: the run_demo.sh steps run as the existing module CLIs with this workspace's paths. Each station lights when its step completes.",
+    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Pipeline", lede: "Eight stages, in order: find weak encryption, start a signed proof record, plan the move, test connections, check each wave, cross-check, verify the record, report. Each card says what its number means.",
       aside: h("div", { class: "hero-figure" }, h("p", { class: "eyebrow", text: "schedule solver" }), solverEl, why), actions: [runBtn, status] })),
+    section("At a glance", ovEl),
     section("Stations", stationsEl),
     h("div", { class: "span-12" }, stageEl),
     h("div", { class: "span-8" }, section("Output", h("div", {}, log, tail))),

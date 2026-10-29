@@ -1,6 +1,7 @@
 // Shared view scaffolding: editorial header, data loading with skeleton/error, SSE-driven refresh.
 import { h, stagger } from "../dom.js";
 import { errorState } from "../components/states.js";
+import { colorLegend } from "../components/overview.js";
 import { buildViewModel } from "../model.js";
 
 export function header({ eyebrow, title, lede, aside = null, actions = null }) {
@@ -58,7 +59,7 @@ export function honesty() {
   return h("footer", { class: "foot" },
     h("span", { text: "Lab demo · local TLS lab services on 127.0.0.1" }), h("span", { text: "local single-key ML-DSA-65 test ledger" }),
     h("span", { text: "simulator-scale QAOA, no quantum advantage claimed" }),
-    h("span", { text: "risk, effort and shelf-life values are assumptions" }), h("span", { text: "no decryption performed or claimed" }));
+    h("span", { text: "risk, effort and shelf-life values are assumptions" }), h("span", { text: "no decryption performed or claimed" }), colorLegend());
 }
 
 // A transparent window onto THE LATTICE: the persistent renderer draws only inside this element.
