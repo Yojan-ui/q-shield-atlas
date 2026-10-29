@@ -1,721 +1,322 @@
 # Q-Shield Atlas
 
-**Track: Post-Quantum Cryptography · PQC-01**
+**Find quantum-breakable crypto. Fix it in order. Prove it.** Hackathon project, Post-Quantum Cryptography track, PQC-01.
 
-Q-Shield Atlas finds the RSA, ECC and DH that a cryptographically relevant quantum computer would
-break, turns it into a migration plan, and proves each step. A static scanner and live TLS probes
-build the inventory with file:line evidence and catch static-vs-live drift. QpiAI Opt schedules
-the migration in weekly waves to minimise harvest-now-decrypt-later exposure under several CRQC
-arrival scenarios, and the plan is compared with first-come-first-served and greedy baselines on
-the same data. Every wave is verified on real TLS 1.3 lab services: hybrid X25519MLKEM768 key
-exchange, no silent downgrade, a client compatibility matrix and a tested rollback. Every run is
-signed into an ML-DSA-65 hash-chained ledger with a Merkle root, and a QAOA run is measured against
-the brute-force optimum as a cross-check, not a claim of advantage: on two simulators and, once, on
-IBM's 156-qubit `ibm_fez` real hardware ([results below](#ibm-quantum-hardware-run-ibm_fez)). Everything
-is shown in a 2D dashboard and a 3D exposure tower that read only `out/results.json`.
+![tests](https://img.shields.io/badge/pytest-519%20passed%2C%203%20skipped-brightgreen)
+![node tests](https://img.shields.io/badge/node%20tests-54%20passed-brightgreen)
+![python](https://img.shields.io/badge/python-3.12-blue)
+![openssl](https://img.shields.io/badge/OpenSSL-3.6.5%20(ML--KEM%2C%20ML--DSA)-blue)
 
-> Lab demo · local TLS lab services on 127.0.0.1 · local single-key test ledger without public
-> timestamping · simulator-scale QAOA, no quantum advantage claimed · risk, effort and shelf-life
-> values are assumptions (`config/assumptions.json`). No key recovery, factoring or decryption is
-> performed or claimed anywhere.
+![Q-Shield Atlas landing page: the demo inventory in 3D, 16 systems exposed, 88 signed proof records](docs/img/landing.jpg)
+
+> Lab demo · TLS lab services on 127.0.0.1 · local single-key test ledger · simulator-scale QAOA, no quantum advantage
+> claimed · risk, effort and shelf-life values are assumptions (`config/assumptions.json`). No key recovery, factoring
+> or decryption is performed or claimed anywhere.
+
+## Contents
+
+- [The problem in 30 seconds](#the-problem-in-30-seconds)
+- [What Q-Shield Atlas does](#what-q-shield-atlas-does)
+- [Mind map](#mind-map)
+- [Architecture](#architecture)
+- [Backend: atlas_web server + pipeline modules](#backend-atlas_web-server--pipeline-modules)
+- [Frontend](#frontend)
+- [Real data](#real-data)
+- [Quantum](#quantum)
+- [Optimizer comparison](#optimizer-comparison)
+- [Quickstart](#quickstart)
+- [Honesty and safety rules](#honesty-and-safety-rules)
+- [Testing](#testing)
+- [Repo layout](#repo-layout)
+- [Team / hackathon](#team--hackathon)
+- [License](#license)
+
+More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/BACKEND.md](docs/BACKEND.md) ·
+[docs/API.md](docs/API.md) · [docs/QUANTUM.md](docs/QUANTUM.md) · [docs/REFERENCE.md](docs/REFERENCE.md) (module internals,
+assumptions, pins) · [DEMO.md](DEMO.md) (demo script).
+
+## The problem in 30 seconds
+
+- **Harvest now, decrypt later.** Traffic protected by RSA or elliptic-curve key exchange can be recorded today and read
+  once a large quantum computer exists.
+- **It is still common.** 46 of 60 public Indian bank endpoints we observed (one TLS handshake each, 2026-10-29)
+  negotiated classical key exchange. 12 negotiated hybrid post-quantum, and 2 were unreachable
+  (`data/real_banks/scan_2026-10-29.csv`).
+- **Migration takes time and order matters.** Systems depend on each other, teams have weekly capacity, and the
+  most sensitive data should leave classical crypto first.
+
+## What Q-Shield Atlas does
+
+| # | Step | One line |
+|---|---|---|
+| 1 | **Detect** | Find RSA / ECC / DH in code, configs and certificates (file:line evidence), plus live TLS probes and drift |
+| 2 | **Prove** | Sign the Detect evidence into an ML-DSA-65 hash-chained Proof Chain before anything else runs |
+| 3 | **Plan** | Schedule the migration in weekly waves with a QpiAI Opt MILP, compared with FCFS and greedy |
+| 4 | **Test** | Gate each wave on real TLS 1.3 lab services: hybrid X25519MLKEM768, downgrade refused, compatibility, rollback |
+| 5 | **Cross-check** | Check one week's cutover choice with QAOA on simulators against the exact optimum |
+| 6 | **Verify** | Sign every result and re-verify the whole chain |
+| 7 | **Review** | A person approves or rejects each result; the decision is signed too |
+
+## Mind map
+
+```mermaid
+mindmap
+  root((Q-Shield Atlas))
+    Detect
+      Static scan with file:line evidence
+      Live TLS probe
+      Static vs live drift
+    Proof Chain
+      ML-DSA-65 signatures
+      SHA-256 hash chain
+      Merkle root
+    Plan
+      QpiAI Opt MILP
+      FCFS and greedy baselines
+      Q-day scenarios 2030 2032 2035
+    Handshake gates
+      Hybrid X25519MLKEM768
+      Downgrade refused
+      Compatibility matrix
+      Tested rollback
+    Wave selection
+      QAOA p 1 to 3
+      Exact optimum by brute force
+      Random baseline
+    Proof verified
+      Every run signed
+      Chain re-verified
+    Review
+      Approve or reject with reason
+      Decision signed
+    Web app
+      atlas_web server
+      THE LATTICE 3D world
+      Guided run and presenter mode
+    Real data
+      real-banks 60 endpoints
+      online-boutique
+      otel-demo
+    Quantum
+      QpiAI Opt
+      QpiAI QSV-Local
+      QCloud blocked
+      IBM ibm_fez
+```
 
 ## Architecture
 
-```
-                 config/assumptions.json   config/lab.json   config/qaoa.json
-                            |                     |                 |
- source tree --> detect/ ---+--> out/inventory.json                 |
- (code, configs,  static scan + live probe + drift  |               |
-  deps, certs)          |                           v               |
-                        |                     schedule/  --(QpiAI Opt MILP, local; --platform opt-in)
-                        |                           | out/schedule.json (plan + FCFS/greedy baselines)
-                        |               +-----------+-----------+   |
-                        |               v                       v   v
- openssl s_server --> capture/ --> gates/ (pq_handshake, pq_auth,  qaoa/ (wave QUBO, exact brute force,
- legacy | hybrid |     handshake    compat matrix, rollback,       local QAOA p=1..3, random baseline;
- pq-auth (127.0.0.1)  evidence      wave runner)                   QCloud --qcloud opt-in)
-                        |               |                           |
-                        +---------------+------------+--------------+
-                                                     v
-                         runs/<run_id>/manifest.json (immutable per-run evidence)
-                                                     |
-                                    ledger/ (ML-DSA-65 signatures, hash chain, RFC 6962 Merkle root)
-                                                     |
-                         contracts/assemble --> out/results.json (schema-validated)
-                                                     |
-                                 +-------------------+-------------------+
-                                 v                                       v
-                         viz/ (2D SVG default, 3D tower)        atlas announce (terminal)
+The pipeline runs in this order (`contracts/stages.json`, shared by `run_demo.sh`, `atlas_web/runner.py` and the UI).
+Modules communicate only through JSON files validated against `contracts/*.schema.json`.
+
+```mermaid
+flowchart LR
+  subgraph WEB["Web app"]
+    B["Browser"] --> S["atlas_web server"] --> R["runner: one subprocess per step"]
+  end
+  R --> D
+  D["detect"] -->|"detect.json, inventory.json"| LO["ledger_open"]
+  LO --> SC["schedule"]
+  SC -->|"schedule.json"| CA["capture"]
+  CA -->|"capture.json, handshake_evidence.json"| G["gates"]
+  G -->|"gates.json, wave_status.json"| Q["qaoa"]
+  Q -->|"qaoa.json"| LI["ledger_ingest"]
+  LI -->|"ledger.jsonl"| LV["ledger_verify"]
+  LV -->|"ledger_verify.json"| AS["assemble"]
+  AS -->|"results.json"| V["validate"]
+  V --> RP["report"]
+  RP -->|"report.html"| WS[("workspace files: out/ and runs/")]
 ```
 
-Modules exchange data only through the JSON contracts in `contracts/`.
+- Every step writes `runs/<run_id>/manifest.json` (input/output SHA-256), and the ledger signs it.
+- The web app's Pipeline page shows these steps as 7 user-facing steps. "Proof Chain" opens right after Detect and
+  is sealed at the end.
+- Full diagram, stages and solver table: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-**Stages** (`contracts/stages.json`, one list for `run_demo.sh`, `atlas_web/runner.py`, `GET /api/stages` and the UI):
+## Backend: atlas_web server + pipeline modules
 
-1. Detect
-2. Proof Chain (code/API name `ledger`): `ledger ingest --only detect.run` signs the Detect evidence before anything else runs
-3. Plan
-4. Handshakes
-5. Gates
-6. QAOA
-7. Seal: ingest every later run, then verify the whole chain
-8. Report
-
-The UI's step names are generated from that file (`python -m contracts.stages --write-js`), and a test keeps them in sync.
-
-**Solvers** (`solvers/`, defaults in `config/solvers.json`): `solvers.solve(subproblem, instance, solver)` returns one
-`Solution` (assignment, objective, feasibility, runtime, problem size). There are two subproblems:
-
-| Subproblem | What it decides | Default solver | Other solvers |
+| COMPONENT | FOLDER | TECH | WHAT IT DOES |
 |---|---|---|---|
-| `migration_schedule` | The full multi-week wave plan | `milp` (QpiAI Opt local) | `fcfs`, `greedy` |
-| `link_cutover` | Which links cut over to post-quantum key exchange in one change window. A "link" is one asset's TLS endpoint; there is no network-transmission model | `qaoa` (statevector simulator) | `exact`, `hybrid`, `milp` |
+| Web server | `atlas_web/` | Python 3.12 stdlib HTTP server, Server-Sent Events, SQLite users and sessions, scrypt passwords, CSRF double-submit, login rate limit | Login-protected UI and JSON API on 127.0.0.1; workspaces under git-ignored `atlas_web/data/workspaces/<id>/` |
+| Runner | `atlas_web/runner.py` | subprocesses with timeouts | Runs the pipeline CLIs per workspace and streams the log; crash recovery marks interrupted runs |
+| Detect | `detect/` | static scanner + OpenSSL `s_client` probe | Inventory of RSA / ECC / DH with file:line evidence; live handshake probe; drift |
+| Schedule | `schedule/`, `solvers/` | QpiAI Opt MILP (local), FCFS and greedy baselines | Weekly wave plan minimising weighted exposure under several Q-day scenarios |
+| Capture | `capture/` | OpenSSL 3.6.5 `s_server` / `s_client -brief -msg` | Real TLS 1.3 lab services (legacy X25519, hybrid X25519MLKEM768) and handshake evidence |
+| Gates | `gates/` | handshake group allowlist, compatibility matrix | Per-wave checks: PQ handshake, downgrade refused, compatibility, tested rollback |
+| Ledger | `ledger/` | SHA-256 hash chain, RFC 6962 Merkle root, ML-DSA-65 via the OpenSSL CLI | Signs every run manifest; verification detects any edit |
+| QAOA | `qaoa/` | numpy statevector, QpiAI QSV-Local (`qpiai-quantum` 0.3.0); QCloud status | Link cutover selection (≤ 16 variables) vs the exact optimum and a random baseline |
+| Benchmark | `bench/` | same solvers on 6–16-variable instances | Classical vs quantum vs hybrid: gap to optimum and runtime |
+| Contracts | `contracts/` | JSON Schema | Validates every module output, assembles `results.json`, holds the stage list |
 
-- `hybrid`: QAOA samples are repaired classically, and the classical step decides feasibility.
-- Unsupported pairs, such as QAOA on the full schedule, raise `solvers.Unsupported` with the reason.
+### API endpoints
 
-## Data (`data/`)
+Selected routes; every route is in [docs/API.md](docs/API.md).
 
-`python tools/export_csv.py` writes the data as CSV. Column meaning, unit and source are in `data/DATA_DICTIONARY.md`, and
-`data/sources.json` holds the SHA-256 of every input and output.
+| METHOD | PATH | PURPOSE | ROLE |
+|---|---|---|---|
+| GET | `/api/health` | liveness | public |
+| POST | `/api/auth/login` · `/api/auth/logout` | session cookies + CSRF cookie | public · signed in |
+| GET | `/api/me` · `/api/stages` | current user · stage list | public |
+| GET | `/api/quantum/status` | QpiAI QCloud login, devices, blocker reason | viewer |
+| GET | `/api/workspaces` | list workspaces | viewer |
+| GET | `/api/workspaces/<ws>/results` | `results.json` | viewer (public for `demo`) |
+| GET | `/api/workspaces/<ws>/ledger` | Proof Chain entries + live verification | viewer (public for `demo`) |
+| POST | `/api/workspaces/<ws>/clone` | shallow clone of a public repository | operator |
+| POST | `/api/workspaces/<ws>/runs` | start the pipeline | operator |
+| GET | `/api/workspaces/<ws>/runs/<id>/events` | live run log (SSE) | viewer |
+| POST | `/api/workspaces/<ws>/reviews` | sign a review decision | operator |
+| GET / POST | `/api/users` | list / create users | admin |
 
-- `data/real_crypto_observations.csv` is **real**. It holds static-scan findings in two public repositories at pinned
-  commits (Online Boutique, OpenTelemetry Demo), plus live TLS 1.3 handshakes with `pq.cloudflareresearch.com`
-  (X25519MLKEM768) and `www.gnu.org` (X25519, classical).
-- `data/real_banks/` is **real**. It holds one polite TLS 1.3 handshake with each of 60 public Indian bank endpoints,
-  chosen from the CC0 [bank-in-domains](https://github.com/CCAgentOrg/bank-in-domains) dataset at commit `7b161ae`
-  (`python tools/scan_banks.py targets|scan|publish`).
-  - Each endpoint is classified as hybrid post-quantum, classical, or unreachable.
-  - The scan is signed into the `real-banks` workspace's Proof Chain.
-  - Any migration Atlas shows for these endpoints is a planned migration (simulation); no bank system is changed.
-- `data/SYNTHETIC_mock_bank_assets.csv` is **synthetic**. It is the fictional 16-asset mock-bank inventory the demo
-  schedules. The names are invented and this is not real data.
-- Risk, effort and shelf-life values are assumptions (`config/assumptions.json`), not data.
+## Frontend
 
-## Quickstart (one command)
+- **Stack:** plain ES modules, no framework and no build step (`atlas_web/static/`). three.js 0.170.0 is vendored
+  and hash-checked (`viz/vendor/MANIFEST.json`). THE LATTICE is one persistent 3D world, with a 2D fallback without
+  WebGL.
+- **Pages, in the 7-step order:** Overview → 1 Detect (plus Inventory & drift) → 2 Proof: findings signed → 3 Plan →
+  4 Handshake gates → 5 Wave selection → 6 Proof: post-quantum verified → 7 Review. Also Migration, Benchmark and
+  Glossary.
+- **Guided run:** "Run pipeline" on a workspace opens a full-width 3D run with its live log, and "Replay last run"
+  replays it.
+- **Presenter mode:** press P or click Present.
+- **Beginner / Expert view:** Beginner hides the technical details.
+- **Offline export:** `python -m atlas_web export` writes a static read-only snapshot to `atlas_web/dist/` that works
+  over `file://`.
 
-```bash
-conda env create -f environment.yml && conda activate pqc   # Python 3.12 + OpenSSL 3.6.5 (ML-KEM, ML-DSA)
-export QPIAI_OPT_API_KEY=...        # free key from https://opt.qpiai.tech/ (or put it in .env.sh, git-ignored)
-./run_demo.sh                       # regenerate everything, then open the viz; --no-open to skip the browser
-                                    # also attaches the recorded IBM ibm_fez run (data/real_ibm_qaoa); --no-ibm skips it
-./announce.sh --fast                # terminal launch screen from out/results.json
-./report.sh                         # out/report.html: one offline file, signed into the ledger; opens it
-python -m atlas site                # showcase site "The Lattice" (site/), read-only, 127.0.0.1
-```
+## Real data
 
-`run_demo.sh` runs a preflight first and prints a fix for each failure: Python 3.12, the pinned
-packages, OpenSSL >= 3.5 listing X25519MLKEM768 and ML-DSA-65, a free local port, and the API key.
-It then generates the ledger key pair if none exists (it never overwrites one) and runs, timing
-each step: detect -> schedule -> capture -> gates -> qaoa -> ledger ingest -> ledger verify ->
-assemble -> schema validate -> report -> validate. It ends with PASS/FAIL and cleans up every lab `openssl s_server`.
-Running it again appends new signed runs and still verifies. With a plain venv instead of conda:
-`python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt` and
-`PYTHON=.venv/bin/python ./run_demo.sh`; OpenSSL is found via `$QSHIELD_OPENSSL`, then the path
-in `config/lab.json`, then next to the interpreter, then `PATH`. A fresh clone generates its own key pair
-in git-ignored `keys/` and signs and verifies with it; the committed project key in `ledger/pubkey/`
-is left untouched.
+| Workspace | Source | Real | Simulated | Headline numbers |
+|---|---|---|---|---|
+| `real-banks` | 60 public Indian bank endpoints from the CC0 [bank-in-domains](https://github.com/CCAgentOrg/bank-in-domains) dataset (commit `7b161ae`) | one TLS 1.3 handshake per endpoint (2026-10-29) | the migration plan (planned, never applied) | 46 classical · 12 hybrid PQ · 2 unreachable; 58 systems, 101 findings, 20-week plan |
+| `online-boutique` | Google's microservices demo, pinned commit (`detect/real_repos.json`) | static scan of the real source | lab stand-ins for its services | 3 systems, 4 findings, 2-week plan |
+| `otel-demo` | OpenTelemetry demo, pinned commit | static scan of the real source | none needed | 0 systems to migrate: an honest empty plan |
+| `demo` | `data/SYNTHETIC_mock_bank_assets.csv`: a fictional 16-asset bank (**synthetic**) | TLS handshakes on the lab services | the inventory itself | 16 systems, 29 vulnerable findings, 7-week plan |
 
-## What each module proves, and how to check it
+The workspace numbers come from each workspace's `out/results.json` (runs of 2026-10-29). Column meanings are in
+`data/DATA_DICTIONARY.md`, and the input/output hashes are in `data/sources.json`.
 
-| module | proves | check it |
+## Quantum
+
+No quantum advantage is claimed: QAOA is a measured cross-check against the exact optimum. Full detail and
+reproduction: [docs/QUANTUM.md](docs/QUANTUM.md).
+
+| Backend | Used for | Recorded status |
 |---|---|---|
-| `detect/` | where RSA/ECC/DH is, with file:line evidence; live handshakes; static-vs-live drift | `python -m detect --lab-probe web-gw=legacy`; `pytest tests/test_detect.py` (exact match with hand-labelled ground truth incl. decoys); `docs/detect_real_repos.md` |
-| `schedule/` | a proven-optimal migration plan under capacity and dependencies, never worse than FCFS or greedy on the same data | `python -m schedule --inventory out/inventory.json`; `pytest tests/test_schedule.py tests/test_sensitivity.py` (brute force, random instances, assumption sensitivity) |
-| `capture/` | what real TLS 1.3 handshakes negotiate (group, cipher, cert algorithm), with transcript hashes | `python -m capture`; `out/capture.json` validates against `contracts/capture.schema.json` |
-| `gates/` | hybrid key exchange (and separately PQ authentication), no silent downgrade, compatibility per client, tested rollback, per-wave evidence | `python -m gates`; `pytest tests/test_gates_waves.py tests/test_capture_gates.py` |
-| `ledger/` | every run manifest is signed (ML-DSA-65) and chained; any edit, deletion, reorder, truncation or key swap is detected at its index | `python -m ledger verify`; `python -m ledger proof N`; `pytest tests/test_ledger.py tests/test_merkle.py` |
-| `qaoa/` | a measured QAOA cross-check against the exact optimum of a one-week wave QUBO | `python -m qaoa`; `pytest tests/test_qaoa.py tests/test_qaoa_table.py` |
-| `viz/` | every displayed number is a value from results.json with its source; nothing invented for runs that did not happen | `python -m viz`; `pytest tests/test_viz.py` (runs the JS data layer under node) |
-| `atlas/` | status computed from results.json, the ledger and the last test run; a signed, self-contained report | `./announce.sh` (runs tests) or `./announce.sh --fast`; `./report.sh`; `pytest tests/test_atlas.py tests/test_report.py` |
+| QpiAI Opt 0.0.9 (local) | scheduling MILP | optimal, 0.1215 s, run `641f5d49…`; `job_id: null` because local solves issue no job ID |
+| QpiAI QSV-Local (`qpiai-quantum` 0.3.0) | QAOA wave selection, 14 variables | P(optimal set) 0.0137 / 0.0186 / 0.0171 at p = 1 / 2 / 3, against 0.0010 for random |
+| QpiAI QCloud | cloud simulator sampling | login and device listing work; job creation was rejected on 2026-10-28 with "an active subscription is required to run jobs", so no QCloud job exists |
+| IBM `ibm_fez` (real hardware) | the same QAOA circuits, sampled once per p | 3 jobs on 2026-10-29; P(optimal set) 0.0088 / 0.0044 / 0.0029; hardware noise lowers feasibility |
 
-**Report** (`python -m atlas report`, `./report.sh`, also built by `run_demo.sh`; `--report-open` opens
-it): `out/report.html` is one self-contained, offline HTML file (inline CSS/JS, no external URLs,
-data rendered in at build time, so it works over `file://`). It covers the summary with computed
-PASS/FAIL checks, inventory, migration plan, handshake evidence, waves and rollback, the ledger with
-an inclusion proof, QAOA, assumptions and limits, and how to reproduce. Every number is taken from
-results.json and tagged with its run_id/job_id; missing data shows "not yet run". The footer holds
-the file's SHA-256 computed with that field set to 64 zeros; the exact file is copied to
-`runs/<run_id>/report.html`, signed into the ledger (type `report.html`), and the ledger is verified.
-Print → Save as PDF gives a clean document (print CSS expands collapsed sections).
+QpiAI-Indus-1 (QPU) is refused by code in every mode. Platform and QCloud runs are opt-in and disabled
+(`config/atlas_web.json`).
 
-Numbers are deliberately not quoted in this README: they live in `out/results.json`, each one
-traceable to a run under `runs/` and a signed ledger entry. `./announce.sh` prints them with sources.
+## Optimizer comparison
 
-## Showcase site (`site/`, in progress)
+`python -m bench` solves the same link cutover instances (6–16 variables) with every method. Values at the largest
+size, 16 variables (`out/bench.json`, run `f1e23e14…`, 2026-10-29):
 
-`python -m atlas site` serves "The Lattice", a scroll-driven WebGL story built from the current
-`out/results.json` and ledger. (The brief named it `python -m site`, but that name is Python's
-standard-library `site` module, so the backend lives in `atlas/site_server.py`.) The server is
-read-only and stdlib-only: it serves `site/`, the hash-checked three.js from `viz/vendor/`, the 2D
-viz as the no-WebGL fallback, and `/api/results`, `/api/ledger` (with an in-memory, unrecorded
-verification), `/api/handshakes` and `/api/events` (SSE on file change). It binds 127.0.0.1 on a free
-port; `keys/`, `.env.sh`, `runs/`, the ledger file and source files return 404. Chapters 1–4
-(harvest, detect, schedule, handshake) are built; ledger, QAOA, close, the tamper endpoint and the
-static export are next. Every number comes from the API with a provenance tooltip; `?debug` shows fps
-and draw calls; `prefers-reduced-motion` gives a static camera.
+| Method | Family | Optimal? | Runtime at 16 variables |
+|---|---|---|---|
+| Exact (brute force) | classical | proven optimum | 0.0032 s |
+| MILP (QpiAI Opt) | classical | proven optimum (MILP gap 0) | 0.1171 s |
+| Random sampling | baseline | found it, no guarantee | 0.0311 s |
+| QAOA p = 1 / 2 / 3 (numpy) | quantum (simulator) | found it, no guarantee | 7.62 / 13.96 / 20.43 s |
+| QAOA p = 1 (QpiAI QSV-Local) | quantum (simulator) | found it, no guarantee | 0.0422 s |
+| Hybrid (QAOA + classical repair) | hybrid | always feasible, optimum not guaranteed | 7.72 s |
+| Hardware | quantum (hardware) | not run in the benchmark (QCloud blocked; Indus-1 never used) | – |
 
-## Web app (`atlas_web/`)
+**Why MILP for the full schedule:**
+- It proves optimality (gap 0) with capacity and dependencies modelled exactly.
+- The full 16-asset plan solved in 0.1215 s locally.
+- QAOA cannot hold the full schedule: it has |assets| × horizon binaries plus continuous exposure variables, and QAOA
+  here is capped at 16 qubits.
 
-### Running the UI
+## Quickstart
 
 ```bash
-conda activate pqc && source .env.sh && python -m atlas_web --port 8000   # then open http://127.0.0.1:8000/
-python -m atlas_web create-user --role admin                               # first time only (no default user)
+# 1. Environment: Python 3.12 + OpenSSL 3.6.5 + the pinned QpiAI SDKs (qpiai-opt 0.0.9, qpiai-quantum 0.3.0)
+conda env create -f environment.yml && conda activate pqc
+pip install -r requirements.txt
+
+# 2. Keys (git-ignored): QPIAI_OPT_API_KEY (free at https://opt.qpiai.tech/), QCLOUD_API_KEY
+source .env.sh
+
+# 3. Regenerate the demo snapshot (local only; also attaches the recorded IBM run, --no-ibm skips it)
+./run_demo.sh --no-open
+
+# 4. Web app: create the first user (no default user), then start the server
+python -m atlas_web create-user --role admin
+python -m atlas_web --port 8000 --no-browser      # open http://127.0.0.1:8000/
+
+# 5. Real workspaces: clone the pinned repos and run them through the same API
+python tools/seed_real_workspaces.py --confirm    # online-boutique, otel-demo
+python tools/scan_banks.py publish                # real-banks from data/real_banks/
+
+# 6. Tests
+pytest
+node --test atlas_web/jstests/*.test.mjs
+python tools/route_check.py                       # every route x 3 sizes x 4 roles in headless Chrome
+
+# 7. Offline export (static, read-only, works over file://)
+python -m atlas_web export
 ```
 
-The pipeline is shown in the order the backend runs it, and each step lights only from its own run events:
-**1 Detect** (findings → systems · drift alerts) → **2 Proof chain opened** (the existing chain is verified, then the
-Detect evidence is signed) → **3 Plan** (QpiAI Opt MILP vs FCFS / greedy) → **4 Handshake gates** → **5 Wave selection**
-(QAOA on a simulator vs the exact answer) → **6 Proof verified** (every result signed, the chain re-verified) → **7 Review**.
-Run pipeline on any non-demo workspace opens the guided 3D run with its live log; Replay last run replays the latest
-recorded run. Scan your own repo (landing or `/settings/new-workspace`) clones a public GitHub repository, suggests
-service manifests, and after you confirm them on Detect the run starts from the Pipeline page. The demo workspace is a
-read-only snapshot. Press P on any workspace for presenter mode.
-Checks: `python tools/ui_check.py` (every page, 3 sizes: console, failed requests, overlapping / clipped text,
-overflow) and `python tools/browser_flow.py` (GitHub-URL flow + live runs in a real browser).
+More options (venv instead of conda, kiosk mode, single-module reruns, opt-in paid runs):
+[docs/REFERENCE.md](docs/REFERENCE.md) and [docs/BACKEND.md](docs/BACKEND.md).
 
-`python -m atlas_web` serves a login-protected, routed web app on 127.0.0.1 that drives the whole pipeline
-through the existing module CLIs (one subprocess per step, with workspace path flags) and shows the results in
-THE LATTICE, one persistent three.js world (vendored, hash-checked; 2D fallback without WebGL).
+## Honesty and safety rules
 
-```bash
-python -m atlas_web create-user --role admin     # no default user; password via getpass
-python -m atlas_web                              # 127.0.0.1, free port, opens the browser
-python -m atlas_web --demo --kiosk --port 8080   # venue mode: landing on the demo snapshot, no sign-out
-python -m atlas_web export                       # static read-only snapshot in atlas_web/dist/ (works over file://)
+- Every number in the UI and docs comes from a logged run: timestamp, input hashes, solver output, and a job ID or
+  `null` with the reason.
+- No quantum advantage claimed; QAOA is a cross-check against the exact optimum.
+- No key recovery, factoring or decryption. Classical sessions are labelled "HNDL-exposed: recorded traffic relies on
+  classical key exchange".
+- Risk, effort and shelf-life values are assumptions, shown as such, with a sensitivity test.
+- Nothing is reported "applied" or "passed" without gate evidence; unmapped assets are `not_verified_in_lab`.
+- Lab services bind 127.0.0.1 only; handshake capture never uses `-keylogfile` or SSLKEYLOGFILE.
+- Paid QpiAI runs are opt-in, logged, capped at 10 per UTC day, and must name a simulator; QpiAI-Indus-1 is refused.
+- Keys stay in git-ignored `.env.sh` and `keys/` and are never printed, logged or committed.
+
+## Testing
+
+| Suite | Command | Last result |
+|---|---|---|
+| Python | `pytest` | 519 passed, 3 skipped |
+| Frontend unit | `node --test atlas_web/jstests/*.test.mjs` | 54 passed |
+| Browser routes | `python tools/route_check.py` | 312 page loads, 0 with problems |
+
+Some tests need the network (GitHub clone, public PQ reference servers) and skip when offline. QpiAI solver tests
+skip without `QPIAI_OPT_API_KEY`.
+
+## Repo layout
+
+```
+atlas/        report (out/report.html), terminal launch screen, showcase site server
+atlas_web/    web app: server, runner, auth, workspaces; static/ frontend; jstests/
+bench/        classical vs quantum vs hybrid benchmark
+capture/      OpenSSL lab TLS services and handshake evidence
+config/       assumptions, lab, QAOA, solver and web settings (policy, not measurements)
+contracts/    JSON schemas, stage list, results assembly
+data/         real datasets (real_*) and the synthetic demo inventory (SYNTHETIC_*)
+detect/       static scan, live probe, drift
+docs/         architecture, backend, API, quantum, reference
+gates/        per-wave checks and rollback
+ledger/       ML-DSA-65 signed hash chain and Merkle proofs
+qaoa/         QUBO, QAOA simulators, QCloud and IBM runners, IBM import
+schedule/     MILP model, baselines, platform guard
+site/         earlier static showcase site (kept as is)
+solvers/      one solve() entry point per subproblem
+tests/        pytest suite
+tools/        route/UI checks, seeding, bank scan, exports
+viz/          earlier 2D/3D exposure viz (vendored three.js lives here)
+pqc_*.py      early QpiAI Opt prototype scripts
 ```
 
-- **Workspaces:** `demo` is the repo's `out/` + `runs/`, read-only. Others live in git-ignored
-  `atlas_web/data/workspaces/<id>/{src,out,runs,config,keys}` with their own ML-DSA-65 key; the repo's `out/`,
-  `runs/` and `keys/` are never written (tested). All workspaces share `runs/platform_jobs.log`, so the paid-run
-  daily cap stays global.
-- **Real data:** .zip upload (absolute paths, `..`, symlinks and zip bombs rejected; nothing executed), shallow
-  clone of a public https repository, an `atlas-service.json` editor, live TLS probes behind an
-  "I own or am authorised to test these endpoints" confirmation that is stored with the run, an assumptions editor
-  and calibration ("calibrated from your measurements": medians of recorded engineer-days, never applied
-  automatically; applying re-plans and signs a `calibration.apply` entry with `python -m ledger append`).
-- **Real repositories:** `python tools/seed_real_workspaces.py --confirm` builds the REAL REPO workspaces from the
-  repos pinned in `detect/real_repos.json` (Online Boutique, OpenTelemetry Demo) through the same API: clone at the
-  pinned commit, "Suggest manifests" (kind from evidence, data class `internal_ops`, dependencies from compose
-  `depends_on` / k8s `<service>:<port>` references; every field marked "suggested — review" with its basis), operator
-  confirmation (runs are refused until then), then the full pipeline. An inventory with no RSA/ECC/DH gives an honest
-  empty plan ("nothing to migrate", no solver run) instead of an error. Asset pages show the manual-review notes from
-  `docs/detect_real_repos.md`.
-- **Public PQ reference endpoints:** a probe preset with `pq.cloudflareresearch.com:443` (hybrid X25519MLKEM768) and
-  `www.gnu.org:443` (refused an X25519MLKEM768-only offer when verified on 2026-10-29, so classical): one standard TLS
-  handshake each, no scanning; shown in drift, as live strands on Handshakes, and on asset pages.
-- **Pages:** the route rail follows the stage order. Keys 1–9: Pipeline, Detect, Proof Chain, Plan, Handshakes, QAOA, Benchmark, Review, Migration.
-  - **Pipeline** opens with "At a glance": one card per stage, each with a plain name, one status (Done / Running /
-    Failed / Not run), the key number and a "what this means" line.
-  - Every page footer carries the colour legend. Every chart has a one-line "How to read this" caption.
-  - **Detect** opens with a 3D dependency graph of the inventory: one node per system (`results.assets` plus
-    `inventory.not_vulnerable`), one line per declared `depends_on`. Red = RSA/ECC/DH/DSA found; amber = needs a live
-    probe; cyan = PQC/hybrid key exchange (a classical certificate signature alone is noted in the side panel);
-    grey = nothing vulnerable. Node size is the risk weight (an assumption); a white ring marks recorded
-    static-vs-live drift. Click a node for its file:line evidence. Flat 2D graph on request and without WebGL.
-  - **Plan** shows remaining exposure-years per week for the optimised plan, FCFS and greedy (`remaining_by_week`,
-    unweighted, so lines can cross) and a large "Exposure-years avoided vs FCFS" from `avoided`.
-  - **Proof Chain** shows the ledger as linked blocks (green when the live check verified). The one-click tamper
-    test edits a temporary copy server-side and verifies it; blocks turn red from the failing index, then the page
-    shows the real ledger's SHA-256 unchanged.
-  - **Plan** also shows the time estimate: the MILP makespan, plus a capacity lower bound of total assumed effort ÷ weekly
-    capacity. You can set a deadline in weeks, and the page flags clearly when the estimate exceeds it. The deadline
-    is saved per workspace for operators; otherwise it is kept in this browser only.
-  - **Benchmark** (`python -m bench`, or the button) solves the same link cutover instances (6–16 QUBO variables)
-    with exact, QpiAI Opt MILP, random sampling, QAOA p=1–3 (simulator) and hybrid. It shows one table and a
-    log-scale runtime chart, and states its limits.
-    - The hardware row says "not run": the QCloud subscription is blocked, and the project never uses QpiAI-Indus-1.
-    - At this size random sampling also finds the optimum. No advantage is claimed.
-  - **Review** lists the latest run's plan, waves, QAOA run and benchmark as items awaiting review. Operators
-    approve or reject each one with a required reason. Each decision is signed into the Proof Chain as
-    `review.decision` and bound to the item's run_id and evidence SHA-256, and the chain is then re-verified.
-  - **Migration (Move)** is sender vs receiver: a replay of the recorded lab handshakes, packet by packet.
-    - Each packet is one message of the recorded `openssl s_client -msg` transcript (`runs/<run_id>/transcript_*.txt`,
-      used only when its SHA-256 matches `capture.json`), as wide as its recorded byte length; key shares are drawn
-      inside their hello. API: `GET /api/workspaces/<ws>/move`.
-    - Lanes: before (same client, classical X25519 server, HNDL-exposed), after (hybrid X25519MLKEM768), and the
-      recorded classical-only attempt (refused / accepted / "not run"). RSA vs ML-DSA-65 server authentication sizes
-      from the recorded Certificate and CertificateVerify.
-    - The week slider walks the logged plan; each wave shows its recorded lab gate results ("not run in this wave"
-      where a gate did not run). "Verified in lab" is the strongest state, for lab stand-ins only. Bank endpoints are
-      "observed" (one recorded handshake) and "planned", never applied.
-    - **Run fresh handshake now** (operators; `fresh_handshake.enabled` in `config/atlas_web.json`): runs the lab
-      capture on 127.0.0.1 only, evaluates the gates, replays it labelled "not part of results.json, not signed",
-      and logs it under `atlas_web/data/fresh_handshakes/<run_id>/` (git-ignored). Nothing else is written.
-    - With reduced motion (OS setting or the Motion toggle) nothing plays by itself; Step walks the messages.
-- **Roles:** viewer (read), operator (run, upload, calibrate), admin (users; paid QpiAI runs, which stay disabled in
-  `config/atlas_web.json` until the account issues are fixed). scrypt passwords, hashed session tokens, CSRF
-  double-submit, login rate limit.
-- **Honesty:** every number comes from results.json or the ledger with its run_id, solver, job_id (or the reason
-  there is none) and ledger index on hover/focus; missing data reads "not yet run". Positions in the 3D world are
-  layout; colours, beams, heights and pulses map to recorded fields (status, exposure-years, week, findings).
-  The tamper demo verifies an edited temporary copy; the real ledger's hash is checked unchanged.
-- **Checks:** `pytest` (API, auth, access matrix, zip safety, full pipeline and end-to-end runs in temp
-  workspaces, crash recovery), `node --test atlas_web/jstests/*.test.mjs`, `python tools/route_check.py`
-  (every route × 3 sizes × 4 roles in headless Chrome, plus the static export over file://, zero errors) and
-  `python tools/bench_api.py` (read API p95).
+## Team / hackathon
 
-## Assumptions and limits
+Team Q-Shield Atlas, built for the NITTE hackathon, Post-Quantum Cryptography track, problem statement PQC-01.
+Repository: https://github.com/Yojan-ui/q-shield-atlas
 
-- **Assumptions, not measurements:** shelf life and risk weight per data class, effort per asset
-  kind, weekly capacity, start year, CRQC scenario years (2030, 2032, 2035) and weights
-  (`config/assumptions.json`). Sensitivity runs scale shelf life, risk and effort by 0.8 and 1.2.
-  Each asset must fit in one week of capacity.
-- **Exposure model:** Mosca's inequality, linear in completion time. With shelf lives long relative
-  to time-to-CRQC most exposure is structural, so the plan can only reduce the part that depends on
-  finishing earlier; `avoided` reports exactly that.
-- **Chart semantics:** the viz plots unweighted exposure-years, while the optimiser minimises the
-  risk-weighted, scenario-weighted total, so in some weeks its unweighted curve sits above a baseline.
-- **Lab, not production:** TLS services are local `openssl s_server` processes on 127.0.0.1. The
-  legacy and hybrid lab certificates are RSA-2048; only `pq-auth` uses an ML-DSA-65 certificate.
-  Wave verification uses one lab stand-in per asset kind (edge, app, data); kinds with no TLS stand-in
-  (root CA, HSM, VPN, batch SFTP) are reported `not_verified_in_lab`, never passed. "applied" means the
-  stand-in passed the gates, not that the real system was migrated.
-- **Static scan:** line-based rules, no data-flow analysis; hand-made ground truth; crypto configured
-  outside the repo (cloud load balancers, mesh defaults) is only visible to the live probe. Known
-  misses and fixed false positives on real repos: `docs/detect_real_repos.md`.
-- **Ledger:** a local test ledger with one signing key and no public timestamping or transparency
-  log; its anchor in results.json is only as trustworthy as wherever results.json is published.
-- **QAOA:** simulator scale (at most 16 variables, `config/qaoa.json`), small enough for brute force; no quantum advantage
-  claimed. The approximation ratio saturates at this size, so feasible fraction, energy ratio and
-  P(optimal set) are the informative comparisons.
-- **IBM hardware:** one run of 3 jobs on `ibm_fez` (2026-10-29), angles tuned on the simulator and not re-tuned on
-  hardware, no error mitigation. Hardware noise lowers feasibility as the transpiled circuit grows (337 to 942
-  two-qubit gates for p = 1 to 3), so the hardware rows are worse than the simulator; this is reported as measured.
-  That run was made on a Windows machine where antivirus intercepts all TLS (even 127.0.0.1), so the
-  handshake capture and gates were skipped there; the handshake evidence comes from the macOS runs.
-- **QpiAI platform status:** QpiAI Opt platform MILP submissions were rejected ("no active storage
-  quota found for organization") and QCloud job creation was rejected ("an active subscription is
-  required to run jobs"); no platform job was created. Scheduling uses free local QpiAI Opt solves
-  (`job_id: null` with a reason, run_id and input/output hashes). QAOA circuits are sampled on two free local
-  backends: our numpy statevector and the QpiAI SDK's in-process simulator (`qpiai-quantum` 0.3.0
-  `StatevectorSimulator`, "QpiAI-QSV-Local"; `python -m qaoa --qpiai-local`, default in run_demo.sh): no network,
-  no credits, `job_id: null` with the reason "local SDK simulation issues no job ID", SDK version, run_id and
-  input/output hashes, compared with the numpy rows by z-score.
-  Rows for runs that did not happen show their status text, never numbers.
-- **Toolchain:** OpenSSL >= 3.5 is required (ML-KEM groups, ML-DSA); the system LibreSSL and older
-  OpenSSL builds do not work.
+## License
 
-## Quantum: QpiAI Opt, QpiAI QSV and QCloud
-
-Full write-up with every logged value and the commands to reproduce it: `docs/QUANTUM.md`.
-
-- SDKs: `qpiai-opt` 0.0.9 and `qpiai-quantum` 0.3.0 from `pip install -r requirements.txt`. `quantum-sdk/` is a
-  git-ignored reference clone of github.com/qpiai/quantum-sdk (v0.7.5). The pipeline does not use it.
-- QpiAI Opt (scheduling MILP, local): optimal in 0.1215455 s, run 641f5d49ae3e4a19b4e2500a0f1047e9,
-  job_id null because local solves issue no platform job ID (traced by run_id and input/output SHA-256).
-- QpiAI QSV-Local (QAOA wave selection, 14 QUBO variables, 2048 shots): P(optimal set) 0.0137 / 0.0186 / 0.0171
-  for p = 1 / 2 / 3, vs 0.0010 for uniform random. Run f8bf1b797021460d96be5efbb1a84acb, 2026-10-29T01:52:20Z.
-- QpiAI QCloud: login and device listing work. Job creation was rejected on 2026-10-28 ("an active subscription
-  is required to run jobs"), so no QCloud job was created and QCloud runs stay disabled.
-- IBM ibm_fez (real hardware): 3 jobs on 2026-10-29 (see "IBM Quantum hardware run" below). A measured cross-check against the
-  exact optimum; no quantum advantage is claimed.
-
-## Opt-in paid runs
-
-Default runs never submit QpiAI Opt or QCloud jobs (`QSHIELD_FORBID_PLATFORM=1`; tests force it).
-
-```bash
-./run_demo.sh --platform          # 2 QpiAI Opt platform jobs (main plan), same input also solved locally
-./run_demo.sh --qcloud            # 3 QCloud jobs on QpiAI-QSV-Simulator only (one final circuit per p)
-./run_demo.sh --qcloud --allow-more   # past the 10-submissions-per-UTC-day cap
-python -m qaoa --qpiai-local --ibm    # 3 IBM Quantum jobs on ibm_fez (real hardware, free Open Plan minutes)
-python -m qaoa --ibm-fetch            # pick up IBM jobs that were still queued; submits nothing
-```
-
-Each submission is announced ("Submitting N ... jobs"), logged to `runs/platform_jobs.log` and the
-run directory, refused past the daily cap, and stopped after the first failure; real hardware
-(`QpiAI-Indus-1`) is refused. Platform and local results are reported side by side, never merged.
-IBM runs use the same guard plus a pre-submit QPU estimate (see [IBM Quantum hardware run](#ibm-quantum-hardware-run-ibm_fez)).
-
-## Version pins
-
-- Python 3.12; `requirements.txt` pins the direct imports: cryptography 50.0.2, jsonschema 4.26.0,
-  numpy 2.5.4, psutil 7.2.2, pytest 9.1.1, **qpiai-opt 0.0.9**, **qpiai-quantum 0.3.0**, rich 15.0.0,
-  scipy 1.18.1, optional truststore 0.10.5. The IBM path also needs qiskit 2.6.1 and
-  qiskit-ibm-runtime 0.51.0 (imported only by `python -m qaoa --ibm`). `requirements-lock.txt` is the full environment snapshot; `environment.yml` adds
-  conda-forge `openssl=3.6.5`.
-- OpenSSL: `config/lab.json` `openssl` records the binary path and version used
-  (OpenSSL 3.6.5, conda-forge `h55eecbc_0`) and the required X25519MLKEM768 / ML-DSA-65 support.
-- three.js 0.170.0 vendored in `viz/vendor/` with SHA-256s in `viz/vendor/MANIFEST.json` (below).
-- QpiAI API surface actually used: `docs/qpiai_api_notes.md`.
-
-## Rerunning single modules
-
-```bash
-python -m detect --lab-probe web-gw=legacy  # or --probe SERVICE=HOST:PORT
-python -m schedule --inventory out/inventory.json [--platform]
-python -m capture && python -m gates
-python -m qaoa [--qpiai-local] [--qcloud] [--ibm] | --ibm-fetch
-python -m ledger ingest && python -m ledger verify   # also: python -m ledger proof N, keygen
-python -m contracts.assemble && python -m contracts validate results out/results.json
-python -m viz [--no-browser]
-pytest                                      # QpiAI solver tests skip without QPIAI_OPT_API_KEY
-```
-
-Every step can target a separate workspace instead of the repo's `out/`, `runs/` and `keys/` (defaults
-unchanged): `--out-dir`/`--runs` on all modules, `contracts.assemble --out-dir`, `ledger --root DIR`
-(the directory `payload_ref`/`ledger_ref` are relative to) `--keys-dir DIR`, `atlas report --out-dir
---runs --root --keys-dir`, `detect --probe-timeout S` (a timeout is recorded as `probe_failed`), and
-`schedule`/`qaoa --platform-log FILE` so several workspaces share one daily-cap log.
-
-# Module details
-
-## Detection (`detect/`)
-
-- **Static scan** (`detect/static_scan.py`, rules in `detect/rules.py`): code (Python, Go, Java/Kotlin,
-  JS/TS, C#), configs (nginx/TLS ciphers and groups, OpenSSL, SSH, IPsec, Kafka/Postgres, JWT algs),
-  dependency manifests, and certificates (parsed for key type and size). Each finding has file:line,
-  rule, family (RSA/ECC/DH/DSA, PQC for hybrid/ML-KEM, UNKNOWN for TLS on library defaults) and use
-  (kex/sig). Private-key bodies are never read into output. A tree SHA-256 ties each scan to the
-  exact files seen. Nothing in a scanned tree is executed.
-- **Inventory** (`detect/inventory.py`): services are directories with an owner-declared
-  `atlas-service.json` (name, kind, data class, dependencies: facts a scanner cannot infer).
-  Services with RSA/ECC/DH/DSA findings become migration assets carrying their evidence; others
-  are listed as not vulnerable. The output is the schedule's inventory format.
-- **Live probe** (`detect/live_probe.py`): `openssl s_client` from the `pqc` env (OpenSSL 3.6.5)
-  offers `X25519MLKEM768:X25519:prime256v1` and records the negotiated group, certificate key and
-  the transcript hash (transcript saved under `runs/<run_id>/`).
-- **Drift** (`detect/drift.py`): config claims a hybrid group but the live handshake is classical;
-  live crypto with no static evidence; live PQC not in config; probe failure.
-
-Fixtures: `detect/fixtures/sample_services` (fake multi-language services with decoys and
-hand-written ground truth in `expected.json`) and `detect/fixtures/mock_bank` (17 fictional
-services generated by `build_mock_bank.py`; scanning it reproduces the 16-asset demo inventory,
-and `web-gw` is the drift case). Real repos: `python -m detect.real_repos` scans two pinned public
-microservice repos; the manual review of every finding is in `docs/detect_real_repos.md`.
-
-Limits: regex/line-based static rules (no data-flow analysis); ground truth is small and hand-made;
-crypto configured outside the repo (cloud LB policies, mesh defaults) is only visible to the probe.
-
-## Handshake evidence (`capture/`) and the PQ handshake gate (`gates/pq_handshake.py`)
-
-Requires OpenSSL >= 3.5 with ML-KEM: the `pqc` env pins conda-forge `openssl 3.6.5 h55eecbc_0`.
-(The system LibreSSL 3.3.6 and the base env's OpenSSL 3.0.18 have no ML-KEM.) Tests that need
-ML-KEM skip with that reason instead of passing.
-
-- `capture/services.py` starts two real TLS 1.3 services with `openssl s_server`, each with a fresh
-  self-signed RSA-2048 certificate in a temp dir, bound to 127.0.0.1 on a free port:
-  **legacy** (`-groups X25519`, classical) and **hybrid** (`-groups X25519MLKEM768`).
-  Processes are terminated (then killed if needed) on exit, including on errors.
-- `capture/handshake.py` connects with `openssl s_client -groups <list> -brief -msg` and records the
-  negotiated group, cipher, protocol and certificate key family (from the TLS signature type), plus
-  the raw transcript (saved under `runs/<run_id>/`) and its SHA-256. Each service is probed by a
-  modern client (`X25519MLKEM768:X25519`) and by a classical-only client (`X25519:prime256v1`).
-  `out/capture.json` follows `contracts/capture.schema.json`; failed handshakes go to `refused_attempts`.
-- `gates/pq_handshake.py` reads capture.json only. **pq_handshake** passes only if the negotiated group
-  is on the allowlist in `config/lab.json`. **downgrade** passes only if the classical-only client was
-  refused; with no recorded attempt it reports `NOT_RUN`, not a pass.
-- Sessions that negotiated a classical group are labelled
-  *"HNDL-exposed: recorded traffic relies on classical key exchange"* in `results.json`
-  (`handshake_evidence`). That is a statement about the key exchange, not a demonstrated break:
-  no traffic is decrypted and no decryption is claimed.
-
-A third service, **pq-auth** (strict mode, ML-DSA-65 certificate), shows post-quantum authentication:
-the `pq_auth` gate reports the certificate signature algorithm separately from the key exchange.
-Measured: legacy and hybrid authenticate with RSA (`rsa_pss_rsae_sha256`, pq_auth FAIL); pq-auth
-authenticates with `mldsa65` (pq_auth PASS). Classical authentication is not an HNDL exposure (a past
-session cannot be retroactively impersonated) but must be replaced before a CRQC exists. `-msg` adds the hex of every
-handshake message (including the ClientHello/ServerHello randoms), so each session's transcript hash
-is unique. Key material is never logged: no `-keylogfile`, and `SSLKEYLOGFILE` is stripped from the
-subprocess environment (tested).
-
-## Deployment modes, compatibility, rollback and waves (`gates/`)
-
-Modes (`config/lab.json`): **legacy** = X25519, TLS 1.2+; **transition** = X25519MLKEM768:X25519,
-TLS 1.2+ (hybrid preferred, classical still allowed); **strict** = X25519MLKEM768, **TLS 1.3 only**.
-Strict must be TLS 1.3-only: measured with OpenSSL 3.6.5, a strict-groups server that still allowed
-TLS 1.2 let a TLS 1.2 client in on classical finite-field DH (`Peer Temp Key: DH, 2048 bits`),
-because ML-KEM groups exist only in TLS 1.3.
-
-- `gates/compat.py`: matrix of modes x clients (pq-capable, classical-only, TLS1.2-only). Expected
-  outcomes come from the `compat_policy` table in config. Code adds two rules on top: a pq-capable
-  client in a mode offering a PQ group must get one (no silent downgrade), and any classical
-  connection is `HNDL-exposed`, never `PASS`. Cells: PASS | HNDL-exposed | FAIL; any FAIL fails the gate.
-- `gates/rollback.py`: snapshot the service config file + SHA-256, apply the mode, restart, run
-  pq_handshake + compat. On failure: restore, verify the restored file's SHA-256 equals the snapshot,
-  restart, run a classical-client health-check handshake. Status: `applied` (all gates passed),
-  `rolled_back`, or `rollback_failed` (hash mismatch, restart failure or failed health check).
-- `gates/wave_runner.py`: reads waves from `out/schedule.json`; for each wave moves the lab stand-ins
-  its assets map to (by asset kind: edge, app, data; at most 4 `s_server` processes) to the target
-  mode with rollback protection. Evidence per wave (gate results, transcript hashes, config hashes,
-  timestamps, run_id) goes to `runs/<run_id>/` and `results.json` `waves[].evidence`; the schema
-  requires evidence for any non-planned wave status.
-- Statuses: `applied` | `rolled_back` | `rollback_failed` | `not_verified_in_lab` (asset kinds with no
-  TLS stand-in: root CA, HSM, VPN, batch SFTP) | `partially_verified` (wave mixing both).
-
-Limits: one lab stand-in represents every asset of its kind, so `applied` means the stand-in
-passed the gates in that mode, not that the real system was migrated. Lab certificates stay RSA-2048.
-
-## Signed evidence ledger (`ledger/`)
-
-- **Backend:** ML-DSA-65 via the OpenSSL 3.6.5 CLI (`genpkey -algorithm ML-DSA-65`,
-  `pkeyutl -sign/-verify -rawin`). Detection order was (a) OpenSSL CLI, (b) `cryptography` 50.0.2
-  (`mldsa.MLDSA65PrivateKey`), (c) liboqs-python 0.16; all three passed a sign / verify /
-  tampered-message / tampered-signature round trip, so (a) is used. A self-test runs before use and
-  there is no fallback to RSA, ECDSA or Ed25519. Tests cross-verify every OpenSSL signature with
-  `cryptography` as an independent ML-DSA-65 implementation.
-- **Keys:** `keys/ledger_mldsa65.key` (git-ignored, mode 0600, never printed). Committed: the public
-  key `ledger/pubkey/ledger_mldsa65.pub.pem` and its fingerprint (SHA-256 of the DER
-  SubjectPublicKeyInfo) in `ledger_mldsa65.pub.sha256`. To sign on a new machine, run
-  `python -m ledger keygen`: it refuses to overwrite an existing key and writes the new key pair
-  and fingerprint to git-ignored `keys/`, which signing and verification then prefer over the
-  committed key. To sign as the project, copy the private key out of band. Verifying the
-  project's ledger needs only the committed public key.
-- **Log** (`ledger/log.py`): append-only JSONL under an exclusive file lock. Entry =
-  `{index, type, payload_hash, payload_ref, prev_hash, ts, alg, backend, pubkey_fp, sig_mldsa}`.
-  Canonical JSON (sorted keys, `(",", ":")`, UTF-8); the signature covers the entry without
-  `sig_mldsa`; `prev_hash` is SHA-256 of the previous entry including its signature (genesis: 64 zeros).
-- **Merkle** (`ledger/merkle.py`): RFC 6962 (leaf `0x00`, node `0x01`, split at the largest power of
-  two, i.e. odd nodes promoted); inclusion proofs verified with the RFC 9162 algorithm. Checked
-  against the Certificate Transparency reference roots and an independent promote-odd build.
-- **Ingest:** signs the immutable per-run payloads under `runs/<run_id>/` (schedule solver runs with
-  job_id/problem_id/solver and input/output hashes, detect, capture with transcript hashes, gates,
-  wave runner with per-wave status and config hashes). Re-ingesting the same payload is a no-op.
-  Root, entry count, public-key fingerprint, algorithm and backend are anchored in `results.json`.
-- **Verify:** per entry: schema, index, chain, key fingerprint, signature, payload re-hash; then the
-  anchored root. Reports the first failing index and reason. Tests cover a one-byte payload edit,
-  an edited field, a corrupted signature, a deleted middle entry, reordered entries, a truncated
-  tail (root no longer matches the anchor), a different public key, and an entry re-signed with
-  another key.
-
-Limits: a local test ledger with one signing key; no external timestamping or transparency log, so
-the anchor in `results.json` is only as trustworthy as wherever results.json is published.
-
-## QAOA cross-check (`qaoa/`)
-
-> **QAOA on simulators and, once, on IBM ibm_fez hardware. A measured cross-check against the exact
-> optimum. No quantum advantage claimed; the problem is small enough for brute force.**
-
-- **QUBO** (`qaoa/qubo.py`): one week of the latest schedule. Candidates are assets not migrated
-  before that week; at most 10 assets + ceil(log2(C+1)) slack bits, at most 16 variables. The candidate set is
-  shrunk by value per effort day together with each asset's unmet dependencies, and every drop is logged.
-  Value a_i is the scenario-weighted exposure-years avoided by migrating in that week rather than one week
-  later (same Mosca data as the MILP); objective minimises -sum r_i a_i x_i. Capacity uses binary slack with
-  penalty A(sum w_i x_i + s - C)^2; dependency i needs j uses B x_i (1 - x_j); A = B = 1 + sum|c_i|, so every
-  infeasible state costs more than the empty selection. The exact optimum is brute force over all subsets,
-  and tests check the QUBO minimum equals it.
-- **Bit order:** variable k = qubit k = bit k of the basis index; counts strings have qubit 0 rightmost.
-  Verified against the QpiAI SDK's in-process simulator (gate conventions too: the QCloud circuit
-  reproduces the numpy QAOA state with overlap 1.0).
-- **Local QAOA** (`qaoa/local_sim.py`): numpy statevector, p = 1, 2, 3, angles from scipy COBYLA on the
-  expected energy, 5 seeded restarts; samples drawn with a fixed seed. Baseline: the same number of
-  uniformly random bitstrings.
-- **QpiAI SDK local simulator** (`qaoa/qpiai_local.py`, `python -m qaoa --qpiai-local`, default in `run_demo.sh`):
-  the same final circuit per p (2048 shots, seeded) run on `qpiai_quantum.simulator.StatevectorSimulator` in-process;
-  free, offline, no platform guard needed. Rows `qpiai_local` sit next to the numpy rows in `qaoa.table` with
-  z-scores against them; tests check that the SDK's exact statevector equals the numpy QAOA state.
-- **QCloud** (`qaoa/qcloud_run.py`, opt-in `python -m qaoa --qcloud`): submits only the final circuit per p
-  (2048 shots, at most 3 jobs) to `QpiAI-QSV-Simulator` (usage rate 1; QPU `QpiAI-Indus-1` refused),
-  through the same guard as the scheduler (announce, log, 10 jobs/UTC day shared, refused under pytest).
-  Local and QCloud statistics are compared with z-scores; large differences are reported, both kept.
-  **Current status: no QCloud results.** Attempts on 2026-10-28 were rejected before any job was
-  created: first `Experiment 'qshield-qaoa-crosscheck' not found` (the SDK cannot create experiments;
-  now uses the existing `Default Experiment`, checked read-only before submitting), then
-  `Failed to create job: an active subscription is required to run jobs`. The account shows 0 QCloud
-  jobs. QAOA numbers come from the local numpy simulator, the QpiAI SDK local simulator, the random
-  baseline and the IBM hardware run below.
-- **IBM Quantum** (`qaoa/ibm_run.py`, opt-in `python -m qaoa --ibm`): see the next section.
-- **Metrics** (`qaoa/metrics.py`): feasible fraction; best feasible objective; approximation ratio =
-  best_feasible / exact_optimum (both <= 0, so 1 = optimum found); energy ratio
-  (E_max - mean E)/(E_max - E_min); probability of the exact optimal bitstring and of the optimal asset set.
-- **Display table** (`results.json` `qaoa.table`, built by `qaoa/table.py` at assembly): one row per
-  (p, local/QCloud) plus the random baseline. Rows that did not run have `metrics: null` and a
-  `status_text` derived from the logged error and the ledger entry, e.g.
-  `skipped: no QCloud subscription (attempt logged, ledger #7)`; never blanks or zeros (the schema
-  enforces this). A later successful `--qcloud` run yields `ok` rows with metrics and job IDs through
-  the same path, so viewers need no code change.
-- **Reading the results:** at this size the approximation ratio saturates at 1 even for random sampling
-  (2048 shots over 2^14 states hit the optimum by chance), so feasible fraction, energy ratio and
-  P(optimal set) are the informative comparisons. The QAOA run is signed into the ledger (`qaoa.run`).
-
-## IBM Quantum hardware run (`ibm_fez`)
-
-> **QAOA on one real QPU. A measured cross-check against the exact optimum. No quantum advantage claimed;
-> hardware noise is expected to lower feasibility at this circuit depth, and it does.**
-
-Same 14-variable wave problem as above (week 1, 10 assets + 4 slack bits; exact optimum −0.346154 = migrate
-`backup` and `statements`). The circuits are the final simulator-tuned circuits per p, rebuilt in Qiskit
-(gate conventions and bit order checked against the numpy state in `tests/test_qaoa_ibm.py`), transpiled
-for the backend (optimization level 3, seed 7) and sampled once per p with 2048 shots.
-
-**How it is run safely**
-- Token only from `$IBM_QUANTUM_TOKEN` (git-ignored `.env.sh`); never printed, logged or exported.
-- Backend allowlist (`config/qaoa.json` `ibm.allowed_backends`, only `ibm_fez`); at most 3 jobs per run
-  (`ibm.max_jobs_per_run`); refused under pytest; shares the platform guard (announce, `runs/platform_jobs.log`,
-  10 submissions per UTC day unless `--allow-more`).
-- Before anything is submitted, all circuits are transpiled and the run prints an estimated QPU time
-  (shots × (repetition delay + circuit duration) + 5 s per job: our conservative assumption, not IBM's billing
-  formula) and the instance's remaining budget from `QiskitRuntimeService.usage()`. It stops if the estimate
-  exceeds `ibm.max_estimated_qpu_s` (90 s) or the remaining budget.
-- One shared wait of `ibm.wait_s` (20 min); jobs still queued are saved with their IDs and collected later by
-  `python -m qaoa --ibm-fetch`, which submits nothing.
-- TLS: if the optional `truststore` package is installed, IBM connections are verified against the OS
-  certificate store (needed behind HTTPS-scanning antivirus that re-signs traffic with a root only the OS
-  trusts). Certificate verification is never disabled; without the package nothing changes.
-
-**Results** (run `152aa6e0`, 2026-10-29T17:07:44Z; pre-submit estimate 16.7 QPU s with 594 s left on the
-instance; all 3 jobs DONE; signed into the ledger as `qaoa.run`, entry #3)
-
-| p | backend | feasible | P(optimal set) | energy ratio | transpiled depth | 2-qubit gates (CZ) | QPU s | IBM job ID |
-|---|---|---|---|---|---|---|---|---|
-| 1 | numpy simulator | 0.0942 | 0.0132 | 0.9833 | – | – | – | none (local) |
-| 1 | **ibm_fez** | 0.0664 | 0.0088 | 0.9469 | 445 | 337 | 3 | `dbhnpos2d77s739d3sv0` |
-| 2 | numpy simulator | 0.1826 | 0.0142 | 0.9888 | – | – | – | none (local) |
-| 2 | **ibm_fez** | 0.0444 | 0.0044 | 0.9108 | 641 | 621 | 3 | `dbhnpp42d77s739d3svg` |
-| 3 | numpy simulator | 0.1865 | 0.0142 | 0.9893 | – | – | – | none (local) |
-| 3 | **ibm_fez** | 0.0146 | 0.0029 | 0.8522 | 984 | 942 | 3 | `dbhnppene4hc73bd9480` |
-| – | uniform random | 0.0034 | 0.0010 | 0.8109 | – | – | – | – |
-
-The QpiAI SDK local simulator rows of the same run (0.1216 / 0.1924 / 0.1562 feasible) agree with numpy within
-4σ. Source of every number: the tracked package `data/real_ibm_qaoa/` (exported by `python tools/export_ibm_run.py`
-from `out/results.json`, `runs/152aa6e0…/ibm_p*.json`, `runs/platform_jobs.log` and the ledger): schedule and config
-the QUBO was built from, the QUBO and exact optimum, angles per p, raw counts, job IDs, transpile stats and physical
-layout, QPU seconds, timestamps, metrics, package versions, and `manifest.json` with the SHA-256 of every file.
-
-**Reproducing the IBM rows on another machine (no IBM access needed)**: `./run_demo.sh` does this after its QAOA
-step (as `ibm_import`, inside the QAOA stage; `--no-ibm` skips it). By hand:
-```bash
-git pull                                                        # brings data/real_ibm_qaoa/
-python -m qaoa --qpiai-local --schedule data/real_ibm_qaoa/schedule.json   # same problem, local rows
-python -m qaoa --ibm-import data/real_ibm_qaoa                  # attach the ibm_fez rows
-python -m ledger ingest && python -m ledger verify && python -m contracts.assemble && python -m atlas report
-```
-The importer verifies every SHA-256 in the manifest, rebuilds the QUBO from the packaged schedule and config,
-refuses a QAOA section whose problem differs, and recomputes every metric from the raw counts, refusing if
-they differ from the saved metrics. The rows are labelled "IBM ibm_fez, imported from data/real_ibm_qaoa (run
-executed 2026-10-29 on another machine)" (shown in the provenance tooltips and the report); the job IDs are
-IBM's. If that machine's own `out/schedule.json` gives a different week-1 problem, the QAOA section then describes
-the packaged problem (its `schedule_sha256` is the packaged schedule's), not the local plan; if the problems are
-equal, the `--schedule` flag can be dropped. Tests: `tests/test_qaoa_ibm_import.py`, `tests/test_real_ibm_qaoa.py`.
-
-**Reading it honestly**
-- At p = 1 the hardware keeps about 70 % of the simulator's feasible share and stays well above random.
-- As p grows, the simulator improves slightly but the hardware gets worse: the circuit sent grows from 337 to
-  942 two-qubit gates across 14 physical qubits, and accumulated gate noise pushes the samples towards the
-  uniform distribution. At p = 3 the hardware's feasible share (0.0146) is about 4× random and 13× below the
-  simulator.
-- The z-score comparison against the simulator flags the hardware rows as different at every p
-  (feasible-fraction z = 3.3, 13.9, 18.3); both are reported, neither replaces the other.
-- No error mitigation, dynamical decoupling or hardware-aware angle re-tuning was used; these would be the
-  next things to try. The exact optimum is still found by brute force; QAOA here is a measured cross-check.
-
-**Where it shows up**
-- `out/results.json` `qaoa.table`: rows with `source: "ibm"` carry a `hardware` block (backend, job ID, QPU
-  seconds, transpiled depth, 2-qubit gate count); queued or failed jobs show their status text, never numbers
-  (`contracts/results.schema.json`).
-- atlas_web QAOA page (`/w/<ws>/qaoa`): a "Real hardware · IBM ibm_fez" badge, copyable job IDs, depth / 2q
-  gates / QPU seconds with provenance tooltips, a feasible-share card for the hardware, and a third (middle)
-  ibm_fez layer in the probability cloud.
-- `out/report.html` (`python -m atlas report`): a "Real hardware" table in the QAOA section.
-- `DEMO.md` section 6b: a 15-second hardware beat.
-
-**Rerun**
-```bash
-source .env.sh                         # IBM_QUANTUM_TOKEN (and QPIAI_OPT_API_KEY for the schedule step)
-python -m qaoa --qpiai-local --ibm     # prints the estimate, then "Submitting 1 IBM Quantum jobs" x3
-python -m qaoa --ibm-fetch             # only if jobs were still queued
-python -m ledger ingest && python -m ledger verify && python -m contracts.assemble && python -m atlas report
-python tools/export_ibm_run.py         # rewrite the data/real_ibm_qaoa/ package from this run
-```
-
-## Visualisation (`viz/`)
-
-Vanilla JS + SVG, no framework, no build step, works offline. `python -m viz` serves only `viz/` and
-`out/results.json` on 127.0.0.1 (free port); every other path (including `keys/`) returns 404.
-
-- **Data:** reads only `out/results.json`, including the ledger verification status. `viz/data.js` turns
-  it into a display model; every number is a value present in results.json and carries its source
-  (run_id, solver/backend, job_id, timestamp), shown on hover, focus or tap. Rows that did not run show
-  their `status_text`; absent sections or fields show "not yet run", never 0. A later successful QCloud
-  run appears with no code change.
-- **2D (default, no WebGL):** remaining exposure-years per week for the optimised plan vs FCFS vs greedy,
-  one panel per CRQC scenario, with wave markers coloured by lab-gate status; cards for exposure-years
-  avoided, the ledger (short root, entry count, verified ✔/✖, only for the anchored root), the TLS handshake
-  table (key exchange and authentication per lab service) and the QAOA table ("measured cross-check, no
-  quantum advantage"). The chart shows unweighted exposure-years while the optimiser minimises the
-  risk-weighted, scenario-weighted total, so its curve can sit above a baseline in some weeks; the page says so.
-- **3D (opt-in, needs WebGL):** the exposure tower (one floor per week, floor height = remaining
-  exposure-years), a week slider and scenario picker, and red HNDL beams on every service still on classical
-  key exchange; a beam switches off only when that service's pq_handshake gate PASSes in results.json. If
-  WebGL is missing or fails, the page stays on 2D with a visible notice. `?view=3d&week=N` opens it directly.
-- **Always-visible banner:** "Lab demo · local test ledger · simulator-scale QAOA · risk, effort and
-  shelf-life values are assumptions (config/assumptions.json)".
-- **Vendored three.js** (no CDN), recorded in `viz/vendor/MANIFEST.json` and checked by tests:
-  `three-0.170.0.module.min.js` (from the npm tarball `three@0.170.0`, `build/three.module.min.js`)
-  SHA-256 `08fd7545d13d2c7fb65ab691530a802dafefd638596501854f267d0fb13c39e7`; MIT licence file
-  `three-LICENSE.txt` SHA-256 `4c40a1ef62450b857c3b2aaf294936304cd552d965fbcd9d32d4c5bcf4ba4454`.
-  The tarball matched the registry's sha512 integrity when downloaded.
-- **Tests** run the real `viz/data.js` under node (skipped with a reason if node is absent) against a
-  snapshot of a logged `results.json` (`tests/fixtures/results_sample.json`). No playwright check: it is not
-  installed; the no-WebGL fallback was checked with headless Chrome.
-
-## Scheduling model (`schedule/`)
-
-Per asset i: shelf life X_i (years), effort w_i (engineer-days), risk weight r_i, dependencies.
-Each asset is assigned to one week k (wave); completion time t_i = k/52 years after `start_year`.
-For each CRQC scenario year Z (default 2030, 2032, 2035), exposure is
-e_i = max(0, X_i + t_i − (Z − start_year)) years (Mosca's inequality).
-
-- Constraints: each asset migrates exactly once; weekly effort ≤ capacity; a dependency
-  migrates no later than its dependents.
-- `objective: "expected"` minimises the scenario-weighted sum of r_i·e_i;
-  `"robust"` minimises the worst case across scenarios.
-- Solved lexicographically with QpiAI Opt (local MILP, `mip_rel_gap=0`): primary objective,
-  then (robust only) the expected objective, then a tie-break Σ r_i·t_i that pulls high-risk
-  assets earlier when exposure is already zero. Each stage fixes the previous optimum.
-  A stage that does not report `termination=optimal` aborts the run.
-- Baselines on the same data: **FCFS** (inventory/discovery order) and **greedy**
-  (highest r_i/w_i first). Both are list schedulers that respect dependencies and capacity.
-- Every plan, including the MILP's, is re-scored by an independent evaluator
-  (`schedule/problem.py:evaluate`) and re-checked for feasibility; solver objectives are not trusted.
-- The MILP horizon is extended to cover both baseline plans, so both baselines are feasible MILP
-  solutions and a proven optimum cannot be worse. Tests check this on the demo data, random
-  instances, and against brute-force enumeration on a small instance.
-
-### Which solver produced each number
-
-Every plan in `results.json` (`exposure`, `baselines.*`) carries `produced_by`
-(`solver`, `run_ids`, `job_ids`), and every entry in `solver_runs` has a `solver` label:
-`qpiai-opt platform`, `qpiai-opt local`, `qpiai-opt local (fallback: platform submission failed)`
-or `qpiai-opt local (fallback: platform skipped after an earlier failure in this run)`.
-Sensitivity rows always come from local solves and say so in `produced_by`.
-
-### Platform mode (opt-in, guarded)
-
-- Default is local. Only `python -m schedule --platform` submits paid platform jobs: one per
-  main-plan MILP stage (2 for the `expected` objective). Sensitivity, pytest and `run_demo.sh`
-  never submit (`QSHIELD_FORBID_PLATFORM=1` makes the guard refuse).
-- Before each submission it prints `Submitting N QpiAI jobs`, writes that line to
-  `runs/<run_id>/platform_submit.log`, and appends to `runs/platform_jobs.log`.
-- At most 10 submissions per UTC day (attempts count, including failed ones); `--allow-more` overrides.
-- Each stage is also solved locally on the identical input; `comparison` records both objectives,
-  their difference and `match`. A mismatch is printed and kept, not merged.
-- If a submission fails, that stage uses the local result labelled as a fallback with the error
-  in `fallback_reason`, and the run stops submitting for its remaining stages.
-
-**Current status:** platform submissions are rejected by the QpiAI Opt server with
-`APIError: no active storage quota found for organization` (first attempt 2026-10-28). The
-account had 0 problems and 0 jobs afterwards, so nothing was created. Until the account has a
-storage quota, all scheduling numbers come from local solves and are labelled as such.
-
-### Solver job IDs: documented fallback
-
-QpiAI Opt **local** solves (`mode="local"`, free) do not issue a platform job ID. Each solver
-stage is therefore logged with `job_id: null` and a `job_id_reason` string, plus:
-our own `run_id` (UUID4), a UTC timestamp, SHA-256 of the exact inputs (problem data, stage,
-fixed objective bounds and the LP text) and SHA-256 of the full solver output.
-Files: `runs/<run_id>/{inputs.json, solver_output.json, manifest.json}`.
-The schema rejects a null `job_id` without a reason. Platform mode (which issues job IDs but can
-consume credits) is not used for scheduling.
-
-The local QpiAI Opt MILP runtime reports HiGHS status strings, i.e. it is HiGHS-based.
-
-## Contracts (`contracts/`)
-
-- `capture.schema.json`: established TLS sessions (service_id, negotiated_group, cipher, protocol,
-  cert_alg, transcript_sha256, timestamp) and refused handshake attempts. No payloads.
-- `results.schema.json`: assets, waves, status, exposure per scenario, baselines, avoided,
-  solver runs, sensitivity, and module sections (detect, handshake_evidence, gates, qaoa, ledger, ledger_root, ledger_verification).
-- `ledger_entry.schema.json`: `{index, type, payload_hash, payload_ref, prev_hash, ts, alg, backend, pubkey_fp, sig_mldsa}`.
+No license file is included in this repository yet. Third-party code keeps its own license (three.js:
+`viz/vendor/three-LICENSE.txt`).
