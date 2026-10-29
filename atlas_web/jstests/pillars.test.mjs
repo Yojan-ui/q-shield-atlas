@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { FLOW } from "../static/js/stages.js";
+import { FLOW } from "../static/js/flow.js";
 import { STAGE_OF, STEPS } from "../static/js/model.js";
 import { flowStates, resultStates } from "../static/js/views/pipeline.js";
 import { pillarHeight, pillarX } from "../static/js/scenes/pillars.js";
@@ -56,4 +56,20 @@ test("3D packets are as long as their recorded byte size", () => {
   assert.equal(packetLength(1469), 1469 * UNIT);
   assert.ok(packetLength(1469) > 4 * packetLength(285));
   assert.equal(packetLength(1), packetLength(0));  // tiny records keep a visible minimum
+});
+
+import { FLOW as BACKEND } from "../static/js/stages.js";
+import { ROUTES } from "../static/js/routes.js";
+test("display order: Detect, Inventory, Ledger, Schedule, Wave selection, Gates, Review; same steps as the backend", () => {
+  assert.deepEqual(FLOW.map((f) => f.id), ["detect", "inventory", "ledger", "schedule", "waves", "gates", "review"]);
+  assert.deepEqual([...FLOW].sort((a, b) => a.id.localeCompare(b.id)), [...BACKEND].sort((a, b) => a.id.localeCompare(b.id)));
+  const byStep = ROUTES.filter((r) => r.step).sort((a, b) => a.step - b.step).map((r) => r.name);
+  assert.deepEqual(byStep, FLOW.map((f) => f.route));  // sidebar step numbers follow the same order
+});
+
+test("a step lights only from its own stages, not its position", () => {
+  const ledgerOnly = model((s) => (STAGE_OF[s].id === "seal" ? "running" : "idle"));
+  const st = flowStates(ledgerOnly);
+  assert.equal(st[FLOW.findIndex((f) => f.id === "ledger")], "running");
+  assert.ok(st.every((x, i) => FLOW[i].id === "ledger" || x !== "running"));
 });

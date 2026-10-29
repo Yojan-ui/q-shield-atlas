@@ -5,7 +5,7 @@
 // Details are native <details> (keyboard and screen-reader accessible) and hidden in Beginner mode.
 import { h, icon } from "../dom.js";
 import { stat } from "./stat.js";
-import { FLOW } from "../stages.js";
+import { FLOW } from "../flow.js";
 
 export const DETAIL_TITLES = ["How it works", "Why this method", "Evidence & sources", "Limits"];
 

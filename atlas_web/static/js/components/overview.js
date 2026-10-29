@@ -2,7 +2,7 @@
 // with a "what this means" line, and a colour legend. Every number is read from results.json.
 import { h } from "../dom.js";
 import { chip } from "./chip.js";
-import { FLOW } from "../stages.js";
+import { FLOW } from "../flow.js";
 import { HNDL, solverLabel } from "../model.js";
 
 

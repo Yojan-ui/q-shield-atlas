@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { stageFacts, flowFacts } from "../static/js/components/overview.js";
-import { FLOW } from "../static/js/stages.js";
+import { FLOW } from "../static/js/flow.js";
 
 const sample = JSON.parse(readFileSync(new URL("../../tests/fixtures/results_sample.json", import.meta.url)));
 

@@ -9,7 +9,7 @@ import { provAttr } from "../components/tooltip.js";
 import { confirmDialog } from "../components/dialog.js";
 import { num, missing, solverLabel, source, STAGE_OF, STEPS, stationsModel } from "../model.js";
 import { honesty, mountScene, stage, viewCss } from "./common.js";
-import { FLOW } from "../stages.js";
+import { FLOW } from "../flow.js";
 import { buildPillars } from "../scenes/pillars.js";
 import { flowCards, flowFacts } from "../components/overview.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
