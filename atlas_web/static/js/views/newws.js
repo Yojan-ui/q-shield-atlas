@@ -21,9 +21,16 @@ export async function mount(ctx) {
       await ctx.api.post("/api/workspaces", { id, name: name.value().trim() || id, template: "empty" }, { quiet: true, signal: ctx.signal });
       msg.textContent = "Cloning the repository (this can take a minute)…";
       await ctx.api.post(`/api/workspaces/${id}/clone`, { url: u }, { quiet: true, signal: ctx.signal, timeout: 180000 });
+      msg.textContent = "Suggesting service manifests (review them on the next page)…";
+      await ctx.api.post(`/api/workspaces/${id}/manifests/suggest`, {}, { quiet: true, signal: ctx.signal, timeout: 120000 });
       await ctx.refreshWorkspaces();
       ctx.navigate(`/w/${id}/detect`);
-    } catch (err) { if (err.code !== "aborted") msg.textContent = `Not created: ${err.message}`; btn.disabled = false; }
+    } catch (err) {
+      if (err.code === "aborted") return;
+      const why = err.status === 408 || /timeout|timed out/i.test(err.message) ? "the clone timed out (the repository may be very large or the network slow)"
+        : /auth|403|404|not found|could not read/i.test(err.message) ? "the repository is private or does not exist (only public https repositories can be cloned)" : err.message;
+      msg.textContent = `Not done: ${why}.`; btn.disabled = false;
+    }
   } }, url, name, h("div", { class: "sg-row" }, btn, msg));
   ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
     pageHead(ctx, { route: "new-workspace", title: "Scan your own repo", headline: "Point Atlas at a public repository: it is cloned into a new workspace, then you review the suggested services and run the pipeline." }),

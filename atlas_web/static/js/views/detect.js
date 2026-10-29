@@ -210,7 +210,8 @@ export async function mount(ctx) {
       skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton()), h("div", { class: "span-12" }, tableSkeleton(5))),
       render: ({ model: m, move, inventory }) => {
         const d = m && m.detect;
-        if (!d || !d.available) return emptyState(notRun(ctx, "Detect"));
+        // not run yet (e.g. a freshly cloned repo): the intake is the next step, so it is shown here, not hidden in details
+        if (!d || !d.available) return h("div", { class: "dt-fresh" }, emptyState(notRun(ctx, "Detect")), ...intakeEls);
         ctx.announce(`${d.vulnerable.text} vulnerable findings in ${d.files.text} scanned files.`);
         const r = m.results;
         return h("div", {},
