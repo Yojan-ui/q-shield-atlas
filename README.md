@@ -2,6 +2,51 @@
 
 **Find quantum-breakable crypto. Fix it in order. Prove it.** Hackathon project, Post-Quantum Cryptography track, PQC-01.
 
+## Architecture
+
+**A. How a run flows**
+
+```mermaid
+flowchart TB
+  B["Browser"] --> S["atlas_web server<br/>Python, SSE"]
+  S --> R["Pipeline runner"]
+  R --> M["Pipeline modules"]
+  M --> W["Workspace files"]
+  M --> L["Signed ledger"]
+```
+
+- The server binds 127.0.0.1; login, roles and CSRF guard every write ([docs/API.md](docs/API.md)).
+- The runner starts one subprocess per step, and its live log streams to the browser.
+- Modules exchange only JSON files validated by `contracts/`; each run is signed with ML-DSA-65.
+
+**B. The 7 steps**
+
+```mermaid
+flowchart TB
+  D["1 Detect"] --> P1["2 Proof: findings signed"]
+  P1 --> PL["3 Plan<br/>QpiAI Opt MILP"]
+  PL --> G["4 Handshake gates"]
+  G --> Q["5 Wave selection<br/>QAOA"]
+  Q --> P2["6 Proof: post-quantum verified"]
+  P2 --> RV["7 Review"]
+```
+
+- The order comes from `contracts/stages.json`, shared by `run_demo.sh`, the runner and the UI.
+- Gates run on real TLS 1.3 lab services; QAOA is a cross-check against the exact optimum, with no advantage claimed.
+- Full diagram, stages and solvers: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+**Backend**
+
+| COMPONENT | FOLDER | WHAT IT DOES |
+|---|---|---|
+| Web server | `atlas_web/` | Login-protected UI and JSON API; runs the pipeline per workspace |
+| Detect | `detect/` | Finds RSA / ECC / DH with file:line evidence, plus a live TLS probe |
+| Schedule | `schedule/` | Weekly wave plan: QpiAI Opt MILP vs FCFS and greedy |
+| Gates | `gates/` | Per-wave PQ handshake, downgrade, compatibility and rollback checks |
+| Capture | `capture/` | OpenSSL 3.6.5 lab TLS services and handshake evidence |
+| Ledger | `ledger/` | SHA-256 hash chain, Merkle root, ML-DSA-65 signatures |
+| QAOA | `qaoa/` | Wave cutover choice on QpiAI QSV-Local and numpy vs the exact optimum |
+
 ![tests](https://img.shields.io/badge/pytest-519%20passed%2C%203%20skipped-brightgreen)
 ![node tests](https://img.shields.io/badge/node%20tests-54%20passed-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12-blue)
@@ -15,10 +60,10 @@
 
 ## Contents
 
+- [Architecture](#architecture)
 - [The problem in 30 seconds](#the-problem-in-30-seconds)
 - [What Q-Shield Atlas does](#what-q-shield-atlas-does)
 - [Mind map](#mind-map)
-- [Architecture](#architecture)
 - [Backend: atlas_web server + pipeline modules](#backend-atlas_web-server--pipeline-modules)
 - [Frontend](#frontend)
 - [Real data](#real-data)
@@ -103,35 +148,6 @@ mindmap
       QCloud blocked
       IBM ibm_fez
 ```
-
-## Architecture
-
-The pipeline runs in this order (`contracts/stages.json`, shared by `run_demo.sh`, `atlas_web/runner.py` and the UI).
-Modules communicate only through JSON files validated against `contracts/*.schema.json`.
-
-```mermaid
-flowchart LR
-  subgraph WEB["Web app"]
-    B["Browser"] --> S["atlas_web server"] --> R["runner: one subprocess per step"]
-  end
-  R --> D
-  D["detect"] -->|"detect.json, inventory.json"| LO["ledger_open"]
-  LO --> SC["schedule"]
-  SC -->|"schedule.json"| CA["capture"]
-  CA -->|"capture.json, handshake_evidence.json"| G["gates"]
-  G -->|"gates.json, wave_status.json"| Q["qaoa"]
-  Q -->|"qaoa.json"| LI["ledger_ingest"]
-  LI -->|"ledger.jsonl"| LV["ledger_verify"]
-  LV -->|"ledger_verify.json"| AS["assemble"]
-  AS -->|"results.json"| V["validate"]
-  V --> RP["report"]
-  RP -->|"report.html"| WS[("workspace files: out/ and runs/")]
-```
-
-- Every step writes `runs/<run_id>/manifest.json` (input/output SHA-256), and the ledger signs it.
-- The web app's Pipeline page shows these steps as 7 user-facing steps. "Proof Chain" opens right after Detect and
-  is sealed at the end.
-- Full diagram, stages and solver table: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Backend: atlas_web server + pipeline modules
 
