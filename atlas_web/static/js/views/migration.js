@@ -12,7 +12,8 @@ import { HNDL } from "../model.js";
 import { provAttr } from "../components/tooltip.js";
 import { authName, buildChannel, fmtBytes, packetsOf, pickLanes, sessionProv, transcriptList } from "../components/channel.js";
 import { clusterOf } from "../scenes/migration.js";
-import { dataView, honesty, notRun, viewCss } from "./common.js";
+import { dataView, honesty, mountScene, notRun, stage, viewCss } from "./common.js";
+import { buildLanes3d } from "../scenes/lanes3d.js";
 import { bullets, detailsList, nextStep, pageHead } from "../components/page.js";
 
 export const LANES = [
@@ -64,7 +65,12 @@ export function gateCell(e, gate) {
 }
 
 export async function mount(ctx) {
-  await viewCss("move");
+  await Promise.all([viewCss("move"), viewCss("pillars")]);
+  // 3D sender / receiver lanes in the persistent world, on the same replay clock as the SVG below
+  const labels3d = h("div", { class: "gr-labels", "aria-hidden": "true" });
+  const stage3d = stage(ctx, { label: "3D replay of the recorded handshakes: sender on the left, receiver on the right, one lane per handshake; packet length is the recorded message size.", fallback: h("span") });
+  stage3d.append(labels3d);
+  let layer3d = null;
   let reduced = prefersReducedMotion();
   const body = dataView(ctx, {
     keys: ["results", "move"],
@@ -191,7 +197,9 @@ export async function mount(ctx) {
       // ---------- replay clock ----------
       let t = reduced ? S.ch.length + HOLD : 0, running = false, advancing = false, raf = 0, prev = 0;
       const cycle = () => S.ch.length + HOLD;
-      const paint = () => { S.ch.set(t); for (const l of S.lists) if (l && l.mark) l.mark(t); };
+      const paint = () => { S.ch.set(t); if (layer3d) layer3d.set(t); for (const l of S.lists) if (l && l.mark) l.mark(t); };
+      const mount3d = () => mountScene(ctx, "migration", { available: !!mv }, (env) => buildLanes3d(env, S.lanes, { labelsEl: labels3d, stageEl: stage3d }))
+        .then((l) => { layer3d = l; if (l) l.set(t); }).catch(() => {});
       const label = () => {
         playBtn.replaceChildren(icon(running ? "dash" : "play"), running ? "Pause" : "Play the plan");
         motionBtn.replaceChildren(icon(reduced ? "dash" : "spin"), reduced ? "Motion off" : "Motion on");
@@ -233,7 +241,7 @@ export async function mount(ctx) {
         label();
       }, { signal: ctx.signal });
       ctx.signal.addEventListener("abort", () => cancelAnimationFrame(raf), { once: true });
-      label(); drawPlan(); paint();
+      label(); drawPlan(); mount3d(); paint();
       if (!reduced && mv) start(false);  // the handshake replay loops; weeks only advance on "Play the plan"
       const tlist = (i, title) => h("div", { class: `mv-tl ${S.lanes[i].tone}` }, h("p", { class: "mv-tl-h", text: title }), S.lists[i] && S.lists[i].el ? S.lists[i].el : S.lists[i]);
       const tlists = () => [tlist(0, "Before: messages"), tlist(1, "After: messages"), tlist(2, "Downgrade attempt: messages")];
@@ -246,6 +254,7 @@ export async function mount(ctx) {
       const freshNote = h("p", { class: "mv-note", "aria-live": "polite", text: !fs.enabled ? `Fresh handshake ${fs.reason}` : canRun ? "Starts the lab TLS services on 127.0.0.1, records one handshake per service, stops them. Never contacts another host." : "Fresh handshake: operators only." });
       const swap = (mvX, gX, fresh) => {
         S = sceneOf(mvX, gX, fresh);
+        mount3d();
         stageBox.replaceChildren(S.ch.el); tlsBox.replaceChildren(...tlists()); authWrap.replaceChildren(S.authBox);
         backBtn.hidden = !fresh; t = 0; paint();
         if (!reduced) start(false); else { t = cycle() - 0.01; paint(); }
@@ -268,7 +277,7 @@ export async function mount(ctx) {
             h("li", {}, h("span", { class: `lg-dot ${c}`, "aria-hidden": "true" }), x))),
           h("div", { class: "mv-controls" }, playBtn, stepBtn, h("label", { class: "mv-lab" }, "speed", speed),
             h("label", { class: "mv-lab week-scrub" }, "week", range, wk), bankSel ? h("label", { class: "mv-lab" }, "bank", bankSel) : null, motionBtn)),
-        h("section", { class: "ch-stage", "aria-label": "Replay of recorded handshakes" }, h("div", { class: "mv-fresh" }, freshBtn, backBtn, freshNote), stageBox,
+        h("section", { class: "ch-stage", "aria-label": "Replay of recorded handshakes" }, h("div", { class: "mv-fresh" }, freshBtn, backBtn, freshNote), stage3d, stageBox,
           h("p", { class: "mv-how", text: "How to read this: each block is one recorded TLS message, as wide as its real size. Same client, two servers: red uses classical X25519, green uses hybrid X25519MLKEM768 (its key share is the dark inner block). The bottom lane is a client that offers only classical groups." })),
         tlsBox,
         h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: "Who the receiver is: server authentication" }), authWrap,

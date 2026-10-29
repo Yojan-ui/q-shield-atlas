@@ -50,3 +50,10 @@ test("Review blocks are coloured by the real signature status", () => {
   assert.match(it[0].label, /plan #3/);
   assert.doesNotMatch(it[2].label, /#/);
 });
+
+import { packetLength, UNIT } from "../static/js/scenes/lanes3d.js";
+test("3D packets are as long as their recorded byte size", () => {
+  assert.equal(packetLength(1469), 1469 * UNIT);
+  assert.ok(packetLength(1469) > 4 * packetLength(285));
+  assert.equal(packetLength(1), packetLength(0));  // tiny records keep a visible minimum
+});

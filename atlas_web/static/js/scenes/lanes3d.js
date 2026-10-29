@@ -1,0 +1,66 @@
+// Move in 3D: sender (left) and receiver (right) blocks with one lane per recorded handshake (the same lanes the
+// SVG replay draws). Each packet is one recorded TLS message, as long as its recorded byte size, with its key share
+// as a dark inner block; it moves on the same replay clock (t in message units) as the SVG. Red classical, green
+// hybrid, white the downgrade attempt. No packet exists unless the transcript was recorded (and hash-checked).
+import { flight, packetsOf } from "../components/channel.js";
+
+export const UNIT = 0.0036;  // scene units per recorded byte
+export const packetLength = (bytes) => Math.max(0.12, (bytes || 0) * UNIT);
+const SX = -6.5, RX = 6.5, LANE = 2.6, TONE = { exp: 0xff4d5e, ok: 0x4ade80, neutral: 0xffffff };
+
+export function buildLanes3d({ THREE, world, group }, lanes, { labelsEl, stageEl }) {
+  group.rotation.y = Math.asin(0.6);  // square to the world.focus view direction
+  group.add(new THREE.AmbientLight(0xffffff, 0.8));
+  const key = new THREE.DirectionalLight(0xffffff, 1.0); key.position.set(5, 10, 8); group.add(key);
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  const endMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.8, fog: false });
+  const wire = new THREE.LineBasicMaterial({ color: 0x3a3a3a });
+  const shareMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.45, fog: false });
+  // lanes stacked vertically (top: before), so each stays separate on screen from the elevated camera
+  const L = lanes.map((l, i) => {
+    const y = (lanes.length - 1 - i) * LANE, z = 0;
+    for (const x of [SX - 0.9, RX + 0.9]) { const m = new THREE.Mesh(box, endMat); m.scale.set(1.2, 1.4, 1.2); m.position.set(x, y + 0.4, z); group.add(m); }
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(SX, y, z), new THREE.Vector3(RX, y, z)]), wire));
+    const mat = new THREE.MeshStandardMaterial({ color: TONE[l.tone] || TONE.neutral, roughness: 0.5, fog: false });
+    const pk = packetsOf(l.session).map((m) => {
+      const len = Math.min(packetLength(m.bytes), RX - SX - 0.4);
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(box, mat); body.scale.set(len, 0.5, 0.7); g.add(body);
+      const share = (m.key_share || []).find((k) => k.bytes);
+      if (share) { const s = new THREE.Mesh(box, shareMat); const sl = Math.min(len, packetLength(share.bytes)); s.scale.set(sl, 0.52, 0.72); s.position.x = (sl - len) / 2 * (m.dir === "c2s" ? -1 : 1); g.add(s); }
+      g.visible = false; g.position.set(0, y + 0.3, z); group.add(g);
+      return { m, g, len };
+    });
+    const title = document.createElement("span"); title.className = "pl3-label"; title.textContent = l.session ? l.title : `${l.title}: not run`; labelsEl.append(title);
+    const cur = document.createElement("span"); cur.className = "pl3-label"; labelsEl.append(cur);
+    return { y, z, pk, title, cur, shown: -2 };
+  });
+  world.focus([0, ((lanes.length - 1) * LANE) / 2, 0], 13 + lanes.length * 1.5);
+  const v = new THREE.Vector3();
+  const place = (el, x, y, z, b) => {
+    v.set(x, y, z).applyMatrix4(group.matrixWorld).project(world.camera);
+    el.hidden = v.z > 1;
+    el.style.transform = `translate(${((v.x + 1) / 2) * b.width}px, ${((1 - v.y) / 2) * b.height}px) translate(-50%, -100%)`;
+  };
+  let t = 0;
+  return {
+    pickables: [],
+    set(x) { t = x; },
+    update() {
+      const b = stageEl.getBoundingClientRect();
+      group.updateMatrixWorld();
+      for (const l of L) {
+        l.pk.forEach(({ m, g, len }, k) => {
+          const f = flight(t, k);
+          g.visible = f !== null;
+          if (f !== null) { const e = f < 0.5 ? 2 * f * f : 1 - (-2 * f + 2) ** 2 / 2, span = RX - SX - len; g.position.x = m.dir === "c2s" ? SX + len / 2 + e * span : RX - len / 2 - e * span; }
+        });
+        const k0 = Math.floor(t);
+        if (k0 !== l.shown) { l.shown = k0; const p = l.pk[k0]; l.cur.textContent = p ? `${p.m.dir === "c2s" ? "→" : "←"} ${p.m.type} · ${p.m.bytes.toLocaleString("en-US")} B` : ""; }
+        place(l.title, SX - 0.9, l.y + 1.45, l.z, b);
+        place(l.cur, 0, l.y + 1.05, l.z, b);
+      }
+    },
+    dispose() { labelsEl.replaceChildren(); },
+  };
+}
