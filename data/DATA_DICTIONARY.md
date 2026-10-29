@@ -42,6 +42,21 @@ One row per observation. `record_type` says which columns apply. Empty means "no
 Probes use OpenSSL 3.6.5 and offer `X25519MLKEM768:X25519:prime256v1`. A classical result means the server chose classical
 key exchange. No traffic was decrypted.
 
+## real_ibm_qaoa/ (REAL, IBM Quantum hardware)
+
+Written by `python tools/export_ibm_run.py` from a logged `python -m qaoa --ibm` run (`out/results.json`,
+`runs/<run_id>/ibm_p*.json`, `out/ledger.jsonl`); nothing is typed by hand. A measured cross-check against the
+exact optimum; no quantum advantage claimed. Checked by `tests/test_real_ibm_qaoa.py`.
+
+| File | Contents |
+|---|---|
+| run_&lt;id8&gt;.json | problem, exact optimum, every `qaoa.table` row (local, qpiai_local, qcloud status, ibm, random), comparisons (z-scores), raw ibm_fez counts per p (qubit 0 rightmost), physical qubits, transpiler settings, ledger entry index and root |
+| run_&lt;id8&gt;_table.csv | the table rows, flat: metrics (`feasible_fraction`, `best_feasible_objective`, `approximation_ratio`, `energy_ratio`, `p_optimal`, `p_optimal_assets`) and for IBM rows `hw_job_id`, `hw_backend`, `hw_transpiled_depth`, `hw_two_qubit_gates`, `hw_qpu_seconds` |
+| run_&lt;id8&gt;.manifest.json | SHA-256 of every source file and of both outputs |
+
+`hw_transpiled_depth` and `hw_two_qubit_gates` describe the circuit actually sent to the QPU (after transpiling to
+the backend's native gates); `hw_qpu_seconds` is IBM's reported usage for the job.
+
 ## SYNTHETIC_mock_bank_assets.csv
 
 | Column | Meaning | Unit / values | Source |
