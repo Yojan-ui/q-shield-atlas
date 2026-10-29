@@ -28,7 +28,18 @@ def section(tmp_path_factory):
 def test_rows_cover_every_solver_per_instance(section):
     for inst in section["instances"]:
         got = {(r["solver"], r["p"]) for r in section["rows"] if r["instance"] == inst["id"]}
-        assert got == {("exact", None), ("milp", None), ("random", None), ("qaoa", 1), ("hybrid", 1), ("hardware", None)}
+        assert got == {("exact", None), ("milp", None), ("random", None), ("qaoa", 1), ("qaoa_sdk", 1), ("hybrid", 1), ("hardware", None)}
+    sdk = [r for r in section["rows"] if r["solver"] == "qaoa_sdk"]
+    assert all("QpiAI-QSV-Local" in r["backend"] and r["guarantee"].startswith("none") for r in sdk)
+
+
+def test_full_schedule_rows_compare_baselines_with_the_milp_optimum(section):
+    rows = {r["solver"]: r for r in section["schedule_rows"]}
+    assert set(rows) == {"fcfs", "greedy", "milp", "qaoa"}
+    assert rows["milp"]["approximation_ratio"] == 1.0 and "proven" in rows["milp"]["guarantee"]
+    for k in ("fcfs", "greedy"):
+        assert rows[k]["objective"] >= rows["milp"]["objective"] - 1e-9 and 0 < rows[k]["approximation_ratio"] <= 1 + 1e-9
+    assert rows["qaoa"]["status"] == "not_run" and rows["qaoa"]["status_text"].startswith("unsupported")
 
 
 def test_quality_is_relative_to_the_exact_optimum(section):

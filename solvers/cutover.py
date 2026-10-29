@@ -44,7 +44,7 @@ def qaoa(q, p=1, cfg=None, **_):
     cfg = cfg or json.loads(QAOA_CFG.read_text())
     E, opt, counts = _qaoa_samples(q, p, cfg)
     m = metrics.compute(q, counts, E, exact_optimum(q))
-    rec = {"p": p, "shots": cfg["shots"], "angles": {"gammas": opt["gammas"], "betas": opt["betas"]}, "metrics": m,
+    rec = {"p": p, "shots": cfg["shots"], "angles": {"gammas": opt["gammas"], "betas": opt["betas"]}, "energy_scale": opt["energy_scale"], "metrics": m,
            "backend": "numpy statevector (qaoa/local_sim.py)"}
     if m["best_feasible_assets"] is None:
         top = max(counts, key=counts.get)

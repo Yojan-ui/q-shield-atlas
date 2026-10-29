@@ -201,6 +201,7 @@ def bench_steps(ws: Workspace) -> list[tuple[str, list[str]]]:
     out, runs = str(ws.out), str(ws.runs)
     led = ["--ledger", str(ws.out / "ledger.jsonl"), "--out-dir", out, "--runs", runs, "--root", str(ws.root), "--keys-dir", str(ws.keys)]
     return [("bench", [*py, "bench", "--schedule", str(ws.out / "schedule.json"), "--out-dir", out, "--runs", runs]),
+            ("bench_crypto", [*py, "bench.crypto", "--out-dir", out, "--runs", runs]),
             ("ledger_ingest", [*py, "ledger", "ingest", *led]), ("ledger_verify", [*py, "ledger", "verify", *led])]
 
 

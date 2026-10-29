@@ -112,15 +112,21 @@ def load_results(ws) -> dict | None:
 
 
 def bench_payload(ws) -> dict:
-    f = ws.out / "bench.json"
-    if not f.exists():
-        return {"workspace": ws.id, "bench": None, "ledger_index": None,
-                "status_text": "not in this snapshot (python -m bench)" if ws.read_only else "not yet run"}
-    b = json.loads(f.read_text())
     entries = ((load_results(ws) or {}).get("ledger") or {}).get("entries", [])
-    ref = f"runs/{b['run_id']}/manifest.json"
-    idx = next((e["index"] for e in entries if e["type"] == "bench.run" and e["payload_ref"].endswith(ref)), None)
-    return {"workspace": ws.id, "bench": b, "ledger_index": idx, "status_text": None}
+
+    def part(name, etype):
+        f = ws.out / name
+        if not f.exists():
+            return None, None
+        b = json.loads(f.read_text())
+        ref = f"runs/{b['run_id']}/manifest.json"
+        return b, next((e["index"] for e in entries if e["type"] == etype and e["payload_ref"].endswith(ref)), None)
+
+    b, idx = part("bench.json", "bench.run")
+    c, cidx = part("bench_crypto.json", "bench_crypto.run")
+    missing = "not in this snapshot (python -m bench)" if ws.read_only else "not yet run"
+    return {"workspace": ws.id, "bench": b, "ledger_index": idx, "crypto": c, "crypto_ledger_index": cidx,
+            "status_text": None if b else missing}
 
 
 def ledger_path(ws, results) -> Path | None:

@@ -8,6 +8,7 @@ Payloads are the immutable per-run files under runs/<run_id>/:
   gates.wave_run       runs/<id>/wave_runner.json per-wave status, config and transcript hashes
   qaoa.run             runs/<id>/manifest.json   QUBO, exact optimum, angles, metrics, QCloud job IDs
   bench.run            runs/<id>/manifest.json   solver benchmark rows (python -m bench)
+  bench_crypto.run     runs/<id>/manifest.json   classical / hybrid / post-quantum TLS measurements (python -m bench.crypto)
 A payload already in the ledger (same type and SHA-256) is not appended again.
 `only` limits ingestion to those entry types (the Proof Chain stage signs detect.run right after Detect).
 """
@@ -39,6 +40,8 @@ def run_manifests(out_dir: Path, runs_dir: Path) -> list[tuple[str, Path]]:
         items.append(("qaoa.run", runs_dir / qaoa["run_id"] / "manifest.json"))
     if bench := load("bench.json"):
         items.append(("bench.run", runs_dir / bench["run_id"] / "manifest.json"))
+    if crypto := load("bench_crypto.json"):
+        items.append(("bench_crypto.run", runs_dir / crypto["run_id"] / "manifest.json"))
     missing = [str(p) for _, p in items if not p.exists()]
     if missing:
         raise FileNotFoundError(f"run manifests referenced by out/ are missing: {missing}")

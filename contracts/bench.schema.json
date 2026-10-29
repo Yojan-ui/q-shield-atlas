@@ -20,7 +20,7 @@
    "type": "object",
    "required": ["instance", "n_variables", "solver", "family", "p", "status", "status_text", "objective", "optimum", "feasible", "approximation_ratio", "runtime_s"],
    "properties": {
-    "solver": {"enum": ["exact", "milp", "random", "qaoa", "hybrid", "hardware"]},
+    "solver": {"enum": ["exact", "milp", "random", "qaoa", "qaoa_sdk", "hybrid", "hardware", "fcfs", "greedy"]},
     "status": {"enum": ["ok", "error", "not_requested", "not_run"]}
    },
    "if": {"properties": {"status": {"const": "ok"}}},
