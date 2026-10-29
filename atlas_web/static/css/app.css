@@ -187,7 +187,8 @@ dialog.confirm .actions { display: flex; justify-content: flex-end; gap: var(--s
 .state.error .mark { color: var(--exposure); }
 .state p { margin: 0; color: var(--text-2); }
 .state .actions { display: flex; gap: var(--s-3); margin-top: var(--s-2); }
-.skel { display: block; background: linear-gradient(90deg, var(--hairline) 0%, var(--hairline-strong) 50%, var(--hairline) 100%); background-size: 200% 100%; border-radius: var(--r-chip); animation: shimmer 1.4s linear infinite; }
+.skel { display: block; background: var(--hairline); border-radius: var(--r-chip); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .5; } }
 .skel.line { height: 12px; margin: var(--s-2) 0; }
 .skel.value { height: 40px; width: 60%; }
 .skel.row { height: 40px; margin: 0; border-radius: 0; border-bottom: var(--rule) solid var(--base); }

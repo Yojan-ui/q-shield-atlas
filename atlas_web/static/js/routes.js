@@ -10,7 +10,7 @@ export const ROUTES = [
   { name: "qaoa", path: "/w/:ws/qaoa", title: "QAOA cross-check", view: "qaoa", auth: true, rail: 6, label: "QAOA", short: "QAOA", camera: "qaoa" },
   { name: "bench", path: "/w/:ws/bench", title: "Benchmark", view: "bench", auth: true, rail: 7, label: "Benchmark", short: "Bench", camera: "settings" },
   { name: "review", path: "/w/:ws/review", title: "Review", view: "review", auth: true, rail: 8, label: "Review", short: "Review", camera: "settings" },
-  { name: "migration", path: "/w/:ws/migration", title: "Migration", view: "migration", auth: true, rail: 9, label: "Migration", short: "Move", camera: "settings" },
+  { name: "migration", path: "/w/:ws/migration", title: "Migration", view: "migration", auth: true, rail: 9, label: "Migration", short: "Move", camera: "migration" },
   { name: "asset", path: "/w/:ws/asset/:assetId", title: "Asset", view: "asset", auth: true, camera: "asset" },
   { name: "users", path: "/settings/users", title: "Users", view: "users", auth: true, role: "admin", camera: "settings" },
   { name: "styleguide", path: "/styleguide", title: "Styleguide", view: "styleguide", dev: true, camera: "settings" },

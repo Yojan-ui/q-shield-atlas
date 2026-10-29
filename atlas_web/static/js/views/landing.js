@@ -17,7 +17,7 @@ export async function mount(ctx) {
   // Title sequence (<= 3 s, any input skips, reduced motion = instant): crystals ignite red one by one with beams
   // rising, the headline wipes in, then the waves turn crystals cyan in plan order (red threat -> system -> cyan).
   const reveal = () => { if (ctx.root.classList.contains("intro-hold")) { ctx.root.classList.remove("intro-hold"); stagger(heroEl); } };
-  ctx.root.classList.add("intro-hold");
+  // the headline paints at once (no hold): the 3D title sequence plays behind it
   const skip = () => { if (ctx.world.uniforms) ctx.world.uniforms.uIntro.value = 1; reveal(); };
   for (const ev of ["pointerdown", "keydown", "wheel"]) addEventListener(ev, skip, { once: true, signal: ctx.signal });
   setTimeout(reveal, 1700);

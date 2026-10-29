@@ -78,3 +78,5 @@
 .qp-out { display: grid; gap: var(--s-1); }
 @media (max-width: 1720px) { .strip-actions .sound-toggle { display: none; } }
 @media (max-width: 1100px) { .qb-badge { display: none; } }
+.mg-stage .stage { height: 420px; }
+@media (max-width: 760px) { .mg-stage .stage { height: 300px; } }

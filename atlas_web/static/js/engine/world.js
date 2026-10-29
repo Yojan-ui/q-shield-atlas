@@ -15,7 +15,7 @@ export const POSES = {
   harvest: { pos: [14, 7, 16], at: [0, 0, -6] }, cell: { pos: [0, 1.5, 6], at: [0, 0, 0] }, pipeline: { pos: [0, 9, 20], at: [0, 0, -6] },
   detect: { pos: [0, 14, 22], at: [0, 2, 0] }, schedule: { pos: [-12, 8, 16], at: [0, 3, -4] }, handshakes: { pos: [0, 3, 14], at: [0, 1, 0] },
   ledger: { pos: [0, 6, 18], at: [0, 5, 0] }, qaoa: { pos: [10, 8, 12], at: [0, 2, 0] }, asset: { pos: [6, 4, 8], at: [0, 0, 0] },
-  settings: { pos: [0, 20, 30], at: [0, 0, -6] }, void: { pos: [0, 0, 9], at: [0, 0, 0] },
+  settings: { pos: [0, 20, 30], at: [0, 0, -6] }, migration: { pos: [-14, 6, 15], at: [0, 0.5, 0] }, void: { pos: [0, 0, 9], at: [0, 0, 0] },
 };
 
 export function createWorld(host) {
@@ -161,6 +161,7 @@ function init(w, THREE) {
   function frame(now) {
     running = false;
     if (document.hidden) return;
+    if (now - last < 1000 / 60 - 2) { loop(); return; }  // cap at 60 fps (high-refresh displays)
     const dt = Math.min(100, now - last); last = now;
     frames++; acc += dt; worst = Math.max(worst, dt);
     if (acc >= 1000) {

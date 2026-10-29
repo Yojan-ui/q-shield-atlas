@@ -7,7 +7,8 @@ import { chip } from "../components/chip.js";
 import { emptyState } from "../components/states.js";
 import { prefersReducedMotion } from "../motion.js";
 import { HNDL } from "../model.js";
-import { dataView, header, honesty, notRun, section, wsEyebrow } from "./common.js";
+import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
+import { stageFacts } from "../components/overview.js";
 
 export const LANES = [
   { id: "classical", title: "Still on old encryption", sub: "quantum-exposed (RSA / ECC)", tone: "exposed" },
@@ -30,7 +31,9 @@ export function progress(assets, week) {
 }
 
 export async function mount(ctx) {
-  let reduced = prefersReducedMotion(), timer = 0;
+  let reduced = prefersReducedMotion(), timer = 0, layer = null;
+  const stageEl = stage(ctx, { label: "3D view of the migration: each sphere is a system moving from old encryption (left) to post-quantum (right); white spheres passed every lab check. The thin gates are the pipeline stages.", fallback: h("span") });
+  const stageWrap = h("div", { class: "span-12 mg-stage" }, stageEl);
   const body = dataView(ctx, {
     keys: ["results"],
     skeleton: () => h("p", { class: "fine", text: "Loading the plan…" }),
@@ -83,7 +86,7 @@ export async function mount(ctx) {
         motionBtn.setAttribute("aria-pressed", String(reduced));
       };
       const stop = () => { clearInterval(timer); timer = 0; play.replaceChildren(icon("play"), "Play"); };
-      const set = (w) => { week = w; range.value = String(w); ctx.setQuery({ week: String(w) }); draw(); };
+      const set = (w) => { week = w; range.value = String(w); ctx.setQuery({ week: String(w) }); draw(); if (layer) layer.setWeek(w); };
       range.addEventListener("input", () => { stop(); set(Number(range.value)); }, { signal: ctx.signal });
       play.addEventListener("click", () => {
         if (timer) return stop();
@@ -91,13 +94,23 @@ export async function mount(ctx) {
         play.replaceChildren(icon("dash"), "Pause");
         timer = setInterval(() => { if (week >= last) return stop(); set(week + 1); ctx.announce(wk.textContent); }, reduced ? 1600 : 1100);
       }, { signal: ctx.signal });
-      motionBtn.addEventListener("click", () => { reduced = !reduced; draw(); }, { signal: ctx.signal });
+      // 3D only with motion on (and WebGL); otherwise the 2D lanes below are the whole view
+      const show3d = () => {
+        stageWrap.hidden = reduced;
+        if (reduced) { if (layer) { ctx.world.mount("migration", null); layer = null; } return; }
+        if (layer) return;
+        import("../scenes/migration.js").then(({ buildMigration }) => mountScene(ctx, "migration", { available: true }, (env) =>
+          buildMigration(env, { assets, doneStages: new Set(Object.keys(stageFacts(r))) }, week))).then((l) => { layer = l; if (!l) stageWrap.hidden = true; }).catch(() => { stageWrap.hidden = true; });
+      };
+      motionBtn.addEventListener("click", () => { reduced = !reduced; draw(); show3d(); }, { signal: ctx.signal });
       ctx.signal.addEventListener("abort", stop, { once: true });
       draw();
+      show3d();
       const sessions = (r.handshake_evidence || {}).sessions || [];
       return h("div", { class: "grid" },
         h("div", { class: "span-12 mg-head" }, label, bar, barKey, mean,
           h("div", { class: "sg-row mg-controls" }, play, h("label", { class: "sg-row week-scrub" }, h("span", { class: "eyebrow", style: { margin: 0 }, text: "week" }), range, wk), motionBtn)),
+        stageWrap,
         h("div", { class: "span-12 mg-lanes" }, LANES.map((l) => h("section", { class: `mg-lane ${l.tone}`, "aria-label": l.title },
           h("p", { class: "mg-lane-h" }, h("span", { class: `lg-dot ${l.tone}`, "aria-hidden": "true" }), l.title), h("p", { class: "fine", text: l.sub }), lanes[l.id]))),
         sessions.length ? section("Connections tested in the lab", h("ul", { class: "mg-sessions" }, sessions.map((s) => h("li", {},

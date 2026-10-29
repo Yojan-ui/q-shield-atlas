@@ -12,29 +12,29 @@
 :root {
   color-scheme: dark;
   /* colour */
-  --base: #05070A;
-  --surface: rgba(14, 18, 24, 0.72);
-  --surface-solid: #0B0E13;
-  --surface-raised: #11161D;
+  --base: #000000;
+  --surface: rgba(0, 0, 0, 0.78);
+  --surface-solid: #0A0A0A;
+  --surface-raised: #141414;
   --blur: 16px;
-  --hairline: rgba(255, 255, 255, 0.08);
-  --hairline-strong: rgba(255, 255, 255, 0.16);
-  --text: #E6EDF3;
-  --text-2: #8B98A5;
-  --text-3: #7A8692;
-  --accent: #5CE1E6;
-  --accent-ink: #04191A;
-  --accent-wash: rgba(92, 225, 230, 0.10);
+  --hairline: rgba(255, 255, 255, 0.10);
+  --hairline-strong: rgba(255, 255, 255, 0.22);
+  --text: #FFFFFF;
+  --text-2: #A3A3A3;
+  --text-3: #8C8C8C;
+  --accent: #FFFFFF;  /* monochrome: white is the only non-status accent */
+  --accent-ink: #000000;
+  --accent-wash: rgba(255, 255, 255, 0.08);
   --exposure: #FF4D5E;
   --exposure-wash: rgba(255, 77, 94, 0.10);
   --pass: #4ADE80;
   --pass-wash: rgba(74, 222, 128, 0.10);
   --caution: #F5B84B;
   --caution-wash: rgba(245, 184, 75, 0.10);
-  --scrim: rgba(5, 7, 10, 0.72);
+  --scrim: rgba(0, 0, 0, 0.78);
 
   /* type */
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-sans: "Inter Tight", "Inter Tight Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, Menlo, Consolas, monospace;
   --font-display: "Inter Tight", "Inter Tight Fallback", -apple-system, "Segoe UI", sans-serif;
   --fs-15: 15px;
@@ -83,12 +83,12 @@
   --focus-offset: 2px;
 
   /* motion (mirrors js/motion.js) */
-  --dur-overlay: 280ms;
+  --dur-overlay: 240ms;
   --dur-exit: 180ms;
   --dur-stagger: 40ms;
-  --dur-shot: 1200ms;
-  --dur-roll: 600ms;
-  --rise: 24px;
+  --dur-shot: 300ms;
+  --dur-roll: 300ms;
+  --rise: 8px;
   --ease-overlay: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 

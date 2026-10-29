@@ -15,7 +15,8 @@ test("tokens.css mirrors motion.js", () => {
   assert.equal(token("rise"), `${MOTION.riseIn}px`);
   assert.equal(token("ease-overlay"), `cubic-bezier(${MOTION.overlayEase.join(", ")})`);
   assert.deepEqual(MOTION.overlayEase, [0.2, 0.8, 0.2, 1]);
-  assert.equal(MOTION.overlayMs, 280); assert.equal(MOTION.exitMs, 180); assert.equal(MOTION.staggerMs, 40); assert.equal(MOTION.riseIn, 24);
+  assert.equal(MOTION.overlayMs, 240); assert.equal(MOTION.exitMs, 180); assert.equal(MOTION.staggerMs, 40); assert.equal(MOTION.riseIn, 8);
+  for (const k of ["overlayMs", "exitMs", "shotMs", "rollMs"]) assert.ok(MOTION[k] >= 150 && MOTION[k] <= 300, k);  // 150–300 ms UI transitions
 });
 
 test("easing", () => {
