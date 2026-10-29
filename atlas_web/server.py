@@ -87,6 +87,7 @@ class App:
         self.kiosk, self.demo = kiosk, demo
         self.tamper_lock = threading.Lock()
         self.tamper_last = 0.0
+        self.review_lock = threading.Lock()  # one signed review decision at a time
         self.cache: dict = {}
         self.cache_lock = threading.Lock()
 
@@ -503,6 +504,21 @@ def make_handler(app: App):
                 if idx is not None and not isinstance(idx, int):
                     raise ApiError(422, "bad_index", "index must be an integer")
                 return self.send_json(200, tamper_demo(ws, idx))
+            if name == "reviews" and len(sub) == 1:  # results awaiting review; decisions signed into the Proof Chain
+                from . import review
+
+                if method == "GET":
+                    u = self.user()
+                    return self.send_json(200, {"items": review.listing(ws, load_results(ws)), "read_only": ws.read_only,
+                                                "can_decide": has_role(u, "operator") and not ws.read_only})
+                if method == "POST":
+                    u = self.need("operator")
+                    wsmod.require_writable(ws)
+                    self._no_active_run(ws)
+                    b = self.body_json()
+                    with app.review_lock:
+                        d = review.decide(ws, load_results(ws), str(b.get("item", "")), str(b.get("decision", "")), str(b.get("reason", "")), u["username"])
+                    return self.send_json(200, {"decision": d, "items": review.listing(ws, load_results(ws))})
             if name == "estimate" and len(sub) == 1:  # time estimate vs the user's threshold
                 from .estimate import estimate, parse_threshold
 

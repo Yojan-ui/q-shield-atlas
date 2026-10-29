@@ -104,6 +104,25 @@ def test_full_pipeline_in_temp_workspace(live):
     assert r2.status == 200 and b"Q-Shield Atlas report" in report and r2.headers.get_all("Content-Security-Policy") == [r2.headers["Content-Security-Policy"]] \
         and "sandbox" in r2.headers["Content-Security-Policy"]
 
+    # review: approve the plan with a reason -> signed review.decision entry, chain still verifies
+    status, rv = c.get("/api/workspaces/bank/reviews")
+    assert status == 200 and rv["can_decide"] and {i["kind"] for i in rv["items"]} >= {"plan", "wave", "qaoa"}
+    plan = next(i for i in rv["items"] if i["kind"] == "plan")
+    assert plan["status"] == "pending" and len(plan["evidence_sha256"]) == 64
+    status, body = c.post("/api/workspaces/bank/reviews", {"item": plan["id"], "decision": "approve", "reason": ""})
+    assert status == 422 and body["error"]["code"] == "reason_required"
+    status, body = c.post("/api/workspaces/bank/reviews", {"item": plan["id"], "decision": "approve", "reason": "capacity matches the team plan"})
+    assert status == 200, body
+    done = next(i for i in body["items"] if i["id"] == plan["id"])
+    assert done["status"] == "approved" and done["decision"]["reason"] == "capacity matches the team plan"
+    r = c.get("/api/workspaces/bank/results")[1]["results"]
+    entry = r["ledger"]["entries"][done["decision"]["ledger_index"]]
+    assert entry["type"] == "review.decision" and r["ledger_verification"]["ok"] is True
+    assert c.post("/api/workspaces/bank/reviews", {"item": plan["id"], "decision": "reject", "reason": "again"})[1]["error"]["code"] == "already_decided"
+    wave = next(i for i in body["items"] if i["kind"] == "wave")
+    status, body = c.post("/api/workspaces/bank/reviews", {"item": wave["id"], "decision": "reject", "reason": "not verified in the lab yet"})
+    assert status == 200 and next(i for i in body["items"] if i["id"] == wave["id"])["status"] == "rejected"
+
     # calibration: record actuals, apply -> re-plan, change signed into the workspace ledger
     gw = next(a for a in r["assets"] if a["kind"] == "tls_gateway")
     status, prop = c.post("/api/workspaces/bank/calibration", {"asset_id": gw["id"], "engineer_days": 2.5})
