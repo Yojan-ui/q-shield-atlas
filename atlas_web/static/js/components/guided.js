@@ -100,7 +100,7 @@ export function liveStates(stepStatus) {
   });
 }
 
-export function guidedRun(ctx) {
+export function guidedRun(ctx, { canRun = true } = {}) {
   const labelsEl = h("div", { class: "gr-labels", "aria-hidden": "true" });
   const stageEl = stage(ctx, { label: "Guided run: the current pipeline step in 3D", fallback: h("span") });
   stageEl.classList.add("gd-stage");
@@ -156,7 +156,7 @@ export function guidedRun(ctx) {
   const stop = () => { clearTimeout(timer); autoOn = false; };
   const load = async () => {
     const get = (k) => ctx.store.get(ctx.ws, k, { signal: ctx.signal }).catch(() => null);
-    const [res, ledger, move, inventory, reviews, runs] = await Promise.all(["results", "ledger", "move", "inventory", "reviews", "runs"].map(get));
+    const [res, ledger, move, inventory, reviews, runs] = await Promise.all(["results", "ledger", "move", "inventory", "reviews", canRun ? "runs" : null].map((k) => (k ? get(k) : null)));
     data = { results: res && res.results, ledger, move, inventory, reviews };
     const last = runs && runs.runs && runs.runs[0];
     runId = last && last.status === "PASS" ? last.id : null;  // a failed run did not assemble results.json: name each step's own recorded run instead

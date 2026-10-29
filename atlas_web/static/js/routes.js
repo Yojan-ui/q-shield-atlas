@@ -15,6 +15,7 @@ export const ROUTES = [
   { name: "bench", path: "/w/:ws/bench", title: "Benchmark", view: "bench", auth: true, rail: 10, label: "Benchmark", short: "Bench", group: "more", camera: "settings" },
   { name: "glossary", path: "/glossary", title: "Glossary", view: "glossary", rail: 11, label: "Glossary", short: "Terms", group: "more", camera: "void" },
   { name: "asset", path: "/w/:ws/asset/:assetId", title: "Asset", view: "asset", auth: true, camera: "asset" },
+  { name: "new-workspace", path: "/workspaces/new", title: "Scan your own repo", view: "newws", auth: true, camera: "settings" },
   { name: "users", path: "/settings/users", title: "Users", view: "users", auth: true, role: "admin", camera: "settings" },
   { name: "styleguide", path: "/styleguide", title: "Styleguide", view: "styleguide", dev: true, camera: "settings" },
   { name: "notfound", path: "*", title: "Not found", view: "notfound", camera: "void" },

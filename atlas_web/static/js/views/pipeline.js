@@ -44,7 +44,7 @@ export async function mount(ctx) {
   const ovEl = h("div", {}, lines(3));
   let current = {}; // step -> {status, duration}
   // guided run (non-demo workspaces): 3D stage per step + live log; replays the latest recorded run on request
-  const guided = ro ? null : guidedRun(ctx);
+  const guided = guidedRun(ctx, { canRun: !ro });  // read-only demo: replay of the recorded run only
   const replayBtn = guided ? h("button", { class: "btn", type: "button", onclick: () => guided.replay() }, icon("rewind"), "Replay last run") : null;
   // 3D: the seven steps as columns, lit from the real run status; the running step pulses (live SSE step events)
   const labels3d = h("div", { class: "gr-labels", "aria-hidden": "true" });
@@ -58,6 +58,7 @@ export async function mount(ctx) {
       .then((l) => { layer3d = l; if (l) lastStates.forEach((st, i) => l.set(i, st)); }).catch(() => {}); };
   mountRow();
   if (guided) guided.onToggle((open) => { if (open) { layer3d = null; stageEl.hidden = true; } else mountRow(); });  // one stage owns the world at a time
+  if (guided && ctx.query.get("guided")) guided.replay();  // landing "See it run"
 
   const drawStations = (model) => {
     lastStates = flowStates(model);
