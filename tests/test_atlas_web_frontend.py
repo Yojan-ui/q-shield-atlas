@@ -15,7 +15,7 @@ from .atlas_web_helpers import PASSWORD, Client, start_server
 REPO = Path(__file__).resolve().parent.parent
 STATIC = REPO / "atlas_web" / "static"
 NODE = shutil.which("node")
-BUDGET = 300 * 1024  # raised from 250 KB by the user (2026-10-29) for the lazy-loaded Benchmark/Review/Migration views
+BUDGET = 400 * 1024  # user decisions 2026-10-29: 250 -> 300 KB (Benchmark/Review/Migration), -> 400 KB (page template, glossary, sidebar, new pages)
 FIRST_LOAD_BUDGET = 120 * 1024  # index.html + every stylesheet + main.js and its static imports (views load lazily)
 needs_node = pytest.mark.skipif(NODE is None, reason="node not installed")
 

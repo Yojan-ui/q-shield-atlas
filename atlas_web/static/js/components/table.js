@@ -1,4 +1,4 @@
-// Data table: sticky header, tabular numerals, row links, virtualised beyond 200 rows (fixed 40 px rows).
+// Data table: sticky header, tabular numerals, sortable columns (click a header), row links, virtualised beyond 200 rows.
 import { h } from "../dom.js";
 import { provAttr } from "./tooltip.js";
 
@@ -14,9 +14,34 @@ function cellNode(col, row) {
   return document.createTextNode(v === null || v === undefined ? "–" : String(v));
 }
 
-export function table({ columns, rows, caption, onRow = null, rowHref = null, empty = "No rows", signal = null }) {
+function sortValue(col, row) {
+  if (col.sort) return col.sort(row);
+  let v = col.key ? row[col.key] : col.render ? col.render(row) : null;
+  if (v instanceof Node) v = v.textContent;
+  if (v && typeof v === "object" && v.kind) v = v.kind === "number" ? v.value : v.text;
+  const n = typeof v === "string" ? Number(v.replace(/[,%\s]|ms$|s$/g, "")) : v;
+  return typeof v === "number" ? v : Number.isFinite(n) && v !== "" ? n : String(v ?? "").toLowerCase();
+}
+
+export function table(opts) {
+  const outer = h("div", { class: "table-outer" });
+  let state = { i: -1, dir: 1 };
+  const build = () => {
+    const col = opts.columns[state.i];
+    const rows = col ? [...opts.rows].sort((a, b) => { const x = sortValue(col, a), y = sortValue(col, b); return (x < y ? -1 : x > y ? 1 : 0) * state.dir; }) : opts.rows;
+    outer.replaceChildren(rawTable({ ...opts, rows, sortState: state, onSort: (i) => { state = { i, dir: state.i === i ? -state.dir : 1 }; build(); } }));
+  };
+  build();
+  return outer;
+}
+
+function rawTable({ columns, rows, caption, onRow = null, rowHref = null, empty = "No rows", signal = null, sortState = null, onSort = null }) {
   const cls = (c) => [c.numeric ? "n" : "", c.mono ? "mono" : "", c.optional ? "opt" : ""].join(" ").trim() || null;
-  const thead = h("thead", {}, h("tr", {}, columns.map((c) => h("th", { scope: "col", class: cls(c), text: c.label }))));
+  const thead = h("thead", {}, h("tr", {}, columns.map((c, i) => {
+    const on = sortState && sortState.i === i;
+    return h("th", { scope: "col", class: cls(c), "aria-sort": on ? (sortState.dir > 0 ? "ascending" : "descending") : null },
+      onSort && rows.length > 1 && c.sortable !== false ? h("button", { class: "th-sort", type: "button", onclick: () => onSort(i) }, c.label, h("span", { class: "th-dir", "aria-hidden": "true", text: on ? (sortState.dir > 0 ? " ↑" : " ↓") : "" })) : c.label);
+  })));
   const tbody = h("tbody");
   const tbl = h("table", { class: "data" }, caption ? h("caption", { class: "sr-only", text: caption }) : null, thead, tbody);
   const wrap = h("div", { class: `table-wrap${rows.length > VIRTUAL_AT ? " virtual" : ""}`, tabindex: rows.length > 12 ? "0" : null,

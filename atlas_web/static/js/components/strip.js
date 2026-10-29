@@ -1,21 +1,35 @@
-// Top strip: wordmark, workspace switcher, route rail (keys 1–6), run button, user menu.
-import { h } from "../dom.js";
+// Top strip: wordmark, workspace switcher, Beginner/Expert toggle, user menu; the route rail is the left sidebar
+// (pipeline order, step numbers, status ticks) on wide screens and a bar elsewhere.
+import { h, icon } from "../dom.js";
 import { sound } from "../sound.js";
 import { backendBadge } from "./quantum.js";
 import { RAIL } from "../routes.js";
 import { href } from "../router.js";
 
-export function strip({ api, onSignOut, onWorkspace, kiosk }) {
+export function strip({ api, store, onSignOut, onWorkspace, kiosk }) {
   const wsSelect = h("select", { "aria-label": "workspace" });
   const badge = h("span", { class: "ws-badge" });
   const ws = h("label", { class: "ws-switch" }, h("span", { class: "ws-label", text: "Workspace" }), wsSelect, badge);
-  const rail = h("nav", { class: "rail", "aria-label": "Routes" });
+  const rail = h("nav", { class: "rail", "aria-label": "Pipeline steps" });
+  // Beginner hides the technical "details" sections on every page; Expert shows them. Remembered per browser.
+  let mode = "beginner";
+  try { mode = localStorage.getItem("atlas.mode") || "beginner"; } catch { /* default */ }
+  const modeBtn = h("button", { class: "btn quiet mode-toggle", type: "button" });
+  const setMode = (m) => {
+    mode = m; document.documentElement.dataset.mode = m;
+    modeBtn.textContent = m === "expert" ? "Expert view" : "Beginner view";
+    modeBtn.setAttribute("aria-pressed", String(m === "expert"));
+    modeBtn.title = m === "expert" ? "Showing technical details. Switch to the beginner view." : "Technical details hidden. Switch to the expert view.";
+    try { localStorage.setItem("atlas.mode", m); } catch { /* not remembered */ }
+  };
+  modeBtn.addEventListener("click", () => setMode(mode === "expert" ? "beginner" : "expert"));
+  setMode(mode);
   const user = h("div", { class: "user" });
   const snd = h("button", { class: "btn quiet sound-toggle", type: "button", "aria-pressed": String(sound.on), title: "Sound (off by default)" }, sound.on ? "Sound on" : "Sound off");
   snd.addEventListener("click", () => { const on = sound.toggle(); snd.setAttribute("aria-pressed", String(on)); snd.textContent = on ? "Sound on" : "Sound off"; if (on && location.pathname === "/") sound.hum(true); });
   const el = h("header", { class: "strip" },
     h("a", { class: "wordmark", href: "/", "aria-label": "Q-Shield Atlas home" }, logo(), h("span", { text: "Q-Shield Atlas" })),
-    ws, rail, h("div", { class: "strip-actions" }, snd), user);
+    ws, rail, h("div", { class: "strip-actions" }, modeBtn, snd), user);
   let qbadge = null;  // quantum backend in use, shown once signed in (the status route needs a session)
   wsSelect.addEventListener("change", () => onWorkspace(wsSelect.value));
 
@@ -29,12 +43,22 @@ export function strip({ api, onSignOut, onWorkspace, kiosk }) {
         cur.ledger_verified === null || cur.ledger_verified === undefined ? null
           : h("span", { class: `chip ${cur.ledger_verified ? "pass" : "fail"}`, title: "ledger verification", text: cur.ledger_verified ? "✔ ledger" : "✖ ledger" })].filter(Boolean) : []));
     }
-    rail.hidden = !signedIn;
+    rail.hidden = !signedIn || routeName === "landing";  // the landing story is full width
     if (signedIn && api && !qbadge) el.querySelector(".strip-actions").prepend(qbadge = backendBadge(api));
     if (qbadge) qbadge.hidden = !signedIn;
-    rail.replaceChildren(...RAIL.map((r) => h("a", { href: href(r.path, { ws: wsId }), "aria-current": r.name === routeName ? "page" : null,
-      "aria-keyshortcuts": String(r.rail), title: `${r.title} (key ${r.rail})` }, h("kbd", { text: String(r.rail) }),
-      h("span", { class: "full", text: r.label }), h("span", { class: "short", text: r.short }))));
+    const link = (r, done) => h("a", { href: href(r.path, { ws: wsId }), "aria-current": r.name === routeName ? "page" : null,
+      "aria-keyshortcuts": r.rail <= 9 ? String(r.rail) : null, title: r.rail <= 9 ? `${r.title} (key ${r.rail})` : r.title, class: done ? "done" : null },
+      h("span", { class: "r-num", text: r.step ? String(r.step) : "" }),
+      h("span", { class: "full", text: r.label }), h("span", { class: "short", text: r.short }),
+      done ? h("span", { class: "r-tick", "aria-label": "done" }, icon("check")) : null);
+    const draw = (done = {}) => rail.replaceChildren(
+      ...RAIL.filter((r) => r.group === "start").map((r) => link(r, false)),
+      h("p", { class: "r-group", text: "Pipeline" }), ...RAIL.filter((r) => r.group === "flow").map((r) => link(r, done[r.name])),
+      h("p", { class: "r-group", text: "More" }), ...RAIL.filter((r) => r.group === "more").map((r) => link(r, false)));
+    draw();
+    if (signedIn && store && wsId) {  // status ticks: a step is done when its recorded output exists in results.json
+      Promise.all([store.get(wsId, "results"), store.get(wsId, "reviews").catch(() => null)]).then(([res, rv]) => draw(stepsDone(res.results, rv))).catch(() => {});
+    }
     user.replaceChildren(...(signedIn
       ? [h("span", { class: "who" }, h("b", { text: me.username }), ` · ${me.role}`),
          me.role === "admin" ? h("a", { class: "btn quiet users-link", href: "/settings/users", text: "Users" }) : null,
@@ -67,4 +91,12 @@ export function wsLine(w) {
   return [w.name, w.type, w.assets === null || w.assets === undefined ? "not yet run" : `${w.assets} assets`,
     w.ledger_verified === null || w.ledger_verified === undefined ? null : w.ledger_verified ? "ledger ✔" : "ledger ✖",
     w.last_run ? `run ${ago(w.last_run.ts)} (${w.last_run.status})` : w.generated_at ? `snapshot ${w.generated_at.slice(0, 10)}` : null].filter(Boolean).join(" · ");
+}
+
+export function stepsDone(r, reviews) {
+  if (!r) return {};
+  const items = (reviews && reviews.items) || [];
+  return { detect: !!r.detect, inventory: !!(r.detect && r.detect.inventory), schedule: !!r.exposure, qaoa: !!r.qaoa,
+    handshakes: !!r.gates, ledger: !!(r.ledger_verification && r.ledger_verification.ok),
+    review: items.length > 0 && items.every((i) => i.status !== "pending") };
 }

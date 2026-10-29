@@ -2,14 +2,9 @@
 // with a "what this means" line, and a colour legend. Every number is read from results.json.
 import { h } from "../dom.js";
 import { chip } from "./chip.js";
-import { STAGES } from "../stages.js";
-import { HNDL } from "../model.js";
+import { FLOW } from "../stages.js";
+import { HNDL, solverLabel } from "../model.js";
 
-export const PLAIN = {
-  detect: "Find weak encryption", ledger: "Start the proof record", schedule: "Plan the move", capture: "Test real connections",
-  gates: "Check every wave", qaoa: "Quantum cross-check", seal: "Verify the record", report: "Write the report",
-};
-export const STATUS_WORD = { ok: ["PASS", "Done"], running: ["running", "Running"], fail: ["FAIL", "Failed"], idle: ["NOT_RUN", "Not run"] };
 
 // one fact per stage: [number text, what this means]; null when the stage has no data
 export function stageFacts(r) {
@@ -41,13 +36,6 @@ export function stageFacts(r) {
   return f;
 }
 
-export function stageStatus(stageId, steps, facts, run) {
-  const summary = Object.fromEntries((((run || {}).detail || {}).summary || []).map((s) => [s.step, s]));
-  const st = steps.map((s) => summary[s]);
-  if (st.some((s) => s && s.exit_code !== 0)) return "fail";
-  if (run && run.status === "running" && !st.every(Boolean)) return "running";
-  return facts[stageId] ? "ok" : "idle";
-}
 
 export function colorLegend() {
   return h("ul", { class: "legend", "aria-label": "What the colours mean" },
@@ -56,15 +44,52 @@ export function colorLegend() {
       h("li", {}, h("span", { class: `lg-dot ${c}`, "aria-hidden": "true" }), t)));
 }
 
-export function overview(r, run) {
-  const facts = stageFacts(r);
-  return h("section", { class: "ov", "aria-label": "At a glance" },
-    h("ol", { class: "ov-cards" }, STAGES.map((s, i) => {
-      const status = stageStatus(s.id, s.steps, facts, run), [chipKind, word] = STATUS_WORD[status], f = facts[s.id];
-      return h("li", { class: `ov-card ${status}` },
-        h("p", { class: "ov-head" }, h("span", { class: "ov-idx mono", text: String(i + 1) }), h("span", { class: "ov-name", text: PLAIN[s.id] }), chip(chipKind, word)),
-        h("p", { class: "ov-tech fine", text: s.label }),
-        f ? h("p", { class: "ov-num num", text: f[0] }) : h("p", { class: "ov-num missing", text: "–" }),
-        h("p", { class: "ov-mean", text: f ? f[1] : "Not run yet in this workspace." }));
-    })), colorLegend());
+
+// ---- the seven-step flow (contracts/stages.json "flow") as cards: what it does, what it hands on, key number, backend
+
+export function flowFacts(r, reviews) {
+  if (!r) return {};
+  const f = {};
+  const pl = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  if (r.detect) {
+    f.detect = { num: String(r.detect.summary.vulnerable_findings), mean: `places in code, config and certificates use RSA / ECC (${r.detect.files_scanned} files scanned)`, backend: "static scan + OpenSSL 3.6.5 live probes" };
+    const drift = (r.detect.probes || []).reduce((n, p) => n + (p.drift || []).length, 0);
+    f.inventory = { num: String(r.assets.length), mean: `to migrate · ${pl(drift, "drift alert", "drift alerts")}`, backend: "atlas-service.json manifests + scan" };
+  }
+  if (r.exposure) f.schedule = { num: `${r.exposure.makespan_weeks} wk`, mean: `to migrate everything in ${pl(r.waves.length, "wave", "waves")} at the assumed capacity`, backend: solverLabel(r) };
+  if (r.qaoa) {
+    const top = r.qaoa.runs.filter((x) => x.source === "local" && x.metrics).sort((a, b) => b.p - a.p)[0];
+    const dev = (r.qaoa.qpiai_local || {}).device;
+    if (top) f.waves = { num: top.metrics.approximation_ratio === 1 ? "optimal" : top.metrics.approximation_ratio.toFixed(3),
+      mean: `week ${r.qaoa.problem.week} selection, ${r.qaoa.problem.n_variables} variables, checked against the exact answer`,
+      backend: `${dev ? "QpiAI-QSV-Local simulator" : "numpy statevector simulator"} · QCloud: awaiting account activation` };
+  }
+  if (r.gates) {
+    const passed = r.waves.filter((w) => w.status === "applied").length;
+    f.gates = { num: `${passed} / ${r.waves.length}`, mean: "waves passed every lab gate; the rest are partly verified or not testable in the lab", backend: "OpenSSL 3.6.5 lab services on 127.0.0.1" };
+  }
+  if (r.ledger) {
+    const v = r.ledger_verification;
+    f.ledger = { num: String(r.ledger.entry_count), mean: `signed records · ${v && v.ok ? "chain verified" : "not verified"}`, backend: `${r.ledger.alg} · ${r.ledger.backend}` };
+  }
+  const items = (reviews && reviews.items) || [];
+  if (items.length) {
+    const pending = items.filter((i) => i.status === "pending").length;
+    f.review = { num: `${items.length - pending} / ${items.length}`, mean: `results decided by a person · ${pending} awaiting review`, backend: "decisions signed with ML-DSA-65" };
+  }
+  return f;
+}
+
+export function flowCards(ctx, r, reviews) {
+  const facts = flowFacts(r, reviews);
+  return h("ol", { class: "flow-cards", "aria-label": "Pipeline steps" }, FLOW.map((s, i) => {
+    const f = facts[s.id];
+    const [kind, word] = f ? (s.id === "review" && f.num.split(" / ")[0] !== f.num.split(" / ")[1] ? ["pending", "Waiting"] : ["PASS", "Done"]) : ["NOT_RUN", "Not run"];
+    return h("li", {}, h("a", { class: "flow-card", href: `/w/${ctx.ws}/${s.route}` },
+      h("p", { class: "fc-head" }, h("span", { class: "fc-num", text: String(i + 1) }), h("span", { class: "fc-name", text: s.label }), chip(kind, word)),
+      h("p", { class: "fc-mean", text: s.does }),
+      f ? h("p", {}, h("span", { class: "fc-num-big", text: f.num }), h("span", { class: "fc-mean", text: ` ${f.mean}` })) : h("p", { class: "fc-mean", text: "No result yet in this workspace." }),
+      h("p", { class: "fc-hands", text: `Hands on: ${s.hands}` }),
+      f ? h("p", { class: "fc-backend", text: f.backend }) : null));
+  }));
 }

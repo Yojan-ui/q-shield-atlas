@@ -59,6 +59,7 @@ test("href, direction, rail", () => {
   assert.equal(direction(3, 2), "back");
   assert.equal(direction(2, 3), "forward");
   assert.equal(direction(2, 2), "replace");
-  assert.deepEqual(RAIL.map((r) => r.rail), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.deepEqual(RAIL.map((r) => r.rail), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  assert.deepEqual(RAIL.filter((r) => r.step).map((r) => r.step), [1, 2, 3, 4, 5, 6, 7]);  // sidebar follows the 7-step flow
   assert.ok(ROUTES.every((r) => r.title && r.view && r.camera));
 });

@@ -8,6 +8,9 @@ import { emptyState } from "../components/states.js";
 import { field, checkbox } from "../components/form.js";
 import { toast } from "../components/toast.js";
 import { buildCity } from "../scenes/detect.js";
+import { num } from "../model.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { term } from "../glossary.js";
 import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
 
 const say = (el, t, bad = true) => { el.textContent = t; el.classList.toggle("bad", bad); };
@@ -155,34 +158,41 @@ function intake(ctx) {
 }
 
 export async function mount(ctx) {
-  ctx.root.append(h("div", { class: "grid" },
-    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Detect", lede: "Where RSA, ECC and DH live in this system: a static scan with file:line evidence, owner-declared service manifests, and live TLS probes that catch drift between config and reality." })),
-    h("div", { class: "span-12" }, city(ctx)),
-    h("div", { class: "span-12" }, dataView(ctx, {
+  const intakeEls = [].concat(intake(ctx));
+  ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
+    pageHead(ctx, { route: "detect", title: "Detect", headline: "Where does this system still use encryption that a quantum computer could break?" }),
+    dataView(ctx, {
       skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton()), h("div", { class: "span-12" }, tableSkeleton(5))),
       render: ({ model: m }) => {
         const d = m && m.detect;
-        if (!d || !d.available) return emptyState(notRun(ctx, "Inventory"));
-        ctx.announce(`${d.assets.text} assets to migrate, ${d.vulnerable.text} vulnerable findings in ${d.files.text} scanned files, ${d.drift.text} drift cases.`);
-        return h("div", { class: "grid" },
-          h("div", { class: "span-12 stats" },
-            stat({ label: "files scanned", cell: d.files, unit: "code, configs, certificates" }),
-            stat({ label: "vulnerable findings", cell: d.vulnerable, unit: "RSA / ECC / DH / DSA", tone: "hero exposure" }),
-            stat({ label: "assets to migrate", cell: d.assets, unit: `not vulnerable: ${d.notVulnerable.join(", ") || "none"}` }),
-            stat({ label: "drift", cell: d.drift, unit: "static vs live handshake" })),
-          section("Services", table({ caption: "Services to migrate", rows: m.assets, rowHref: (a) => `/w/${ctx.ws}/asset/${encodeURIComponent(a.id)}`, signal: ctx.signal, columns: [
-            { label: "service", render: (a) => h("span", {}, a.name, h("span", { class: "sub mono", text: a.id })) },
-            { label: "kind", key: "kind", optional: true }, { label: "data class", key: "data_class", optional: true }, { label: "algorithm", key: "algorithm", mono: true, optional: true },
-            { label: "findings", key: "findings", numeric: true }, { label: "status", render: (a) => chip(a.status) }] })),
-          section("Live probes", d.probes.length ? table({ caption: "Live TLS probes", rows: d.probes, columns: [
-            { label: "service", key: "service" }, { label: "endpoint", key: "endpoint", mono: true }, { label: "negotiated", render: (p) => p.ok ? p.group : chip("FAIL", "no handshake") },
-            { label: "certificate", key: "cert", mono: true }, { label: "drift", render: (p) => p.drift.length ? h("span", {}, p.drift.map((k) => chip("HNDL-exposed", k))) : chip("PASS", "none") }] })
-            : h("p", { class: "fine", text: "No live probe in this run." })),
-          section("Findings", table({ caption: "Static findings", rows: d.findings, signal: ctx.signal, columns: [
-            { label: "file:line", render: (f) => `${f.file}:${f.line}`, mono: true }, { label: "family", key: "family" }, { label: "use", key: "use" },
-            { label: "rule", key: "rule", mono: true, optional: true }, { label: "snippet", optional: true, render: (f) => h("span", { class: "mono fine", text: (f.snippet || "").slice(0, 80) }) }] })));
+        if (!d || !d.available) return emptyState(notRun(ctx, "Detect"));
+        ctx.announce(`${d.vulnerable.text} vulnerable findings in ${d.files.text} scanned files.`);
+        const r = m.results;
+        return h("div", {},
+          keyStats([
+            { label: "vulnerable findings", cell: d.vulnerable, unit: "RSA / ECC / DH / DSA", tone: "exposure", mean: "Places in code, configuration or certificates that rely on quantum-breakable crypto." },
+            { label: "files scanned", cell: d.files, unit: "code, configs, certificates", mean: "Everything in the source tree was read; nothing was run." },
+            { label: "live connections probed", cell: num(d.probes.length, d.files.source), unit: "one TLS handshake each", mean: d.probes.length ? "Real handshakes show what a service actually negotiates." : "No live probe in this run." },
+          ]),
+          main(h("div", {}, city(ctx), table({ caption: "Static findings", rows: d.findings, signal: ctx.signal, columns: [
+            { label: "file:line", render: (f) => `${f.file}:${f.line}`, mono: true }, { label: "algorithm family", key: "family" }, { label: "used for", key: "use" },
+            { label: "rule", key: "rule", mono: true, optional: true }, { label: "snippet", optional: true, render: (f) => h("span", { class: "mono fine", text: (f.snippet || "").slice(0, 80) }) }] })), { title: "Findings" }),
+          d.probes.length ? main(table({ caption: "Live TLS probes", rows: d.probes, columns: [
+            { label: "service", key: "service" }, { label: "endpoint", key: "endpoint", mono: true }, { label: "key exchange", render: (p) => p.ok ? p.group : chip("FAIL", "no handshake") },
+            { label: "certificate", key: "cert", mono: true }, { label: "drift", render: (p) => p.drift.length ? h("span", {}, p.drift.map((k) => chip("HNDL-exposed", k))) : chip("PASS", "none") }] }), { title: "Live connections" }) : null,
+          detailsList([
+            { title: "How it works", summary: "Pattern rules read code, configs, dependencies and certificates; probes do one handshake.", body: bullets([
+              "Every finding has a file, a line and the rule that matched.",
+              ["A live probe offers hybrid ", term("mlkem", "ML-KEM"), " and classical groups and records what the server picks."],
+              "Nothing in the scanned source is built or executed."]) },
+            { title: "Why this method", summary: "You cannot migrate what you have not found, and config can lie.", body: bullets([
+              "Static evidence shows where crypto is written down.", "A live handshake shows what is actually used, which catches drift."]) },
+            { title: "Evidence & sources", summary: r && r.detect ? `Detect run ${r.detect.run_id.slice(0, 12)} · tree hash ${r.detect.tree_sha256.slice(0, 12)}…` : "not yet run", body: bullets(r && r.detect ? [
+              `Run ${r.detect.run_id} at ${r.detect.ts}.`, `Source tree SHA-256 ${r.detect.tree_sha256}.`, "Signed into the Proof Chain first (detect.run)."] : []) },
+            { title: "Limits", summary: "Crypto hidden in closed binaries or remote services is out of reach.", body: bullets([
+              "TLS on library defaults is marked \"needs live probe\", not counted.", "Probes run only against endpoints you are authorised to test."]) },
+            { title: "Add your own system", summary: "Upload a repository, edit service manifests, run authorised probes (operators).", body: h("div", {}, ...intakeEls) }]),
+          nextStep(ctx, "detect"));
       },
-    })),
-    intake(ctx),
-    h("div", { class: "span-12" }, honesty())));
+    }), honesty())));
 }

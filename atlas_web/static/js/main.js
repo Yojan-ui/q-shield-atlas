@@ -42,7 +42,7 @@ const app = { me: null, kiosk: false, demo: false, workspaces: null, ws: "demo",
 const world = createWorld(document.getElementById("world"));
 const view = document.getElementById("view");
 const live = document.getElementById("live");
-const top = makeStrip({ api, onSignOut: signOut, onWorkspace: (id) => switchWorkspace(id), kiosk: () => app.kiosk });
+const top = makeStrip({ api, store, onSignOut: signOut, onWorkspace: (id) => switchWorkspace(id), kiosk: () => app.kiosk });
 document.getElementById("strip-slot").replaceWith(top);
 installTooltip();
 installToasts();

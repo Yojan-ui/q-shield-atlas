@@ -13,6 +13,7 @@ HERE = Path(__file__).resolve().parent
 JS = HERE.parent / "atlas_web" / "static" / "js" / "stages.js"
 DOC = json.loads((HERE / "stages.json").read_text())
 STAGES = DOC["stages"]
+FLOW = DOC["flow"]
 STEPS = tuple(s for st in STAGES for s in st["steps"])
 STAGE_OF = {s: st["id"] for st in STAGES for s in st["steps"]}
 
@@ -21,6 +22,7 @@ def js_source() -> str:
     body = json.dumps(STAGES, indent=1)
     return ("// Generated from contracts/stages.json by python -m contracts.stages --write-js. Do not edit.\n"
             f"export const STAGES = {body};\n"
+            f"export const FLOW = {json.dumps(FLOW, indent=1)};\n"
             "export const STEPS = STAGES.flatMap((s) => s.steps);\n"
             "export const STAGE_OF = Object.fromEntries(STAGES.flatMap((s) => s.steps.map((step) => [step, s])));\n")
 

@@ -9,6 +9,7 @@ import { prefersReducedMotion } from "../motion.js";
 import { HNDL } from "../model.js";
 import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
 import { stageFacts } from "../components/overview.js";
+import { bullets, detailsList, nextStep, pageHead } from "../components/page.js";
 
 export const LANES = [
   { id: "classical", title: "Still on old encryption", sub: "quantum-exposed (RSA / ECC)", tone: "exposed" },
@@ -113,14 +114,19 @@ export async function mount(ctx) {
         stageWrap,
         h("div", { class: "span-12 mg-lanes" }, LANES.map((l) => h("section", { class: `mg-lane ${l.tone}`, "aria-label": l.title },
           h("p", { class: "mg-lane-h" }, h("span", { class: `lg-dot ${l.tone}`, "aria-hidden": "true" }), l.title), h("p", { class: "fine", text: l.sub }), lanes[l.id]))),
-        sessions.length ? section("Connections tested in the lab", h("ul", { class: "mg-sessions" }, sessions.map((s) => h("li", {},
-          chip(s.hndl_exposed ? "HNDL-exposed" : "hybrid", s.hndl_exposed ? "old key exchange" : "post-quantum key exchange"),
-          h("span", { class: "mono", text: ` ${s.service_id}: ${s.negotiated_group}` }), h("span", { class: "fine", text: s.hndl_exposed ? ` · ${HNDL}` : " · recorded handshake, real TLS 1.3" })))),
-          { aside: h("span", { class: "fine", text: "measured handshakes, not simulated traffic" }) }) : null,
-        h("p", { class: "span-12 fine", text: "Lanes follow the logged plan (each system's planned week). The tile badge is the lab gate result for its wave. Nothing here says a production system has migrated." }));
+        h("div", { class: "span-12" }, detailsList([
+          { title: "How it works", summary: "Positions follow the logged plan; the badge is the lab gate result for that wave.", body: bullets([
+            "A system sits on the left until its planned week, crosses during it, and stays right afterwards.",
+            "White (3D) or a green badge means its wave passed every lab gate."]) },
+          { title: "Why this method", summary: "A plan is easier to judge when you can watch it unfold.", body: bullets(["The scrubber replays the optimised schedule week by week."]) },
+          { title: "Evidence & sources", summary: "Measured lab handshakes, not simulated traffic.", body: sessions.length ? h("ul", { class: "mg-sessions" }, sessions.map((s) => h("li", {},
+            chip(s.hndl_exposed ? "HNDL-exposed" : "hybrid", s.hndl_exposed ? "old key exchange" : "post-quantum key exchange"),
+            h("span", { class: "mono", text: ` ${s.service_id}: ${s.negotiated_group}` }), h("span", { class: "fine", text: s.hndl_exposed ? ` · ${HNDL}` : " · recorded handshake, real TLS 1.3" })))) : h("p", { text: "No lab handshake in this run." }) },
+          { title: "Limits", summary: "Planned migration — simulation. Nothing here changes a real system.", body: bullets([
+            "\"Verified in lab\" is the strongest state shown.", "Real endpoints are only observed (one handshake each), never changed."]) }])),
+        h("div", { class: "span-12" }, nextStep(ctx, "migration", { route: "review", text: "Next: review the steps" })));
     },
   });
-  ctx.root.append(h("div", { class: "grid" },
-    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Migration", lede: "Every system moving from old, quantum-exposed encryption to post-quantum encryption, wave by wave. Press Play or drag the week." })),
-    h("div", { class: "span-12" }, body), h("div", { class: "span-12" }, honesty())));
+  ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
+    pageHead(ctx, { route: "migration", title: "Migration", headline: "Planned migration — simulation: watch each system move from quantum-exposed to post-quantum encryption, wave by wave." }), body, honesty())));
 }

@@ -1,4 +1,5 @@
-// Pipeline: the run_demo.sh steps as stations, grouped by stage (contracts/stages.json). Run streams SSE step events; failure shows the log tail.
+// Overview: the seven pipeline steps as cards (what each does, hands on, key number, backend), three key numbers and
+// the run controls. Stations, the live log and preflight sit in the collapsed details. Runs stream SSE step events.
 import { h, icon } from "../dom.js";
 import { chip } from "../components/chip.js";
 import { logConsole } from "../components/log.js";
@@ -7,9 +8,10 @@ import { toast } from "../components/toast.js";
 import { provAttr } from "../components/tooltip.js";
 import { confirmDialog } from "../components/dialog.js";
 import { num, missing, solverLabel, source, STAGE_OF, STEPS, stationsModel } from "../model.js";
-import { header, honesty, mountScene, section, stage, wsEyebrow } from "./common.js";
-import { buildLattice } from "../engine/lattice.js";
-import { overview } from "../components/overview.js";
+import { honesty } from "./common.js";
+import { flowCards } from "../components/overview.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { term } from "../glossary.js";
 
 export async function mount(ctx) {
   const ro = !ctx.wsInfo || ctx.wsInfo.read_only;
@@ -23,7 +25,7 @@ export async function mount(ctx) {
   const status = h("div", { class: "sg-row" });
   const tail = h("div");
   const pre = h("div", {}, lines(4));
-  const ovEl = h("div", { class: "span-12" }, lines(3));
+  const ovEl = h("div", {}, lines(3));
   let current = {}; // step -> {status, duration}
 
   const drawStations = (model) => {
@@ -42,7 +44,13 @@ export async function mount(ctx) {
     solverEl.replaceChildren(sr ? h("span", { class: "num", tabindex: "0", "data-prov": provAttr(source(r, { run_id: sr.run_id, solver: sr.solver, job_id: sr.job_id, job_id_reason: sr.job_id_reason, ts: sr.ts }), "schedule solver record"), text: solverLabel(r) })
       : h("span", { class: "fine", text: "schedule: not yet run" }));
     const last = runs.runs[0];
-    ovEl.replaceChildren(overview(r, last && last.kind !== "bench" ? last : null));
+    const reviews = await ctx.store.get(ctx.ws, "reviews", { signal: ctx.signal }).catch(() => null);
+    const v = r && r.ledger_verification, src = r ? source(r, { run_id: r.detect ? r.detect.run_id : "n/a", solver: "detect/", ts: r.generated_at }) : null;
+    ovEl.replaceChildren(r ? keyStats([
+      { label: "systems to migrate", cell: num(r.assets.length, src), unit: "use RSA / ECC today", mean: "Systems whose encryption a future quantum computer could break." },
+      { label: "weeks to migrate", cell: r.exposure ? num(r.exposure.makespan_weeks, source(r, { run_id: (r.solver_runs[0] || {}).run_id, solver: solverLabel(r), ts: r.generated_at })) : missing(), unit: "optimised plan", mean: "How long the whole move takes at the assumed team capacity." },
+      { label: "proof records", cell: r.ledger ? num(r.ledger.entry_count, src) : missing(), unit: v && v.ok ? "signed and verified" : "signed", mean: "Every result is signed; any later edit is detected." },
+    ]) : null, main(flowCards(ctx, r, reviews), { title: "The seven steps" }));
     if (ro) {
       log.replaceWith(h("p", { class: "fine", style: { padding: "var(--s-4) 0" }, text: "This snapshot was produced by ./run_demo.sh in a terminal (its step logs are in out/demo_logs/). Runs started from this page stream their output here, line by line." }));
       drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: r ? "ok" : "idle", duration: missing(r ? "snapshot" : "not yet run") })));
@@ -65,6 +73,8 @@ export async function mount(ctx) {
   let es = null;
   const follow = (runId) => {
     if (es) es.close();
+    const det = ctx.root.querySelector(".pg-details");  // a live run shows its stations and log in any mode
+    if (det) { det.classList.remove("tech"); det.querySelector("details").open = true; }
     log.clear(); tail.replaceChildren();
     current = Object.fromEntries(STEPS.map((s) => [s, { status: "pending" }]));
     es = new EventSource(`/api/workspaces/${ctx.ws}/runs/${runId}/events`);
@@ -109,23 +119,27 @@ export async function mount(ctx) {
     } catch (err) { if (err.code !== "aborted") pre.replaceChildren(h("p", { class: "fine", text: `preflight unavailable: ${err.message}` })); }
   };
 
-  const stageEl = stage(ctx, { label: "The workspace's services in THE LATTICE; the world reflects the latest results of this workspace." });
-  ctx.store.get(ctx.ws, "scene", { signal: ctx.signal }).then((scene) => mountScene(ctx, "pipeline", scene, ({ THREE, world, group }) => {
-    const L = buildLattice(THREE, group, scene, world.uniforms); world.uniforms.uWeek.value = 1e6; return L.hooks(ctx, stageEl);
-  })).catch(() => {});
-  ctx.root.append(h("div", { class: "grid" },
-    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Pipeline", lede: "Eight stages, in order: find weak encryption, start a signed proof record, plan the move, test connections, check each wave, cross-check, verify the record, report. Each card says what its number means.",
-      aside: h("div", { class: "hero-figure" }, h("p", { class: "eyebrow", text: "schedule solver" }), solverEl, why), actions: [runBtn, status] })),
-    section("At a glance", ovEl),
-    section("Stations", stationsEl),
-    h("div", { class: "span-12" }, stageEl),
-    h("div", { class: "span-8" }, section("Output", h("div", {}, log, tail))),
-    h("div", { class: "start-9" }, section("Preflight", pre)),
-    h("div", { class: "span-12" }, honesty())));
+  const runDetails = detailsList([
+    { title: "How it works", summary: "Each step runs an existing command-line module; results pass between them as signed JSON.", body: h("div", {},
+      bullets(["Detect scans code and probes connections, then the Proof Chain signs that evidence first.",
+        ["The plan is a ", term("milp", "MILP"), " solved by QpiAI Opt; one week is cross-checked with ", term("qaoa", "QAOA"), "."],
+        ["Lab gates test real ", term("tls", "TLS handshakes"), "; everything is sealed into the ", term("ledger"), "."]]),
+      h("p", { class: "eyebrow", text: "run stations" }), stationsEl, h("p", { class: "eyebrow", text: "run output" }), log, tail) },
+    { title: "Why this method", summary: "Exact planning where it matters, measured checks everywhere else.", body: bullets([
+      "Scheduling needs a proven best plan, so it uses an exact optimiser rather than a heuristic.",
+      "Every claim on screen comes from a logged run with its timestamp and hash."]) },
+    { title: "Evidence & sources", summary: "Solver record and preflight checks for this workspace.", body: h("div", {}, solverEl, why, h("p", { class: "eyebrow", text: "preflight" }), pre) },
+    { title: "Limits", summary: "A lab demonstration: no real production system is changed.", body: bullets([
+      "Lab services run on 127.0.0.1; real systems are only observed, never modified.",
+      "Effort, risk and shelf-life values are assumptions in config/assumptions.json.",
+      "QAOA runs on simulators; no quantum advantage is claimed."]) }]);
+  ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
+    pageHead(ctx, { route: "pipeline", title: "Overview", headline: "Where does each system stand on its way to post-quantum encryption, and what happens next?", actions: [runBtn, status] }),
+    ovEl, runDetails, nextStep(ctx, "pipeline", { route: "detect", text: "Start: 1 Detect" }), honesty())));
   drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: "idle", duration: missing("…") })));
   try { await load(); } catch (err) { if (err.code !== "aborted") status.replaceChildren(chip("FAIL", err.message)); }
   preflight();
   const off = ctx.store.subscribe(({ ws, keys }) => { if (ws === ctx.ws && (keys.includes("results") || keys.includes("runs")) && !es) load().catch(() => {}); });
   ctx.signal.addEventListener("abort", off);
-  ctx.announce(`Pipeline for workspace ${ctx.ws}: ${STEPS.length} stations in ${new Set(STEPS.map((s) => STAGE_OF[s].id)).size} stages.`);
+  ctx.announce(`Overview for workspace ${ctx.ws}: seven pipeline steps.`);
 }

@@ -16,7 +16,7 @@ from .atlas_web_helpers import PASSWORD, Client, sse_events, start_server
 from .test_atlas_web_pipeline import STEPS, repo_state
 
 REPO = Path(__file__).resolve().parent.parent
-ROUTES = ["pipeline", "detect", "schedule", "handshakes", "ledger", "qaoa", "bench", "review", "migration"]
+ROUTES = ["pipeline", "detect", "inventory", "schedule", "handshakes", "ledger", "qaoa", "bench", "review", "migration"]
 
 
 def zip_tree(root: Path) -> bytes:

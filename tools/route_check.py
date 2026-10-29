@@ -28,8 +28,8 @@ from cdp import Browser  # noqa: E402
 SIZES = {"1440x900": (1440, 900, False), "1280x720": (1280, 720, False), "390x844": (390, 844, True)}
 ROLES = ["admin", "operator", "viewer", "anon"]
 PASSWORD = "route-check-password"
-PUBLIC = ["/", "/signin", "/styleguide?dev", "/no/such/place"]
-WS_ROUTES = ["pipeline", "detect", "schedule", "handshakes", "ledger", "qaoa", "bench", "review", "migration"]
+PUBLIC = ["/", "/signin", "/glossary", "/styleguide?dev", "/no/such/place"]
+WS_ROUTES = ["pipeline", "detect", "inventory", "schedule", "handshakes", "ledger", "qaoa", "bench", "review", "migration"]
 AUTH = [f"/w/demo/{r}" for r in WS_ROUTES] + ["/w/demo/schedule?scenario=Z2032", "/w/demo/asset/web-gw", "/w/demo/asset/no-such-asset",
                                               "/w/bank/pipeline", "/w/bank/detect", "/w/bank/schedule", "/w/bank/ledger", "/w/bank/bench", "/w/bank/review", "/w/bank/migration", "/settings/users"]
 
@@ -42,6 +42,8 @@ def expected_route(role, path):
         return "notfound"
     if p == "/":
         return "landing"
+    if p == "/glossary":
+        return "glossary"
     if p == "/signin":
         return "signin" if role == "anon" else "pipeline"
     if role == "anon":

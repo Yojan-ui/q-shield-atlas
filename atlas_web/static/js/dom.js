@@ -38,6 +38,7 @@ const PATHS = {
   lock: "M4.5 7.5h7v6h-7zM6 7.5V5.5a2 2 0 0 1 4 0v2",
   spin: "M8 2.5a5.5 5.5 0 1 0 5.5 5.5",
   lattice: "M2 5l6-3 6 3v6l-6 3-6-3zM2 5l6 3 6-3M8 8v6",
+  chevron: "M4 6l4 4 4-4",
 };
 export function icon(name, cls = "") {
   const svg = h("svg", { viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", "stroke-width": "1.5",

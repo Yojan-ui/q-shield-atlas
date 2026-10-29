@@ -10,7 +10,9 @@ import { toast } from "../components/toast.js";
 import { num } from "../model.js";
 import { prefersReducedMotion } from "../motion.js";
 import { buildLedger, TAMPER } from "../scenes/ledger.js";
-import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
+import { dataView, honesty, mountScene, notRun, stage } from "./common.js";
+import { bullets, detailsList, main, nextStep, pageHead } from "../components/page.js";
+import { term } from "../glossary.js";
 
 const kv = (...pairs) => h("dl", { class: "kv" }, pairs.flatMap(([k, v]) => [h("dt", { text: k }), h("dd", {}, v)]));
 const hc = (v, label, short) => hashCopy(v, { label, short });
@@ -22,7 +24,7 @@ export async function mount(ctx) {
     keys: ["ledger"],
     skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton()), h("div", { class: "span-12" }, tableSkeleton(4))),
     render: ({ ledger: L }) => {
-      if (!L.available) return emptyState(notRun(ctx, "Proof Chain"));
+      if (!L.available) return emptyState(notRun(ctx, "Ledger"));
       const v = L.live_verification || {}, ws = ctx.ws;
       const src = { run_id: "n/a", solver: `${L.alg} via ${L.backend}`, job_id: "none (local ledger)", ledger_index: `0–${L.entry_count - 1}`, ts: v.checked_at || "n/a", note: `pubkey ${L.pubkey_fp.slice(0, 16)}…` };
       let layer = null, gen = 0, timer = 0;
@@ -93,25 +95,37 @@ export async function mount(ctx) {
 
       mountScene(ctx, "ledger", L, buildLedger(L, { stageEl, onPick: select })).then((l) => { layer = l; });
       ctx.announce(`${L.entry_count} signed entries, ${v.ok ? "verified" : "not verified"}.`);
-      return h("div", { class: "grid" },
-        h("div", { class: "span-12 stats" },
-          stat({ label: "entries", cell: num(L.entry_count, src), unit: "ML-DSA-65 signed, hash-chained", tone: "hero" }),
-          st("Merkle root (RFC 6962)", hc(L.root, "Merkle root", 16)),
-          st("live verification",
-            v.ok === true ? chip("verified", `verified, ${v.entries_checked ?? L.entry_count} entries`) : v.ok === false ? chip("FAIL", `fails at #${v.first_failure && v.first_failure.index}`) : chip("NOT_RUN", v.status_text || "not verified"),
-            h("div", { class: "unit", text: "checked read-only on load; not recorded" })),
-          st("signing key", hc(L.pubkey_fp, "public key fingerprint"), h("div", { class: "unit", text: L.backend }))),
-        h("div", { class: "span-8 lg-stage" }, stageEl, h("div", { class: "stage-legend" }, h("span", { text: `${L.entry_count} entries as leaves · RFC 6962 split · root on top` }))),
-        h("aside", { class: "span-4 lg-side" },
-          h("p", { class: "eyebrow", text: "tamper demo" }),
-          h("p", { class: "fine", text: "Edits one entry in a temporary copy and runs python -m ledger verify on it. The real ledger is never touched; its hash is compared before and after." }),
-          tamper, h("p", { id: "lg-hold", class: "fine", text: "Press and hold for 0.8 s (mouse, touch, or Space / Enter)." }), out, detail),
-        section("Entries", table({ caption: "Proof Chain entries", rows: L.entries, signal: ctx.signal, onRow: (e) => select(e.index), columns: [
-          { label: "#", key: "index", numeric: true }, { label: "type", key: "type", mono: true }, { label: "payload", key: "payload_ref", mono: true, optional: true },
-          { label: "payload SHA-256", render: (e) => hc(e.payload_hash, "payload hash", 8) }, { label: "time", key: "ts", mono: true, optional: true }] })));
+      return h("div", {},
+        h("div", { class: "pg-stats" },
+          h("div", { class: "pg-stat" }, stat({ label: "signed records", cell: num(L.entry_count, src), unit: "ML-DSA-65, hash-chained" }),
+            h("p", { class: "pg-mean", text: "Every scan, plan, gate result and review decision, in order." })),
+          h("div", { class: "pg-stat" }, st("chain check",
+            v.ok === true ? chip("verified", `verified, ${v.entries_checked ?? L.entry_count} records`) : v.ok === false ? chip("FAIL", `fails at #${v.first_failure && v.first_failure.index}`) : chip("NOT_RUN", v.status_text || "not verified")),
+            h("p", { class: "pg-mean", text: "Every signature and fingerprint was re-checked when this page loaded." })),
+          h("div", { class: "pg-stat" }, st("signing key", hc(L.pubkey_fp, "public key fingerprint")),
+            h("p", { class: "pg-mean", text: "The public key anyone can use to check the signatures." }))),
+        main(h("div", { class: "grid" },
+          h("div", { class: "span-8 lg-stage" }, stageEl, h("div", { class: "stage-legend" }, h("span", { text: `${L.entry_count} records as leaves · root on top` }))),
+          h("aside", { class: "span-4 lg-side" },
+            h("p", { class: "eyebrow", text: "try it: tamper with a copy" }),
+            h("p", { class: "fine", text: "Edits one record in a temporary copy and verifies it. The real ledger is never touched." }),
+            tamper, h("p", { id: "lg-hold", class: "fine", text: "Press and hold for 0.8 s (mouse, touch, or Space / Enter)." }), out, detail)), { title: "The Proof Chain" }),
+        detailsList([
+          { title: "How it works", summary: "Each record's hash includes the previous one; a Merkle root summarises them all.", body: bullets([
+            ["Every record is signed with ", term("mldsa", "ML-DSA-65"), ", a post-quantum signature."],
+            "Records are hash-chained and summarised by an RFC 6962 Merkle root.",
+            "Select a leaf or a row to see its inclusion proof."]) },
+          { title: "Why this method", summary: "Evidence that cannot be quietly edited, and stays safe after Q-Day.", body: bullets([
+            "Changing one byte breaks verification at exactly that record.", "A post-quantum signature means the proof itself is not quantum-breakable."]) },
+          { title: "Evidence & sources", summary: `Merkle root ${L.root.slice(0, 16)}… · ${L.backend}`, body: h("div", {}, st("Merkle root (RFC 6962)", hc(L.root, "Merkle root", 16)),
+            table({ caption: "Proof Chain entries", rows: L.entries, signal: ctx.signal, onRow: (e) => select(e.index), columns: [
+              { label: "#", key: "index", numeric: true }, { label: "type", key: "type", mono: true }, { label: "payload", key: "payload_ref", mono: true, optional: true },
+              { label: "payload SHA-256", render: (e) => hc(e.payload_hash, "payload hash", 8) }, { label: "time", key: "ts", mono: true, optional: true }] })) },
+          { title: "Limits", summary: "A local, single-key test ledger: no external timestamping or second witness.", body: bullets([
+            "The signing key lives on this machine (keys/, never committed).", "The tamper demo edits a temporary copy only; its result is not recorded."]) }]),
+        nextStep(ctx, "ledger"));
     },
   });
-  ctx.root.append(h("div", { class: "grid" },
-    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Proof Chain", lede: "Stage 2, right after Detect. Every run manifest signed with ML-DSA-65 into an append-only hash chain with an RFC 6962 Merkle root. Change one byte and verification fails at exactly that entry." })),
-    h("div", { class: "span-12" }, body), h("div", { class: "span-12" }, honesty())));
+  ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
+    pageHead(ctx, { route: "ledger", title: "Ledger (Proof Chain)", headline: "Can every result be trusted later? Each one is signed into a chain where any edit is detected." }), body, honesty())));
 }

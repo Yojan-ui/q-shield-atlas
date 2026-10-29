@@ -69,5 +69,77 @@ export const STAGES = [
   ]
  }
 ];
+export const FLOW = [
+ {
+  "id": "detect",
+  "route": "detect",
+  "label": "Detect",
+  "does": "Finds RSA and elliptic-curve crypto in code, configs, certificates and live TLS connections.",
+  "hands": "Findings with file:line evidence",
+  "stages": [
+   "detect"
+  ]
+ },
+ {
+  "id": "inventory",
+  "route": "inventory",
+  "label": "Inventory & drift",
+  "does": "Groups findings into systems to migrate and flags where a live connection differs from the config.",
+  "hands": "The inventory of systems to migrate",
+  "stages": [
+   "detect"
+  ]
+ },
+ {
+  "id": "schedule",
+  "route": "schedule",
+  "label": "Schedule",
+  "does": "Plans the migration in weekly waves that cut exposure fastest, within team capacity and dependencies.",
+  "hands": "The wave plan (week per system)",
+  "stages": [
+   "schedule"
+  ]
+ },
+ {
+  "id": "waves",
+  "route": "qaoa",
+  "label": "Wave selection",
+  "does": "Cross-checks one week's choice of systems with QAOA on a simulator against the exact answer.",
+  "hands": "A checked wave selection",
+  "stages": [
+   "qaoa"
+  ]
+ },
+ {
+  "id": "gates",
+  "route": "handshakes",
+  "label": "Handshake gates",
+  "does": "Tests every wave on real TLS 1.3 lab services: post-quantum handshake, no downgrade, compatibility, rollback.",
+  "hands": "Gate results per wave",
+  "stages": [
+   "capture",
+   "gates"
+  ]
+ },
+ {
+  "id": "ledger",
+  "route": "ledger",
+  "label": "Ledger",
+  "does": "Signs every result into a tamper-evident Proof Chain (ML-DSA-65) and verifies it.",
+  "hands": "Signed, verifiable evidence",
+  "stages": [
+   "ledger",
+   "seal"
+  ]
+ },
+ {
+  "id": "review",
+  "route": "review",
+  "label": "Review",
+  "does": "A person approves or rejects each result with a reason; the decision is signed too.",
+  "hands": "Approved migration steps",
+  "stages": []
+ }
+];
 export const STEPS = STAGES.flatMap((s) => s.steps);
 export const STAGE_OF = Object.fromEntries(STAGES.flatMap((s) => s.steps.map((step) => [step, s])));
