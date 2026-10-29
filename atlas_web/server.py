@@ -516,6 +516,11 @@ def make_handler(app: App):
                     self._headers(304, TYPES[".json"], 0, [("ETag", etag)])
                     return
                 return self.send_body(200, body, TYPES[".json"], [("ETag", etag)])
+            if name == "move" and method == "GET" and len(sub) == 1:  # recorded handshakes as message lists (Move page)
+                from .move import move_payload
+
+                stamp = (file_stamp(ws.out / "capture.json"), file_stamp(ws.results))
+                return self.send_json(200, app.cached(("move", ws.id), stamp, lambda: move_payload(ws, load_results(ws))))
             if name == "ledger" and method == "GET":
                 if sub[1:2] == ["proof"] and len(sub) == 3:
                     if not sub[2].isdigit():

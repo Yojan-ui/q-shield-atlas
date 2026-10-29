@@ -1,24 +1,30 @@
-// Migration: every system moving from classical to post-quantum encryption, week by week, in three lanes.
-// Positions follow the logged plan (planned_week); the final lane follows the lab gate result. Nothing is
-// claimed about production: "verified in lab" is the strongest state shown. Play animates the weeks; with
-// reduced motion (OS setting or the toggle) nothing moves by itself and tiles change lane without transition.
+// Move: sender vs receiver. Two lanes replay the recorded handshakes of the same client against the old (classical)
+// and the migrated (hybrid) lab service, packet by packet with their real byte sizes; a third lane replays the
+// recorded classical-only attempt (refused, accepted, or "not run"). Below, the week slider walks the logged plan:
+// each wave moves its systems from "old" to "moved", with that wave's recorded lab gate results. "Verified in lab"
+// is the strongest state shown and only for lab stand-ins; real bank endpoints are "observed" or "planned", never
+// applied. With reduced motion (OS setting or the toggle) nothing plays by itself; Step still walks the messages.
 import { h, icon } from "../dom.js";
 import { chip } from "../components/chip.js";
 import { emptyState } from "../components/states.js";
 import { prefersReducedMotion } from "../motion.js";
 import { HNDL } from "../model.js";
-import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
-import { flowFacts } from "../components/overview.js";
+import { provAttr } from "../components/tooltip.js";
+import { authName, buildChannel, fmtBytes, packetsOf, pickLanes, sessionProv, transcriptList } from "../components/channel.js";
+import { clusterOf } from "../scenes/migration.js";
+import { dataView, honesty, notRun } from "./common.js";
 import { bullets, detailsList, nextStep, pageHead } from "../components/page.js";
 
 export const LANES = [
   { id: "classical", title: "Still on old encryption", sub: "quantum-exposed (RSA / ECC)", tone: "exposed" },
-  { id: "migrating", title: "Moving now", sub: "in this week's wave", tone: "accent" },
-  { id: "done", title: "Moved to post-quantum", sub: "by the plan; lab result on each tile", tone: "pass" },
+  { id: "migrating", title: "Moving this week", sub: "in this week's wave", tone: "accent" },
+  { id: "done", title: "Moved by the plan", sub: "lab result on each tile", tone: "pass" },
 ];
 const RESULT = { applied: ["PASS", "verified in lab"], partially_verified: ["partially_verified", "partly verified in lab"],
-  not_verified_in_lab: ["not_verified_in_lab", "not verifiable in lab"], rolled_back: ["rolled_back", "rolled back"],
+  not_verified_in_lab: ["not_verified_in_lab", "not verified in lab"], rolled_back: ["rolled_back", "rolled back"],
   rollback_failed: ["FAIL", "rollback failed"], planned: ["planned", "planned"] };
+export const GATES = ["pq_handshake", "downgrade", "pq_auth", "compat", "rollback"];
+const SPEEDS = [0.5, 1, 2, 4], RATE = 1.1, HOLD = 1.6;  // messages per second at 1x; pause after the last message
 
 export function laneOf(asset, week) {
   if (week < asset.planned_week) return "classical";
@@ -26,112 +32,234 @@ export function laneOf(asset, week) {
   return "done";
 }
 
-export function progress(assets, week) {
+// external: real endpoints (bank mode) can be moved by the plan but are never "verified in lab"
+export function progress(assets, week, external = {}) {
   const done = assets.filter((a) => laneOf(a, week) === "done");
-  return { done: done.length, total: assets.length, verified: done.filter((a) => a.status === "applied").length };
+  return { done: done.length, total: assets.length, verified: done.filter((a) => a.status === "applied" && !external[a.id]).length };
+}
+
+// "Wave 2 of 7 · 3 of 3 stand-ins verified in lab" for the selected week
+export function waveStatus(waves, week, last) {
+  const W = [...(waves || [])].sort((a, b) => a.week - b.week);
+  const labs = (w) => ((w && w.evidence && w.evidence.lab_services) || []);
+  const ok = (e) => e.status === "applied" || (e.gates && e.gates.passed === true);
+  if (!W.length) return { text: "No wave in this plan", wave: null };
+  if (week >= last) {
+    const all = W.flatMap(labs);
+    return { text: `All ${W.length} waves done · ${all.filter(ok).length} of ${all.length} stand-ins verified in lab`, wave: null };
+  }
+  const i = W.findIndex((w) => w.week === week);
+  if (i < 0) return { text: week === 0 ? `Start · 0 of ${W.length} waves done` : `Week ${week} · no wave this week · ${W.filter((w) => w.week < week).length} of ${W.length} waves done`, wave: null };
+  const L = labs(W[i]);
+  return { text: `Wave ${i + 1} of ${W.length} · ${L.length ? `${L.filter(ok).length} of ${L.length} stand-in${L.length === 1 ? "" : "s"} verified in lab` : "no lab stand-in: not verified in lab"}`, wave: W[i] };
+}
+
+// one gate cell of a wave's lab stand-in: the recorded result, or "not run in this wave"
+export function gateCell(e, gate) {
+  const g = (e && e.gates) || {};
+  const x = g[gate] || g[`${gate}_refused`];
+  if (x && x.result) return { result: x.result, text: x.negotiated_group || x.auth_alg || x.mode || "" };
+  if (gate === "rollback" && e && (e.status === "rolled_back" || e.status === "rollback_failed")) return { result: e.status, text: e.restored_config_sha256 ? "config restored" : "" };
+  return { result: "NOT_RUN", text: "not run in this wave" };
 }
 
 export async function mount(ctx) {
-  let reduced = prefersReducedMotion(), timer = 0, layer = null;
-  const stageEl = stage(ctx, { label: "3D view of the planned migration: clusters are banks or system groups, each sphere is one endpoint moving from old encryption (left) to post-quantum (right); white spheres passed their lab gate. Thin gates are the pipeline steps; moving dots are transactions. Click a sphere to open its review.", fallback: h("span") });
-  const legend3d = h("ul", { class: "legend", "aria-label": "3D legend" }, [["", "dark grey: still classical (quantum-exposed)"], ["moved", "light grey: moved by the plan, not lab-verified"],
-    ["white", "white: hybrid post-quantum, passed its gate"], ["", "moving dots: transactions passing the steps"], ["", "thin lines: the 7 pipeline steps"]].map(([c, t]) =>
-    h("li", {}, h("span", { class: `lg-dot mono-${c || "dark"}`, "aria-hidden": "true" }), t)), h("li", { text: "click a sphere to open its review" }));
-  const stageWrap = h("div", { class: "span-12 mg-stage" }, stageEl, legend3d);
+  let reduced = prefersReducedMotion();
   const body = dataView(ctx, {
-    keys: ["results"],
-    skeleton: () => h("p", { class: "fine", text: "Loading the plan…" }),
-    render: ({ model: m }) => {
+    keys: ["results", "move"],
+    skeleton: () => h("div", { class: "ch-stage skel" }, h("p", { class: "fine", text: "Loading the recorded handshakes…" })),
+    render: ({ model: m, move }) => {
       const r = m && m.results;
-      if (!r || !r.assets || !r.assets.length) return emptyState(r && r.assets ? { title: "Nothing to migrate", body: "The scan found no RSA / ECC to replace in this workspace.", action: null } : notRun(ctx, "Migration"));
-      const wr = r.gates && r.gates.wave_run_id;
-      const reviewHref = (a) => `/w/${ctx.ws}/review${wr ? `?item=${encodeURIComponent(`wave:${wr}:${a.planned_week}`)}` : ""}`;
-      const assets = [...r.assets].sort((a, b) => a.planned_week - b.planned_week || a.id.localeCompare(b.id));
-      const last = Math.max(...assets.map((a) => a.planned_week)) + 1;
+      if (!r || !r.assets) return emptyState(notRun(ctx, "Migration"));
+      if (!r.assets.length) return emptyState({ title: "Nothing to migrate", body: "The scan found no RSA / ECC to replace in this workspace.", action: null });
+      const mv = move && move.available ? move : null, g = r.gates || {};
+      const external = (move && move.observed) || {};
+      const bankMode = Object.keys(external).length > 0;
+      const L = mv ? pickLanes(mv, g) : { before: null, after: null, downgrade: { state: "not_run", text: "not run" }, auth: [] };
+      const gateOf = (list, s) => s && (list || []).find((x) => x.service_id === s.service_id);
+      const offers = (s) => (s ? s.client_groups_offered.split(":").join(" · ") : "not run");
+      const recv = (s, tone) => s ? [["ch-k", "RECEIVER (server)"], ["ch-v", `lab service: ${s.service_id}`], [`ch-big ${tone}`, s.negotiated_group || "no handshake"],
+        ["ch-s", s.protocol || s.error || ""], ["ch-s", s.cipher || ""], ["ch-s", `cert ${authName(s) || "n/a"} · pq_auth ${(gateOf(g.pq_auth, s) || {}).result || "not run"}`]] : [["ch-k", "RECEIVER (server)"], ["ch-s", "not run"]];
+      const down = L.downgrade, dsess = down.session || null;
+      const lanes = [
+        { title: `Before: classical key exchange (${L.before ? L.before.negotiated_group : "not run"})`, caption: "Recorded traffic can be harvested now and decrypted later (HNDL-exposed)", tone: "exp",
+          session: L.before, sender: [["ch-k", "SENDER (client)"], ["ch-s", "offers"], ["ch-v", offers(L.before)], ["ch-s", "same client in both lanes"]], receiver: recv(L.before, "exp"),
+          prov: sessionProv(mv, L.before, "Before lane: recorded handshake"), end: L.before && { text: `Handshake done on ${L.before.negotiated_group}: HNDL-exposed`, tone: "exp" } },
+        { title: `After: hybrid ${L.after ? L.after.negotiated_group : "not run"}`, caption: "Quantum-resistant key exchange", tone: "ok",
+          session: L.after, sender: [["ch-k", "SENDER (client)"], ["ch-s", "offers"], ["ch-v", offers(L.after)], ["ch-s", "same client in both lanes"]], receiver: recv(L.after, "ok"),
+          prov: sessionProv(mv, L.after, "After lane: recorded handshake"), end: L.after && { text: `Handshake done on ${L.after.negotiated_group}`, tone: "ok" } },
+        { title: `Downgrade attempt: classical-only client to ${L.after ? L.after.service_id : "the hybrid service"}`, caption: down.state === "refused" ? "The server must refuse, not silently fall back to classical" : down.text, tone: "neutral",
+          session: dsess, sender: [["ch-k", "SENDER (client)"], ["ch-s", "offers only"], ["ch-v", offers(dsess)], ["ch-s", "no post-quantum group"]],
+          receiver: dsess ? [["ch-k", "RECEIVER (server)"], ["ch-v", `lab service: ${dsess.service_id}`], [`ch-big ${down.state === "refused" ? "ok" : "exp"}`, down.state === "refused" ? "refused" : "accepted"], ["ch-s", dsess.error || ""], ["ch-s", `downgrade gate ${(down.gate || {}).result || "not run"}`]] : [["ch-k", "RECEIVER (server)"], ["ch-s", down.text]],
+          prov: sessionProv(mv, dsess, "Downgrade attempt: recorded"), end: { text: down.text, tone: down.state === "refused" ? "ok" : down.state === "accepted" ? "exp" : "none" } },
+      ];
+      const ch = buildChannel(lanes, { runId: mv ? mv.run_id : "not yet run" });
+      const lists = lanes.map((l) => transcriptList(l.session, l.prov));
+      // ---------- plan: weeks and waves ----------
+      const banks = bankMode ? [...new Set(r.assets.map(clusterOf))].sort() : [];
+      let bank = bankMode && banks.includes(ctx.query.get("bank")) ? ctx.query.get("bank") : "";
+      const all = [...r.assets].sort((a, b) => a.planned_week - b.planned_week || a.id.localeCompare(b.id));
+      const last = Math.max(...all.map((a) => a.planned_week)) + 1;
       let week = Math.min(last, Math.max(0, Number(ctx.query.get("week") ?? last)));
-      const lanes = Object.fromEntries(LANES.map((l) => [l.id, h("ul", { class: "mg-tiles", "aria-label": l.title })]));
-      const tiles = new Map(assets.map((a) => {
-        const res = RESULT[a.status] || RESULT.planned;
-        const t = h("li", { class: "mg-tile", "data-id": a.id },
+      const wr = g.wave_run_id;
+      const reviewHref = (a) => `/w/${ctx.ws}/review${wr ? `?item=${encodeURIComponent(`wave:${wr}:${a.planned_week}`)}` : ""}`;
+      const tileLanes = Object.fromEntries(LANES.map((l) => [l.id, h("ul", { class: "mg-tiles", "aria-label": l.title })]));
+      const tiles = new Map(all.map((a) => {
+        const ob = external[a.id];
+        const res = ob ? ["planned", "planned: endpoint not changed"] : RESULT[a.status] || RESULT.planned;
+        const t = h("li", { class: "mg-tile", "data-id": a.id, tabindex: "0",
+          "data-prov": provAttr({ run_id: wr || "n/a", solver: "gates/ lab waves", job_id: "none (local lab run, no backend job)", ts: g.ts || "n/a",
+            note: ob ? `observed once: ${ob.negotiated_group} ${ob.tls_version}, cert ${ob.cert_key_algorithm} (${ob.source})` : `status ${a.status}` }, a.name) },
           h("a", { href: `/w/${ctx.ws}/asset/${encodeURIComponent(a.id)}`, class: "mg-name", text: a.name }),
-          h("span", { class: "mg-meta fine" }, `${a.algorithm} · wave ${a.planned_week} · `, h("a", { href: reviewHref(a), text: "review" })),
+          h("span", { class: "mg-meta" }, `${a.algorithm} · wave ${a.planned_week} · `, h("a", { href: reviewHref(a), text: "review" })),
+          ob ? h("span", { class: "mg-meta" }, chip(ob.outcome === "hybrid_pq" ? "hybrid" : "HNDL-exposed", `observed: ${ob.negotiated_group} · ${ob.tls_version}`)) : null,
           h("span", { class: "mg-res" }, chip(...res)));
         return [a.id, t];
       }));
-      const bar = h("div", { class: "mg-bar", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(assets.length) }, h("span", { class: "mg-fill" }), h("span", { class: "mg-fill verified" }));
-      const label = h("p", { class: "mg-progress" }), mean = h("p", { class: "fine" });
-      const barKey = h("ul", { class: "legend", "aria-label": "Progress bar colours" }, [["pass", "verified in lab"], ["accent", "moved by the plan"], ["exposed", "still on old encryption"]].map(([c, t]) =>
-        h("li", {}, h("span", { class: `lg-dot ${c}`, "aria-hidden": "true" }), t)));
+      const bar = h("div", { class: "mg-bar", role: "progressbar", "aria-valuemin": "0" }, h("span", { class: "mg-fill" }), h("span", { class: "mg-fill verified" }));
+      const status = h("p", { class: "mv-status", "aria-live": "polite" }), count = h("p", { class: "mg-progress" }), mean = h("p", { class: "mv-mean" });
+      const gatesBox = h("div", { class: "mv-gates" });
       const range = h("input", { type: "range", min: "0", max: String(last), step: "1", value: String(week), "aria-label": "week of the plan" });
-      const wk = h("output", { class: "num" });
-      const play = h("button", { class: "btn", type: "button" }, icon("play"), "Play");
-      const motionBtn = h("button", { class: "btn", type: "button", "aria-pressed": String(reduced) });
-      const draw = () => {
+      const wk = h("output", { class: "num mv-week" });
+      const playBtn = h("button", { class: "btn primary", type: "button" }), stepBtn = h("button", { class: "btn", type: "button" }, icon("arrow"), "Step");
+      const speed = h("select", { class: "mv-speed", "aria-label": "replay speed" }, SPEEDS.map((s) => h("option", { value: String(s), selected: s === 1 ? true : null, text: `${s}×` })));
+      const motionBtn = h("button", { class: "btn", type: "button" });
+      const bankSel = bankMode ? h("select", { class: "mv-speed", "aria-label": "bank" }, h("option", { value: "", text: `All banks (${banks.length})` }),
+        banks.map((b) => h("option", { value: b, selected: b === bank ? true : null, text: b }))) : null;
+      const shown = () => (bank ? all.filter((a) => clusterOf(a) === bank) : all);
+      const gateTable = (wave) => {
+        const labs = (wave && wave.evidence && wave.evidence.lab_services) || [];
+        if (!wave) return h("p", { class: "mv-note", text: "Move the week slider onto a wave to see its recorded gate results." });
+        const noLab = (wave.assets || []).filter((id) => (wave.asset_status || {})[id] === "not_verified_in_lab");
+        return h("div", {},
+          h("table", { class: "data mv-gt" }, h("caption", { text: `Wave at week ${wave.week}: gate results recorded for each lab stand-in (run ${(wave.evidence || {}).run_id || "n/a"})` }),
+            h("thead", {}, h("tr", {}, h("th", { text: "lab stand-in" }), h("th", { text: "systems it stands in for" }), GATES.map((x) => h("th", { text: x })))),
+            h("tbody", {}, labs.length ? labs.map((e) => h("tr", {}, h("td", { class: "mono", text: `${e.lab_service}: ${e.from_mode} → ${e.to_mode}` }),
+              h("td", { text: (e.assets || []).map((id) => (external[id] ? `${id} (planned)` : id)).join(", ") }),
+              GATES.map((x) => { const c = gateCell(e, x); return h("td", { tabindex: "0", "data-prov": provAttr({ run_id: wave.evidence.run_id, solver: `gate ${x}`, job_id: "none (local lab run, no backend job)", ts: e.started_at || wave.evidence.ts, note: c.text || c.result }, `${e.lab_service} · ${x}`) }, chip(c.result, c.result === "NOT_RUN" ? "not run in this wave" : null), c.text && c.result !== "NOT_RUN" ? h("span", { class: "sub", text: ` ${c.text}` }) : null); })))
+              : h("tr", {}, h("td", { colspan: String(2 + GATES.length), text: "no lab stand-in in this wave: not verified in lab" })))),
+          g.forced_rollback ? h("p", { class: "mv-note" }, chip(g.forced_rollback.status || "NOT_RUN"), ` tested rollback (gates run ${g.run_id}): forced failure on ${g.forced_rollback.service_id}, ${g.forced_rollback.restored_config_sha256 && g.forced_rollback.restored_config_sha256 === g.forced_rollback.snapshot_sha256 ? "restored config hash equals the snapshot" : "config not restored"}`) : null,
+                    noLab.length ? h("p", { class: "mv-note" }, chip("not_verified_in_lab"), ` no lab stand-in for this kind: ${noLab.join(", ")}`) : null,
+          bankMode ? h("p", { class: "mv-note", text: "Bank endpoints are only observed (one recorded handshake each) and planned. The gate results above belong to the lab stand-in on 127.0.0.1, not to any bank." }) : null);
+      };
+      const drawPlan = () => {
+        const A = shown();
         const rects = reduced ? null : new Map([...tiles].map(([id, t]) => [id, t.getBoundingClientRect()]));
-        for (const a of assets) {
-          const t = tiles.get(a.id), lane = laneOf(a, week);
+        for (const a of all) {
+          const t = tiles.get(a.id), lane = laneOf(a, week), on = A.includes(a);
+          t.hidden = !on;
           t.dataset.lane = lane;
           t.querySelector(".mg-res").hidden = lane !== "done";
-          if (t.parentElement !== lanes[lane]) lanes[lane].append(t);
+          if (t.parentElement !== tileLanes[lane]) tileLanes[lane].append(t);
         }
         if (rects) for (const [id, t] of tiles) {  // FLIP: slide each tile from its old place
           const a = rects.get(id), b = t.getBoundingClientRect();
-          if (a.width && (a.left !== b.left || a.top !== b.top)) t.animate([{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px)` }, { transform: "none" }], { duration: 520, easing: "cubic-bezier(.2,.7,.2,1)" });
+          if (a.width && b.width && (a.left !== b.left || a.top !== b.top)) t.animate([{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px)` }, { transform: "none" }], { duration: 520, easing: "cubic-bezier(.2,.7,.2,1)" });
         }
-        const p = progress(assets, week);
+        const p = progress(A, week, external), ws = waveStatus(r.waves, week, last);
+        status.textContent = ws.text;
         wk.textContent = week === 0 ? "start" : week >= last ? `week ${last - 1} done` : `week ${week}`;
+        bar.setAttribute("aria-valuemax", String(p.total));
         bar.setAttribute("aria-valuenow", String(p.done));
         bar.setAttribute("aria-valuetext", `${p.done} of ${p.total} systems moved, ${p.verified} verified in lab`);
         bar.children[0].style.width = `${(p.done / p.total) * 100}%`;
         bar.children[1].style.width = `${(p.verified / p.total) * 100}%`;
-        label.replaceChildren(h("span", { class: "num", text: `${p.done} / ${p.total}` }), " systems moved by the plan · ", h("span", { class: "num", text: String(p.verified) }), " verified in the lab");
+        count.replaceChildren(h("span", { class: "num", text: `${p.done} / ${p.total}` }), " systems moved by the plan · ", h("span", { class: "num", text: String(p.verified) }), " verified in the lab");
         const left = p.total - p.done;
-        mean.textContent = left ? `What this means: at this point in the plan, ${left} system${left === 1 ? " still uses" : "s still use"} encryption a future quantum computer could break, so traffic recorded from ${left === 1 ? "it" : "them"} today is at risk (${HNDL}).`
-          : `What this means: by the end of the plan every system has moved; ${p.verified} of ${p.total} passed every lab check, the rest are partly verified or not verifiable in the lab.`;
+        mean.textContent = left ? `${left} system${left === 1 ? " still uses" : "s still use"} classical key exchange at this point in the plan: traffic recorded today is at risk (${HNDL}).`
+          : bankMode ? `By the end of the plan every endpoint is scheduled. Bank endpoints stay "planned": nothing outside the lab was changed.`
+          : `By the end of the plan every system has moved; ${p.verified} of ${p.total} passed every lab gate, the rest are partly verified or have no lab stand-in.`;
+        gatesBox.replaceChildren(gateTable(ws.wave));
+      };
+      // ---------- replay clock ----------
+      let t = reduced ? ch.length + HOLD : 0, running = false, advancing = false, raf = 0, prev = 0;
+      const cycle = ch.length + HOLD;
+      const paint = () => { ch.set(t); for (const l of lists) if (l && l.mark) l.mark(t); };
+      const label = () => {
+        playBtn.replaceChildren(icon(running ? "dash" : "play"), running ? "Pause" : "Play the plan");
         motionBtn.replaceChildren(icon(reduced ? "dash" : "spin"), reduced ? "Motion off" : "Motion on");
         motionBtn.setAttribute("aria-pressed", String(reduced));
       };
-      const stop = () => { clearInterval(timer); timer = 0; play.replaceChildren(icon("play"), "Play"); };
-      const set = (w) => { week = w; range.value = String(w); ctx.setQuery({ week: String(w) }); draw(); if (layer) layer.setWeek(w); };
-      range.addEventListener("input", () => { stop(); set(Number(range.value)); }, { signal: ctx.signal });
-      play.addEventListener("click", () => {
-        if (timer) return stop();
-        if (week >= last) set(0);
-        play.replaceChildren(icon("dash"), "Pause");
-        timer = setInterval(() => { if (week >= last) return stop(); set(week + 1); ctx.announce(wk.textContent); }, reduced ? 1600 : 1100);
-      }, { signal: ctx.signal });
-      // 3D only with motion on (and WebGL); otherwise the 2D lanes below are the whole view
-      const show3d = () => {
-        stageWrap.hidden = reduced;
-        if (reduced) { if (layer) { ctx.world.mount("migration", null); layer = null; } return; }
-        if (layer) return;
-        import("../scenes/migration.js").then(({ buildMigration }) => mountScene(ctx, "migration", { available: true }, (env) =>
-          buildMigration(env, { assets, doneStages: new Set(Object.keys(flowFacts(r))), onPick: (a) => ctx.navigate(reviewHref(a)) }, week))).then((l) => { layer = l; if (!l) stageWrap.hidden = true; }).catch(() => { stageWrap.hidden = true; });
+      const setWeek = (w) => { week = w; range.value = String(w); ctx.setQuery({ week: String(w) }); drawPlan(); };
+      const frame = (now) => {
+        if (!running || ctx.signal.aborted) return;
+        const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
+        t += dt * RATE * Number(speed.value);
+        if (t >= cycle) {
+          t = 0;
+          if (advancing) { if (week >= last) { running = false; advancing = false; t = cycle - 0.01; label(); paint(); return; } setWeek(week + 1); ctx.announce(status.textContent); }
+        }
+        paint();
+        raf = requestAnimationFrame(frame);
       };
-      motionBtn.addEventListener("click", () => { reduced = !reduced; draw(); show3d(); }, { signal: ctx.signal });
-      ctx.signal.addEventListener("abort", stop, { once: true });
-      draw();
-      show3d();
-      const sessions = (r.handshake_evidence || {}).sessions || [];
-      return h("div", { class: "grid" },
-        h("div", { class: "span-12 mg-head" }, label, bar, barKey, mean,
-          h("div", { class: "sg-row mg-controls" }, play, h("label", { class: "sg-row week-scrub" }, h("span", { class: "eyebrow", style: { margin: 0 }, text: "week" }), range, wk), motionBtn)),
-        stageWrap,
-        h("div", { class: "span-12 mg-lanes" }, LANES.map((l) => h("section", { class: `mg-lane ${l.tone}`, "aria-label": l.title },
-          h("p", { class: "mg-lane-h" }, h("span", { class: `lg-dot ${l.tone}`, "aria-hidden": "true" }), l.title), h("p", { class: "fine", text: l.sub }), lanes[l.id]))),
-        h("div", { class: "span-12" }, detailsList([
-          { title: "How it works", summary: "Positions follow the logged plan; the badge is the lab gate result for that wave.", body: bullets([
-            "A system sits on the left until its planned week, crosses during it, and stays right afterwards.",
-            "White (3D) or a green badge means its wave passed every lab gate."]) },
-          { title: "Why this method", summary: "A plan is easier to judge when you can watch it unfold.", body: bullets(["The scrubber replays the optimised schedule week by week."]) },
-          { title: "Evidence & sources", summary: "Measured lab handshakes, not simulated traffic.", body: sessions.length ? h("ul", { class: "mg-sessions" }, sessions.map((s) => h("li", {},
-            chip(s.hndl_exposed ? "HNDL-exposed" : "hybrid", s.hndl_exposed ? "old key exchange" : "post-quantum key exchange"),
-            h("span", { class: "mono", text: ` ${s.service_id}: ${s.negotiated_group}` }), h("span", { class: "fine", text: s.hndl_exposed ? ` · ${HNDL}` : " · recorded handshake, real TLS 1.3" })))) : h("p", { text: "No lab handshake in this run." }) },
-          { title: "Limits", summary: "Planned migration — simulation. Nothing here changes a real system.", body: bullets([
-            "\"Verified in lab\" is the strongest state shown.", "Real endpoints are only observed (one handshake each), never changed."]) }])),
-        h("div", { class: "span-12" }, nextStep(ctx, "migration", { route: "review", text: "Next: review the steps" })));
+      const start = (adv) => { running = true; advancing = adv; prev = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); label(); };
+      const stop = () => { running = false; advancing = false; cancelAnimationFrame(raf); label(); };
+      playBtn.addEventListener("click", () => {
+        if (running && advancing) return stop();
+        if (week >= last) setWeek(0);
+        t = 0;
+        if (reduced) { setWeek(Math.min(last, week + 1)); t = cycle - 0.01; paint(); return; }  // no motion: one week per press
+        start(true);
+      }, { signal: ctx.signal });
+      stepBtn.addEventListener("click", () => {
+        stop();
+        const k = Math.floor(t);
+        t = t >= ch.length ? 0.5 : Math.min(ch.length, k + (t - k < 0.5 ? 0.5 : 1.5));  // freeze each packet mid-channel
+        if (t > ch.length) t = ch.length + HOLD;
+        paint();
+      }, { signal: ctx.signal });
+      range.addEventListener("input", () => { if (advancing) stop(); setWeek(Number(range.value)); }, { signal: ctx.signal });
+      if (bankSel) bankSel.addEventListener("change", () => { bank = bankSel.value; ctx.setQuery({ bank: bank || null }); drawPlan(); }, { signal: ctx.signal });
+      motionBtn.addEventListener("click", () => {
+        reduced = !reduced;
+        if (reduced) { stop(); t = cycle - 0.01; paint(); } else start(false);
+        label();
+      }, { signal: ctx.signal });
+      ctx.signal.addEventListener("abort", () => cancelAnimationFrame(raf), { once: true });
+      label(); drawPlan(); paint();
+      if (!reduced && mv) start(false);  // the handshake replay loops; weeks only advance on "Play the plan"
+      // ---------- authentication (who the receiver is) ----------
+      const authRows = L.auth.map(({ session: s, gate }) => {
+        const pk = packetsOf(s), cert = pk.find((x) => x.type === "Certificate"), cv = pk.find((x) => x.type === "CertificateVerify");
+        const tot = (cert ? cert.bytes : 0) + (cv ? cv.bytes : 0), pass = gate && gate.result === "PASS";
+        return { s, gate, cert, cv, tot, pass };
+      });
+      const maxAuth = Math.max(1, ...authRows.map((x) => x.tot));
+      const authBox = authRows.length ? h("div", { class: "mv-auth" }, authRows.map(({ s, gate, cert, cv, tot, pass }) => h("div", { class: "mv-auth-row", tabindex: "0", "data-prov": sessionProv(mv, s, `${s.service_id}: server authentication`) },
+        h("p", { class: "mv-auth-h" }, h("span", { class: "mono", text: `${authName(s)}` }), ` · ${s.service_id} · `, chip(gate ? gate.result : "NOT_RUN", `pq_auth ${gate ? gate.result : "not run"}`)),
+        h("div", { class: "mv-auth-bar" }, h("span", { class: pass ? "ok" : "exp", style: { width: `${(tot / maxAuth) * 100}%` } })),
+        h("p", { class: "mv-note", text: `Certificate ${cert ? fmtBytes(cert.bytes) : "n/a"} + CertificateVerify ${cv ? fmtBytes(cv.bytes) : "n/a"} = ${fmtBytes(tot)}. ${gate ? gate.reason : "no pq_auth gate recorded"}` })))) : h("p", { class: "mv-note", text: "not run" });
+      const tlist = (i, title) => h("div", { class: `mv-tl ${lanes[i].tone}` }, h("p", { class: "mv-tl-h", text: title }), lists[i] && lists[i].el ? lists[i].el : lists[i]);
+      return h("div", { class: "mv" },
+        h("div", { class: "mv-top" }, status, count, bar,
+          h("ul", { class: "legend mv-legend", "aria-label": "Progress bar colours" }, [["pass", "green: verified in lab"], ["accent", "white: moved by the plan"], ["exposed", "red: still on old encryption"]].map(([c, x]) =>
+            h("li", {}, h("span", { class: `lg-dot ${c}`, "aria-hidden": "true" }), x))),
+          h("div", { class: "mv-controls" }, playBtn, stepBtn, h("label", { class: "mv-lab" }, "speed", speed),
+            h("label", { class: "mv-lab week-scrub" }, "week", range, wk), bankSel ? h("label", { class: "mv-lab" }, "bank", bankSel) : null, motionBtn)),
+        h("section", { class: "ch-stage", "aria-label": "Replay of recorded handshakes" }, ch.el,
+          h("p", { class: "mv-how", text: "How to read this: each block is one recorded TLS message, as wide as its real size. Same client, two servers: red uses classical X25519, green uses hybrid X25519MLKEM768 (its key share is the dark inner block). The bottom lane is a client that offers only classical groups." })),
+        h("div", { class: "mv-tls" }, tlist(0, "Before: recorded messages"), tlist(1, "After: recorded messages"), tlist(2, "Downgrade attempt: recorded messages")),
+        h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: "Who the receiver is: server authentication" }), authBox,
+          h("p", { class: "mv-how", text: "How to read this: bar length is the recorded certificate plus signature size. Key exchange protects recorded traffic; the signature proves the server's identity and must be replaced before a quantum computer exists." })),
+        h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: "This week's wave: gate results" }), mean, gatesBox),
+        h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: bank ? `Systems: ${bank}` : "Systems" }),
+          h("div", { class: "mg-lanes" }, LANES.map((l) => h("section", { class: `mg-lane ${l.tone}`, "aria-label": l.title },
+            h("p", { class: "mg-lane-h" }, h("span", { class: `lg-dot ${l.tone}`, "aria-hidden": "true" }), l.title), h("p", { class: "mv-note", text: l.sub }), tileLanes[l.id])))),
+        detailsList([
+          { title: "How it works", summary: "Packets replay recorded transcripts; tiles follow the logged plan.", body: bullets([
+            "Each packet is one message from openssl s_client -msg, captured from the lab services on 127.0.0.1; its width is the recorded byte length.",
+            "The transcript files are used only when their SHA-256 matches the hash recorded in capture.json.",
+            "A system sits in \"old\" until its planned week, moves during it, and shows its wave's lab gate result afterwards."]) },
+          { title: "Why this method", summary: "The handshake is the evidence that post-quantum key exchange is really used.", body: bullets(["Configuration alone can claim post-quantum without using it; the recorded ServerHello key share shows what was negotiated."]) },
+          { title: "Evidence & sources", summary: mv ? `capture run ${mv.run_id} · ${mv.openssl_version || ""}` : "not yet run", body: mv ? bullets([...mv.sessions, ...mv.refused_attempts].map((s) =>
+            `${s.service_id} (${s.client_groups_offered}): ${s.negotiated_group || s.error} · ${s.transcript_file || "transcript not found"} · sha256 ${s.transcript_sha256.slice(0, 16)}… ${s.transcript_verified ? "matches capture.json" : "not verified"}`)) : h("p", { text: "not yet run" }) },
+          { title: "Limits", summary: "Replay of recorded lab handshakes. Nothing here changes a real system.", body: bullets([
+            "\"Verified in lab\" is the strongest state shown, and only for lab stand-ins.",
+            "Real endpoints are only observed (one handshake each) and planned, never changed.",
+            "HNDL-exposed is a statement about the key exchange used; no traffic was recorded or decrypted."]) }]),
+        nextStep(ctx, "migration", { route: "review", text: "Next: review the steps" }));
     },
   });
   ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
-    pageHead(ctx, { route: "migration", title: "Migration", headline: "Planned migration — simulation: watch each system move from quantum-exposed to post-quantum encryption, wave by wave." }), body, honesty())));
+    pageHead(ctx, { route: "migration", title: "Move", headline: "Same client, two servers: red packets can be recorded now and decrypted later; green packets use quantum-resistant key exchange." }), body, honesty())));
 }

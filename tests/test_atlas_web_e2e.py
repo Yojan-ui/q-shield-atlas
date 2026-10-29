@@ -4,6 +4,7 @@ Local only (QSHIELD_FORBID_PLATFORM=1); the repo's out/, runs/ and keys/ must be
 
 import io
 import json
+import re
 import os
 import shutil
 import sys
@@ -60,7 +61,7 @@ def browser_check(port, cookies, paths):
                                  " error: !!document.querySelector('.state.error'), text: document.body.innerText,"
                                  " errors: window.__atlasErrors || []})")
                 bad = list(info["errors"])
-                if path.endswith("/bench") and not info["error"] and "Benchmark: not yet run" in info["text"]:
+                if path.endswith("/bench") and not info["error"] and re.search(r"[Bb]enchmark: not yet run", info["text"]):
                     pass  # the benchmark is a separate run (python -m bench); its honest empty state is expected here
                 elif info["empty"]:
                     bad.append("empty/error state shown although the workspace has results")
