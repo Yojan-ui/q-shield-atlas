@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { FLOW } from "../static/js/flow.js";
 import { STAGE_OF, STEPS } from "../static/js/model.js";
@@ -87,4 +88,19 @@ test("schedule chart: axis end, identical plans merged, labels never overlap", (
   const y = spreadLabels([300, 300, 301], 24, 20, 360);
   const sorted = [...y].sort((a, b) => a - b);
   assert.ok(sorted[1] - sorted[0] >= 24 && sorted[2] - sorted[1] >= 24 && sorted[2] <= 360);
+});
+
+import { objectiveRows, planHeadline, solverLine } from "../static/js/views/schedule.js";
+test("schedule: objective per scenario, solver line and plain headline come from results.json", () => {
+  const r = JSON.parse(readFileSync(new URL("../../out/results.json", import.meta.url)));
+  const G = objectiveRows(r);
+  assert.deepEqual(G.map((g) => g.scenario), r.scenarios.map((s) => s.name));
+  const z = G[0], milp = z.bars.find((b) => b.cls === "opt"), fcfs = z.bars.find((b) => b.cls === "fcfs");
+  assert.equal(milp.value, r.exposure.per_scenario[0].weighted_exposure);
+  assert.ok(Math.abs(fcfs.saved - (100 * (fcfs.value - milp.value)) / fcfs.value) < 1e-9 && fcfs.saved >= 0);
+  assert.match(solverLine(r), /^Solved with: qpiai-opt local \(local\), status optimal, \d+ ms, job_id null \(/);
+  assert.match(planHeadline({ value: 0.173 }, { value: 0.019 }, "Z2030"), /^The optimised plan avoids 0\.173 exposure-years compared with first-come-first-served/);
+  assert.match(planHeadline({ value: 0.019 }, { value: 0 }, "Z2030"), /^On this data the optimal plan equals the simple risk-first plan/);
+  assert.equal(planHeadline(null, null, "Z2030"), "Plan comparison: not yet run");
+  assert.equal(solverLine({}), "Solved with: not yet run");
 });

@@ -67,6 +67,23 @@ export function spreadLabels(ys, gap, top, bottom) {
 
 const SHORT = { opt: "Optimised", fcfs: "FCFS", greedy: "Greedy" };
 
+export function solverLine(r) {
+  const sr = (r.solver_runs || []).find((x) => /^schedule\.milp/.test(x.stage || "")) || (r.solver_runs || [])[0];
+  if (!sr) return "Solved with: not yet run";
+  const t = typeof sr.solver_time_s === "number" ? (sr.solver_time_s < 1 ? `${(sr.solver_time_s * 1000).toFixed(0)} ms` : `${sr.solver_time_s.toFixed(2)} s`) : "time not recorded";
+  return `Solved with: ${sr.solver}${sr.mode ? ` (${sr.mode})` : ""}, status ${sr.status}, ${t}, job_id ${sr.job_id ?? `null (${sr.job_id_reason || "no reason recorded"})`}`;
+}
+
+// plain-words headline from the recorded comparison for one scenario
+export function planHeadline(fcfs, greedy, scenario) {
+  const f = fcfs && typeof fcfs.value === "number" ? fcfs.value : null, g = greedy && typeof greedy.value === "number" ? greedy.value : null;
+  if (f === null) return "Plan comparison: not yet run";
+  const fx = f.toFixed(3);
+  if (Math.abs(f) < 5e-4 && (g === null || Math.abs(g) < 5e-4)) return `On this data all three orders leave the same exposure (Q-Day scenario ${scenario}); the optimised plan is never worse.`;
+  if (g !== null && Math.abs(g) < 5e-4) return `On this data the optimal plan equals the simple risk-first plan; both avoid ${fx} exposure-years compared with first-come-first-served (${scenario}).`;
+  return `The optimised plan avoids ${fx} exposure-years compared with first-come-first-served, and ${g === null ? "–" : g.toFixed(3)} compared with risk-first greedy (${scenario}).`;
+}
+
 function curves(r, scenario) {
   const S0 = curveSeries(r, scenario).map((s) => ({ ...s, short: SHORT[s.cls] }));
   if (!S0.length) return h("p", { class: "mv-note", text: "Exposure curves: not yet run" });
@@ -116,13 +133,42 @@ function optimisation(r) {
   });
   svg.append(h("line", { ns: "svg", class: "pl-cap", x1: L, x2: W - R, y1: Y(cap), y2: Y(cap) }), h("text", { ns: "svg", class: "pl-lab", x: W - R, y: Y(cap) - 8, "text-anchor": "end" }, `capacity ${cap} engineer-days / week (assumption)`),
     h("text", { ns: "svg", x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle" }, "wave (week) · bar = assumed effort of the systems in it"));
-  const obj = [["Optimised (QpiAI Opt MILP)", r.exposure], ["Greedy", (r.baselines || {}).greedy], ["FCFS", (r.baselines || {}).fcfs]].filter(([, x]) => x && typeof x.expected_weighted === "number");
-  const maxO = Math.max(...obj.map(([, x]) => x.expected_weighted)), minO = Math.min(...obj.map(([, x]) => x.expected_weighted));
-  const objEl = h("div", { class: "pl-obj" }, obj.map(([label, x]) => h("div", { class: "pl-obj-row" }, h("span", { class: "pl-obj-l", text: label }),
-    h("span", { class: "pl-obj-bar" }, h("span", { style: { width: `${(x.expected_weighted / maxO) * 100}%` }, class: x.expected_weighted === minO ? "best" : "" })),
-    h("span", { class: "num", text: x.expected_weighted.toFixed(2) }))));
-  return h("div", {}, svg, h("p", { class: "mv-how", text: "How to read this: each bar is one weekly wave of the optimised plan; no bar may exceed the capacity line, and a system never moves before what it depends on." }),
-    h("p", { class: "pl-sub", text: "Objective the MILP minimises (risk- and scenario-weighted exposure-years, lower is better):" }), objEl);
+  return h("div", {}, objectiveChart(r), h("h3", { class: "pl-h3", text: "Effort per wave vs team capacity (the real plan)" }), svg,
+    h("p", { class: "mv-how", text: "How to read this: each bar is one weekly wave of the optimised plan; no bar may exceed the capacity line, and a system never moves before what it depends on." }));
+}
+
+// the objective the MILP minimises (risk- and scenario-weighted exposure), per Q-Day scenario, for MILP / FCFS / Greedy
+export function objectiveRows(r) {
+  const plans = [["opt", "MILP (QpiAI Opt)", r.exposure], ["fcfs", "FCFS", (r.baselines || {}).fcfs], ["greedy", "Greedy", (r.baselines || {}).greedy]].filter(([, , x]) => x && x.per_scenario);
+  const milp = Object.fromEntries(((r.exposure || {}).per_scenario || []).map((x) => [x.scenario, x.weighted_exposure]));
+  return ((r.scenarios || []).map((sc) => ({ scenario: sc.name, year: sc.year, bars: plans.map(([cls, label, x]) => {
+    const v = (x.per_scenario.find((y) => y.scenario === sc.name) || {}).weighted_exposure;
+    const saved = cls === "opt" || !(v > 0) || milp[sc.name] === undefined ? null : (100 * (v - milp[sc.name])) / v;
+    return { cls, label, value: v, saved };
+  }).filter((b) => typeof b.value === "number") })).filter((g) => g.bars.length));
+}
+
+function objectiveChart(r) {
+  const G = objectiveRows(r);
+  if (!G.length) return h("p", { class: "mv-note", text: "Objective by scenario: not yet run" });
+  const W = 1100, H = 360, L = 80, R = 20, T = 50, B = 60;
+  const maxV = Math.max(...G.flatMap((g) => g.bars.map((b) => b.value)), 1e-9), gw = (W - L - R) / G.length, bw = Math.min(110, (gw * 0.8) / 3);
+  const Y = (v) => T + (1 - v / maxV) * (H - T - B);
+  const svg = h("svg", { viewBox: `0 0 ${W} ${H}`, class: "pl-chart", role: "img", "aria-label": `Weighted exposure by Q-Day scenario for MILP, FCFS and Greedy` });
+  for (let i = 0; i <= 2; i++) { const v = (maxV * i) / 2; svg.append(h("line", { ns: "svg", x1: L, x2: W - R, y1: Y(v), y2: Y(v), class: "bn-grid" }), h("text", { ns: "svg", x: L - 10, y: Y(v) + 5, "text-anchor": "end" }, v.toFixed(maxV < 10 ? 2 : 0))); }
+  G.forEach((g, gi) => {
+    const x0 = L + gi * gw + (gw - 3 * bw - 16) / 2;
+    g.bars.forEach((b, bi) => {
+      const x = x0 + bi * (bw + 8);
+      svg.append(h("rect", { ns: "svg", class: `pl-obar ${b.cls}`, x, y: Y(b.value), width: bw, height: Y(0) - Y(b.value), tabindex: "0",
+        "data-prov": provAttr({ run_id: ((((b.cls === "opt" ? r.exposure : r.baselines[b.cls]) || {}).produced_by || {}).run_ids || []).join(", ") || "n/a", solver: (((b.cls === "opt" ? r.exposure : r.baselines[b.cls]) || {}).produced_by || {}).solver || "n/a", job_id: "none (local solve)", ts: r.generated_at, note: `${g.scenario}: weighted exposure ${b.value.toFixed(3)}` }, `${b.label} · ${g.scenario}`) }),
+        h("text", { ns: "svg", class: "pl-ov", x: x + bw / 2, y: Y(b.value) - 10, "text-anchor": "middle" }, b.value.toFixed(maxV < 10 ? 3 : 1)),
+        h("text", { ns: "svg", class: `pl-os ${b.cls}`, x: x + bw / 2, y: Y(b.value) + 24, "text-anchor": "middle" }, b.cls === "opt" ? "optimal" : Math.abs(b.saved) < 0.005 ? "same" : `−${b.saved.toFixed(2)}%`),
+        h("text", { ns: "svg", x: x + bw / 2, y: H - B + 22, "text-anchor": "middle" }, b.label.split(" ")[0]));
+    });
+    svg.append(h("text", { ns: "svg", class: "pl-lab", x: L + gi * gw + gw / 2, y: H - 8, "text-anchor": "middle" }, `Q-Day ${g.year}`));
+  });
+  return h("div", {}, svg, h("p", { class: "mv-how", text: "How to read this: bar height is the objective the MILP minimises (risk- and scenario-weighted exposure-years) for each Q-Day year; lower is better. Inside each FCFS / Greedy bar: how much lower (in %) the MILP's value is than that plan's." }));
 }
 
 export async function mount(ctx) {
@@ -167,16 +213,18 @@ export async function mount(ctx) {
       const names = m.scenarios.map((s) => s.name);
       if (!names.includes(scenario)) scenario = names[0];
       const statsEl = h("div", {}), heroEl = h("section", { class: "pl-hero" });
+      const benchLink = h("span");  // "Compare solvers" only when this workspace has Benchmark optimizer data
+      ctx.store.get(ctx.ws, "bench", { signal: ctx.signal }).then((P) => { if (P && P.bench) benchLink.replaceChildren(" · ", h("a", { href: `/w/${ctx.ws}/bench?tab=optimizers`, text: "Compare solvers →" })); }).catch(() => {});
       const picker = h("div", { class: "sg-row", role: "radiogroup", "aria-label": "CRQC scenario" });
       const draw = () => {
         const a = headlineAvoided(m, scenario);
         heroEl.replaceChildren(
-          h("p", { class: "pl-call" }, "Exposure-years avoided vs FCFS: ", h("span", { class: "num", tabindex: "0", "data-prov": a.fcfs.source ? provAttr(a.fcfs.source, "avoided vs FCFS") : null, text: a.fcfs.text }),
-            h("span", { class: "pl-sub", text: `vs greedy: ${a.greedy.text} · scenario ${scenario}` })),
+          h("p", { class: "pl-head", tabindex: "0", "data-prov": a.fcfs.source ? provAttr(a.fcfs.source, "avoided vs FCFS") : null, text: planHeadline(a.fcfs, a.greedy, scenario) }),
+          h("p", { class: "pl-solver mono" }, solverLine(m.results), benchLink),
           h("h2", { class: "mv-h2", text: "Comparison: exposure still ahead, week by week" }),
           curves(m.results, scenario),
           h("p", { class: "mv-how", text: "How to read this: each line is how much exposure (years that data stays readable after Q-Day) is still ahead at each week. Lower is better; the gap at week 0 is the total avoided. Lines are unweighted exposure-years; the optimiser minimises the risk- and scenario-weighted total, so lines can cross." }));
-        heroEl.append(h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Optimisation: effort per wave vs capacity, and the objective" }), optimisation(m.results)));
+        heroEl.append(h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Optimisation: the objective by Q-Day scenario" }), optimisation(m.results)));
         statsEl.replaceChildren(keyStats([
           { label: "weeks to migrate", cell: m.makespan, unit: "optimised plan", mean: "When the last wave finishes, at the assumed team capacity." },
           { label: "exposure avoided vs first-come-first-served", cell: a.fcfs, unit: "exposure-years", mean: "Less time that sensitive data stays readable to a future quantum computer, compared with the simple order." },
