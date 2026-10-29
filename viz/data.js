@@ -157,11 +157,11 @@ function qaoaModel(r) {
   const q = r.qaoa;
   if (!q || !Array.isArray(q.table)) return { available: false, text: NOT_YET_RUN, label: QAOA_LABEL };
   const rows = q.table.map((row) => {
-    const source = src(q.run_id, row.backend, row.job_ids.join(", ") || null, q.ts);
+    const source = src(q.run_id, row.backend, row.job_ids.join(", ") || null, q.ts, row.hardware && row.hardware.provenance);
     const base = { p: row.p, source_kind: row.source, status: row.status, backend: row.backend, source };
     if (row.status !== "ok" || !row.metrics) return { ...base, status_cell: status(row.status_text || NOT_YET_RUN) };
     const hw = row.hardware; // real QPU rows only: numbers of the transpiled circuit actually sent
-    const hsrc = hw && src(q.run_id, `${hw.backend} (real hardware)`, hw.job_id, q.ts, "transpiled circuit sent to the QPU");
+    const hsrc = hw && src(q.run_id, `${hw.backend} (real hardware)`, hw.job_id, q.ts, hw.provenance || "transpiled circuit sent to the QPU");
     return {
       ...base, job_ids: row.job_ids, shots_cell: num(row.shots, source, 0),
       cells: Object.fromEntries(QAOA_COLUMNS.map(([k]) => [k, num(row.metrics[k], source, 4)])),

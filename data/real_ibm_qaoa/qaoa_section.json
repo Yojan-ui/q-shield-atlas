@@ -1,0 +1,732 @@
+{
+ "label": "QAOA on simulators. A measured cross-check against the exact optimum. No quantum advantage claimed; the problem is small enough for brute force.",
+ "run_id": "152aa6e0425749068e04a75dd332fc4a",
+ "ts": "2026-10-29T17:07:44Z",
+ "schedule_sha256": "27ae15dc630a7127a351e378c013cd3c582324658a8ae196c06a6347e803ce20",
+ "problem": {
+  "subproblem": "link_cutover",
+  "subproblem_label": "link cutover selection: which links (asset TLS endpoints) cut over to post-quantum key exchange in week 1",
+  "week": 1,
+  "assets": [
+   "backup",
+   "bus",
+   "crm",
+   "hsm",
+   "kyc-db",
+   "ledger-db",
+   "payments-api",
+   "root-ca",
+   "statements",
+   "web-gw"
+  ],
+  "values": [
+   0.17307692307693046,
+   0.0942307692307689,
+   0.1538461538461462,
+   0.13461538461538414,
+   0.1538461538461462,
+   0.13461538461538414,
+   0.13461538461538414,
+   0.08076923076923048,
+   0.17307692307693046,
+   0.1538461538461462
+  ],
+  "weights": [
+   3,
+   4,
+   4,
+   7,
+   5,
+   5,
+   4,
+   8,
+   3,
+   3
+  ],
+  "capacity": 10,
+  "weight_scale": 1,
+  "slack_bits": 4,
+  "n_variables": 14,
+  "A": 2.3865384615384513,
+  "B": 2.3865384615384513,
+  "dependencies": [
+   [
+    "bus",
+    "root-ca"
+   ],
+   [
+    "crm",
+    "bus"
+   ],
+   [
+    "kyc-db",
+    "root-ca"
+   ],
+   [
+    "ledger-db",
+    "root-ca"
+   ],
+   [
+    "payments-api",
+    "hsm"
+   ],
+   [
+    "payments-api",
+    "root-ca"
+   ],
+   [
+    "root-ca",
+    "hsm"
+   ],
+   [
+    "statements",
+    "backup"
+   ],
+   [
+    "web-gw",
+    "root-ca"
+   ]
+  ],
+  "objective_definition": "minimise -sum_i r_i * a_i * x_i; a_i = scenario-weighted exposure-years avoided by migrating in week 1 instead of 1 week(s) later",
+  "bit_order": "variable k = qubit k = bit k of the basis index; counts strings have qubit 0 rightmost",
+  "shrink_log": [
+   "week 1: 16 assets not yet migrated before this week",
+   "dropped sftp-reg (value 0.08077): with unmet deps [] it exceeds the 10-asset budget",
+   "dropped risk-engine (value 0.09423): with unmet deps [] it exceeds the 10-asset budget",
+   "dropped ops-dash (value 0.01731): with unmet deps [] it exceeds the 10-asset budget",
+   "dropped vpn (value 0.01731): with unmet deps [] it exceeds the 10-asset budget",
+   "dropped auth (value 0): with unmet deps [] it exceeds the 10-asset budget",
+   "dropped cdn (value 0): with unmet deps [] it exceeds the 10-asset budget",
+   "kept 10 candidates: ['backup', 'bus', 'crm', 'hsm', 'kyc-db', 'ledger-db', 'payments-api', 'root-ca', 'statements', 'web-gw']",
+   "A = B = 1 + sum|c_i| = 2.38654; capacity 10 (scale 1), 4 slack bits, 14 variables"
+  ]
+ },
+ "exact": {
+  "objective": -0.3461538461538609,
+  "assets": [
+   "backup",
+   "statements"
+  ],
+  "bitstring": "01000100000001",
+  "method": "brute force over 2^10 asset subsets",
+  "run_id": "152aa6e0425749068e04a75dd332fc4a"
+ },
+ "runs": [
+  {
+   "p": 1,
+   "source": "local",
+   "backend": "numpy statevector (qaoa/local_sim.py)",
+   "shots": 2048,
+   "angles": {
+    "gammas": [
+     10.438308023966488
+    ],
+    "betas": [
+     2.5941910971845683
+    ]
+   },
+   "energy_scale": 6206.346153846125,
+   "optimizer": "scipy COBYLA, 5 seeded restarts (seed 7), maxiter 400",
+   "expected_energy_exact": 102.89348824058744,
+   "p_optimal_exact": 0.00113022053767662,
+   "job_ids": [],
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 1024,
+    "feasible_fraction": 0.09423828125,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 103.60450908954283,
+    "mean_energy_se": 4.609913621857623,
+    "energy_ratio": 0.983250907964378,
+    "p_optimal": 0.001953125,
+    "p_optimal_assets": 0.01318359375
+   }
+  },
+  {
+   "p": 2,
+   "source": "local",
+   "backend": "numpy statevector (qaoa/local_sim.py)",
+   "shots": 2048,
+   "angles": {
+    "gammas": [
+     4.643393791747412,
+     5.951735132870654
+    ],
+    "betas": [
+     0.6593775789714641,
+     2.262608570397543
+    ]
+   },
+   "energy_scale": 6206.346153846125,
+   "optimizer": "scipy COBYLA, 5 seeded restarts (seed 7), maxiter 400",
+   "expected_energy_exact": 71.92621630323475,
+   "p_optimal_exact": 0.0012217512753781078,
+   "job_ids": [],
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 772,
+    "feasible_fraction": 0.1826171875,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 69.18800706129778,
+    "mean_energy_se": 2.6320108104723734,
+    "energy_ratio": 0.9887962805838083,
+    "p_optimal": 0.0029296875,
+    "p_optimal_assets": 0.01416015625
+   }
+  },
+  {
+   "p": 3,
+   "source": "local",
+   "backend": "numpy statevector (qaoa/local_sim.py)",
+   "shots": 2048,
+   "angles": {
+    "gammas": [
+     3.5308381523635375,
+     5.245081312266915,
+     -1.8868679784797802
+    ],
+    "betas": [
+     0.45839618082279276,
+     1.6018069332070801,
+     0.7413359112658414
+    ]
+   },
+   "energy_scale": 6206.346153846125,
+   "optimizer": "scipy COBYLA, 5 seeded restarts (seed 7), maxiter 400",
+   "expected_energy_exact": 64.57765399308701,
+   "p_optimal_exact": 0.0013553141602998997,
+   "job_ids": [],
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 773,
+    "feasible_fraction": 0.1865234375,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 66.00620774489153,
+    "mean_energy_se": 2.079713139877959,
+    "energy_ratio": 0.9893089492680124,
+    "p_optimal": 0.001953125,
+    "p_optimal_assets": 0.01416015625
+   }
+  },
+  {
+   "p": null,
+   "source": "random",
+   "backend": "uniform random bitstrings (numpy, seed 1007)",
+   "shots": 2048,
+   "angles": null,
+   "job_ids": [],
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 1912,
+    "feasible_fraction": 0.00341796875,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 1173.061288686895,
+    "mean_energy_se": 19.679288413769036,
+    "energy_ratio": 0.8109342577023554,
+    "p_optimal": 0.0,
+    "p_optimal_assets": 0.0009765625
+   }
+  },
+  {
+   "p": 1,
+   "source": "qpiai_local",
+   "backend": "qpiai-quantum local simulator (QpiAI-QSV-Local)",
+   "shots": 2048,
+   "angles": {
+    "gammas": [
+     10.438308023966488
+    ],
+    "betas": [
+     2.5941910971845683
+    ]
+   },
+   "energy_scale": 6206.346153846125,
+   "job_ids": [],
+   "job_id": null,
+   "job_id_reason": "local SDK simulation issues no job ID",
+   "sdk_version": "0.3.0",
+   "seed": 2008,
+   "inputs_sha256": "2c6aa32d6d126e8b8871b9ffb9fd7481d0d36fb875f8db53dd9de8ed2740a89d",
+   "outputs_sha256": "03af94b18032de48073ee766b422ce65319d80d9148e29e65db6db1fdd89ec8a",
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 1059,
+    "feasible_fraction": 0.12158203125,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 105.35763127253558,
+    "mean_energy_se": 4.625530446382135,
+    "energy_ratio": 0.9829684354532523,
+    "p_optimal": 0.001953125,
+    "p_optimal_assets": 0.01708984375
+   }
+  },
+  {
+   "p": 2,
+   "source": "qpiai_local",
+   "backend": "qpiai-quantum local simulator (QpiAI-QSV-Local)",
+   "shots": 2048,
+   "angles": {
+    "gammas": [
+     4.643393791747412,
+     5.951735132870654
+    ],
+    "betas": [
+     0.6593775789714641,
+     2.262608570397543
+    ]
+   },
+   "energy_scale": 6206.346153846125,
+   "job_ids": [],
+   "job_id": null,
+   "job_id_reason": "local SDK simulation issues no job ID",
+   "sdk_version": "0.3.0",
+   "seed": 2009,
+   "inputs_sha256": "494fc957231ee04095c6306c0ab9518ccefbfa127f8d5dac1b55e318644d9544",
+   "outputs_sha256": "3122e36069a98f732ae40730f530772b3d52ec13e28c8bd8af62d142d8a4060c",
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 784,
+    "feasible_fraction": 0.1923828125,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 71.55877216045643,
+    "mean_energy_se": 2.8884434378271333,
+    "energy_ratio": 0.9884142901114128,
+    "p_optimal": 0.00048828125,
+    "p_optimal_assets": 0.01708984375
+   }
+  },
+  {
+   "p": 3,
+   "source": "qpiai_local",
+   "backend": "qpiai-quantum local simulator (QpiAI-QSV-Local)",
+   "shots": 2048,
+   "angles": {
+    "gammas": [
+     3.5308381523635375,
+     5.245081312266915,
+     -1.8868679784797802
+    ],
+    "betas": [
+     0.45839618082279276,
+     1.6018069332070801,
+     0.7413359112658414
+    ]
+   },
+   "energy_scale": 6206.346153846125,
+   "job_ids": [],
+   "job_id": null,
+   "job_id_reason": "local SDK simulation issues no job ID",
+   "sdk_version": "0.3.0",
+   "seed": 2010,
+   "inputs_sha256": "833e19c442545dcb21b5981515e9c94e64e370e544e90acf49316c310ab738a9",
+   "outputs_sha256": "c5ce98d677ad878d727c85727b76d556e104eee40436b60e5cc0f73716cae309",
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 774,
+    "feasible_fraction": 0.15625,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 64.8948608398435,
+    "mean_energy_se": 2.378005274482869,
+    "energy_ratio": 0.9894880154814493,
+    "p_optimal": 0.00048828125,
+    "p_optimal_assets": 0.01611328125
+   }
+  },
+  {
+   "p": 1,
+   "source": "ibm",
+   "backend": "ibm_fez",
+   "shots": 2048,
+   "angles": {
+    "gammas": [
+     10.438308023966488
+    ],
+    "betas": [
+     2.5941910971845683
+    ]
+   },
+   "energy_scale": 6206.346153846125,
+   "job_ids": [
+    "dbhnpos2d77s739d3sv0"
+   ],
+   "hardware": true,
+   "qpu_seconds": 3,
+   "transpiled_depth": 445,
+   "two_qubit_gates": 337,
+   "two_qubit_gate_names": {
+    "cz": 337
+   },
+   "physical_qubits": [
+    2,
+    3,
+    4,
+    5,
+    16,
+    23,
+    24,
+    25,
+    26,
+    37,
+    45,
+    46,
+    47,
+    48
+   ],
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 1441,
+    "feasible_fraction": 0.06640625,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 328.97046743539516,
+    "mean_energy_se": 11.344742965304835,
+    "energy_ratio": 0.9469387280183414,
+    "p_optimal": 0.00048828125,
+    "p_optimal_assets": 0.0087890625
+   }
+  },
+  {
+   "p": 2,
+   "source": "ibm",
+   "backend": "ibm_fez",
+   "shots": 2048,
+   "angles": {
+    "gammas": [
+     4.643393791747412,
+     5.951735132870654
+    ],
+    "betas": [
+     0.6593775789714641,
+     2.262608570397543
+    ]
+   },
+   "energy_scale": 6206.346153846125,
+   "job_ids": [
+    "dbhnpp42d77s739d3svg"
+   ],
+   "hardware": true,
+   "qpu_seconds": 3,
+   "transpiled_depth": 641,
+   "two_qubit_gates": 621,
+   "two_qubit_gate_names": {
+    "cz": 621
+   },
+   "physical_qubits": [
+    104,
+    105,
+    106,
+    107,
+    117,
+    123,
+    124,
+    125,
+    136,
+    143,
+    144,
+    145,
+    146,
+    147
+   ],
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 1606,
+    "feasible_fraction": 0.04443359375,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 553.3112811748778,
+    "mean_energy_se": 16.255167184472707,
+    "energy_ratio": 0.9107917249059777,
+    "p_optimal": 0.00048828125,
+    "p_optimal_assets": 0.00439453125
+   }
+  },
+  {
+   "p": 3,
+   "source": "ibm",
+   "backend": "ibm_fez",
+   "shots": 2048,
+   "angles": {
+    "gammas": [
+     3.5308381523635375,
+     5.245081312266915,
+     -1.8868679784797802
+    ],
+    "betas": [
+     0.45839618082279276,
+     1.6018069332070801,
+     0.7413359112658414
+    ]
+   },
+   "energy_scale": 6206.346153846125,
+   "job_ids": [
+    "dbhnppene4hc73bd9480"
+   ],
+   "hardware": true,
+   "qpu_seconds": 3,
+   "transpiled_depth": 984,
+   "two_qubit_gates": 942,
+   "two_qubit_gate_names": {
+    "cz": 942
+   },
+   "physical_qubits": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    16,
+    23,
+    24,
+    25,
+    26,
+    37,
+    45
+   ],
+   "metrics": {
+    "shots": 2048,
+    "distinct_bitstrings": 1902,
+    "feasible_fraction": 0.0146484375,
+    "best_feasible_objective": -0.3461538461538609,
+    "best_feasible_assets": [
+     "backup",
+     "statements"
+    ],
+    "approximation_ratio": 1.0,
+    "mean_energy": 916.9936166616542,
+    "mean_energy_se": 18.50092324581921,
+    "energy_ratio": 0.852193263513134,
+    "p_optimal": 0.0,
+    "p_optimal_assets": 0.0029296875
+   }
+  }
+ ],
+ "comparisons": [
+  {
+   "p": 1,
+   "against": "qpiai_local",
+   "z_scores": {
+    "feasible_fraction": -2.8201525087000365,
+    "p_optimal_assets": -1.0237788876378269,
+    "mean_energy": -0.2684533201408742
+   },
+   "sigma_threshold": 4.0,
+   "differs": false,
+   "note": "numpy local and QpiAI SDK local sample statistics agree within the threshold"
+  },
+  {
+   "p": 2,
+   "against": "qpiai_local",
+   "z_scores": {
+    "feasible_fraction": -0.8006407690254357,
+    "p_optimal_assets": -0.7559289460184544,
+    "mean_energy": -0.6066813827493387
+   },
+   "sigma_threshold": 4.0,
+   "differs": false,
+   "note": "numpy local and QpiAI SDK local sample statistics agree within the threshold"
+  },
+  {
+   "p": 3,
+   "against": "qpiai_local",
+   "z_scores": {
+    "feasible_fraction": 2.5706750852401057,
+    "p_optimal_assets": -0.5118894438189134,
+    "mean_energy": 0.35178867438543826
+   },
+   "sigma_threshold": 4.0,
+   "differs": false,
+   "note": "numpy local and QpiAI SDK local sample statistics agree within the threshold"
+  },
+  {
+   "p": 1,
+   "against": "ibm",
+   "z_scores": {
+    "feasible_fraction": 3.2768689299907123,
+    "p_optimal_assets": 1.3490719265285378,
+    "mean_energy": -18.403845117920895
+   },
+   "sigma_threshold": 4.0,
+   "differs": true,
+   "note": "numpy local and IBM ibm_fez sample statistics differ beyond the threshold; both are reported, neither is preferred"
+  },
+  {
+   "p": 2,
+   "against": "ibm",
+   "z_scores": {
+    "feasible_fraction": 13.938845636944114,
+    "p_optimal_assets": 3.259583794592265,
+    "mean_energy": -29.39982856088853
+   },
+   "sigma_threshold": 4.0,
+   "differs": true,
+   "note": "numpy local and IBM ibm_fez sample statistics differ beyond the threshold; both are reported, neither is preferred"
+  },
+  {
+   "p": 3,
+   "against": "ibm",
+   "z_scores": {
+    "feasible_fraction": 18.285810665051308,
+    "p_optimal_assets": 3.904426871665894,
+    "mean_energy": -45.709133270593156
+   },
+   "sigma_threshold": 4.0,
+   "differs": true,
+   "note": "numpy local and IBM ibm_fez sample statistics differ beyond the threshold; both are reported, neither is preferred"
+  }
+ ],
+ "qcloud": {
+  "requested": false
+ },
+ "qpiai_local": {
+  "requested": true,
+  "device": "qpiai-quantum local simulator",
+  "sdk_version": "0.3.0"
+ },
+ "ibm": {
+  "requested": true,
+  "backend": "ibm_fez",
+  "jobs": [
+   {
+    "p": 1,
+    "status": "ok",
+    "job_id": "dbhnpos2d77s739d3sv0",
+    "job_status": "DONE",
+    "backend": "ibm_fez",
+    "shots_requested": 2048,
+    "qpu_seconds": 3,
+    "transpiled_depth": 445,
+    "two_qubit_gates": 337,
+    "two_qubit_gate_names": {
+     "cz": 337
+    },
+    "physical_qubits": [
+     2,
+     3,
+     4,
+     5,
+     16,
+     23,
+     24,
+     25,
+     26,
+     37,
+     45,
+     46,
+     47,
+     48
+    ],
+    "optimization_level": 3,
+    "error": null
+   },
+   {
+    "p": 2,
+    "status": "ok",
+    "job_id": "dbhnpp42d77s739d3svg",
+    "job_status": "DONE",
+    "backend": "ibm_fez",
+    "shots_requested": 2048,
+    "qpu_seconds": 3,
+    "transpiled_depth": 641,
+    "two_qubit_gates": 621,
+    "two_qubit_gate_names": {
+     "cz": 621
+    },
+    "physical_qubits": [
+     104,
+     105,
+     106,
+     107,
+     117,
+     123,
+     124,
+     125,
+     136,
+     143,
+     144,
+     145,
+     146,
+     147
+    ],
+    "optimization_level": 3,
+    "error": null
+   },
+   {
+    "p": 3,
+    "status": "ok",
+    "job_id": "dbhnppene4hc73bd9480",
+    "job_status": "DONE",
+    "backend": "ibm_fez",
+    "shots_requested": 2048,
+    "qpu_seconds": 3,
+    "transpiled_depth": 984,
+    "two_qubit_gates": 942,
+    "two_qubit_gate_names": {
+     "cz": 942
+    },
+    "physical_qubits": [
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     16,
+     23,
+     24,
+     25,
+     26,
+     37,
+     45
+    ],
+    "optimization_level": 3,
+    "error": null
+   }
+  ]
+ }
+}

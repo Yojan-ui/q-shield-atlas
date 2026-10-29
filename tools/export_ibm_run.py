@@ -1,45 +1,71 @@
-"""tools/export_ibm_run.py: publish a logged IBM Quantum QAOA run as REAL data under data/real_ibm_qaoa/.
+"""tools/export_ibm_run.py: package a logged IBM Quantum QAOA run as REAL data in data/real_ibm_qaoa/.
 
-out/ and runs/ are git-ignored, so the values of an `python -m qaoa --ibm` run are exported here from
-those logged files only (nothing typed by hand):
-    run_<id8>.json           the run: problem, exact optimum, every qaoa.table row (local, QpiAI SDK local,
-                             ibm, random), hardware blocks, comparisons, raw ibm_fez counts per p,
-                             ledger entry index + root
-    run_<id8>_table.csv      the same table rows, flat
-    run_<id8>.manifest.json  SHA-256 of every source file and of the two outputs
+out/ and runs/ are git-ignored, so everything needed to reproduce the IBM rows without IBM access is copied
+here from the logged run (nothing typed by hand) and can travel to another machine through git:
 
-    python tools/export_ibm_run.py [--results out/results.json] [--runs runs] [--ledger out/ledger.jsonl]
+    run.json                 run_id, executed_at, schedule hash, ledger entry, label, file list
+    schedule.json            the out/schedule.json the QUBO was built from (byte copy)
+    qaoa_config.json         config/qaoa.json used for the run (byte copy)
+    problem.json             candidates, QUBO (offset, linear, quadratic terms), exact optimum
+    angles.json              simulator-tuned angles per p (the circuits sent to IBM)
+    jobs/ibm_p<p>.json       per job: job ID, backend, shots, raw counts, transpile stats (depth, 2q gates,
+                             op counts, physical-qubit layout), QPU seconds, logged submit/result timestamps
+    metrics.json             metrics computed at run time (ibm, local, random) and the comparisons
+    qaoa_section.json        the full out/qaoa.json section of that run
+    table.csv                qaoa.table rows, flat
+    versions.json            Python and package versions
+    manifest.json            SHA-256 of every file above
 
-No credentials are read or written. Refuses runs without finished IBM rows.
+Imported elsewhere with `python -m qaoa --ibm-import data/real_ibm_qaoa`. No credentials are read or written.
+
+    python tools/export_ibm_run.py [--results out/results.json] [--runs runs] [--out-dir data/real_ibm_qaoa]
 """
 
 import argparse
 import csv
 import hashlib
+import importlib.metadata as md
 import json
+import platform
+import shutil
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
+
+from contracts.manifest import sha256_json  # noqa: E402
+from qaoa.qubo import build  # noqa: E402
+
 OUT_DIR = REPO / "data" / "real_ibm_qaoa"
 METRICS = ("feasible_fraction", "best_feasible_objective", "approximation_ratio", "energy_ratio", "p_optimal", "p_optimal_assets")
 HW = ("job_id", "backend", "transpiled_depth", "two_qubit_gates", "qpu_seconds")
+PACKAGES = ("numpy", "scipy", "qiskit", "qiskit-ibm-runtime", "qpiai-quantum", "qpiai-opt", "truststore")
+LABEL = ("REAL. IBM Quantum hardware run of the QAOA wave-selection cross-check. A measured cross-check against the "
+         "exact optimum; no quantum advantage claimed.")
 
 
 def sha(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
-def rel(p: Path) -> str:
+def dump(path: Path, obj) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(obj, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+
+
+def version(name: str):
     try:
-        return p.resolve().relative_to(REPO).as_posix()
-    except ValueError:
-        return p.as_posix()
+        return md.version(name)
+    except md.PackageNotFoundError:
+        return None
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--results", type=Path, default=REPO / "out" / "results.json")
+    ap.add_argument("--schedule", type=Path, default=REPO / "out" / "schedule.json")
+    ap.add_argument("--config", type=Path, default=REPO / "config" / "qaoa.json")
     ap.add_argument("--runs", type=Path, default=REPO / "runs")
     ap.add_argument("--ledger", type=Path, default=REPO / "out" / "ledger.jsonl")
     ap.add_argument("--out-dir", type=Path, default=OUT_DIR)
@@ -47,42 +73,56 @@ def main(argv=None) -> int:
 
     res = json.loads(args.results.read_text(encoding="utf-8"))
     q = res.get("qaoa") or {}
-    ibm_ok = [r for r in q.get("table", []) if r["source"] == "ibm" and r["status"] == "ok"]
-    if not ibm_ok:
-        sys.exit("no finished IBM rows in results.json qaoa.table (run python -m qaoa --ibm, then --ibm-fetch)")
+    ibm_runs = [r for r in q.get("runs", []) if r["source"] == "ibm"]
+    if not ibm_runs:
+        sys.exit("no finished IBM runs in results.json qaoa.runs (run python -m qaoa --ibm, then --ibm-fetch)")
+    schedule = json.loads(args.schedule.read_text(encoding="utf-8"))
+    if sha256_json(schedule) != q["schedule_sha256"]:
+        sys.exit("out/schedule.json is not the schedule this QAOA run was built from; refusing to package it")
+    cfg = json.loads(args.config.read_text(encoding="utf-8"))
+    qubo = build(schedule, cfg)
+    if qubo.assets != q["problem"]["assets"] or qubo.n != q["problem"]["n_variables"]:
+        sys.exit("config/qaoa.json no longer rebuilds this run's QUBO; refusing to package it")
     run_dir = args.runs / q["run_id"]
-    sources = [args.results, run_dir / "manifest.json", *[run_dir / f"ibm_p{r['p']}.json" for r in ibm_ok]]
-    records = {r["p"]: json.loads((run_dir / f"ibm_p{r['p']}.json").read_text(encoding="utf-8")) for r in ibm_ok}
 
-    entry = None
-    if args.ledger.exists():
-        for line in args.ledger.read_text(encoding="utf-8").splitlines():
-            e = json.loads(line)
-            if e.get("type") == "qaoa.run" and q["run_id"] in json.dumps(e):
-                entry = {"index": e["index"], "type": e["type"], "payload_hash": e["payload_hash"], "ts": e["ts"]}
-        sources.append(args.ledger)
+    out = args.out_dir
+    if out.exists():
+        shutil.rmtree(out)  # the package is regenerated as a whole; stale files must not survive
+    (out / "jobs").mkdir(parents=True)
 
-    doc = {
-        "label": "REAL. IBM Quantum hardware run of the QAOA wave-selection cross-check. A measured cross-check "
-                 "against the exact optimum; no quantum advantage claimed.",
-        "exported_from": [rel(s) for s in sources],
-        "run_id": q["run_id"], "ts": q["ts"], "results_generated_at": res.get("generated_at"),
-        "problem": q["problem"], "exact": q["exact"], "qaoa_label": q["label"],
-        "table": q["table"], "comparisons": q["comparisons"],
-        "ibm": {"backend": q["ibm"].get("backend"), "jobs": q["ibm"].get("jobs"),
-                "counts": {str(p): rec["counts"] for p, rec in sorted(records.items())},
-                "physical_qubits": {str(p): rec["physical_qubits"] for p, rec in sorted(records.items())},
-                "two_qubit_gate_names": {str(p): rec["two_qubit_gate_names"] for p, rec in sorted(records.items())},
-                "optimization_level": records[min(records)]["optimization_level"],
-                "seed_transpiler": records[min(records)]["seed_transpiler"]},
-        "ledger": {"qaoa_run_entry": entry, "root": (res.get("ledger") or {}).get("root"),
-                   "alg": (res.get("ledger") or {}).get("alg"), "pubkey_fp": (res.get("ledger") or {}).get("pubkey_fp")},
-    }
-    args.out_dir.mkdir(parents=True, exist_ok=True)
-    stem = f"run_{q['run_id'][:8]}"
-    jpath, cpath = args.out_dir / f"{stem}.json", args.out_dir / f"{stem}_table.csv"
-    jpath.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
-    with cpath.open("w", encoding="utf-8", newline="") as fh:
+    shutil.copyfile(args.schedule, out / "schedule.json")
+    shutil.copyfile(args.config, out / "qaoa_config.json")
+
+    log = args.runs / "platform_jobs.log"
+    events = [json.loads(x) for x in log.read_text(encoding="utf-8").splitlines() if x.strip()] if log.exists() else []
+    events = [e for e in events if e.get("run_id") == q["run_id"]]
+    for r in ibm_runs:
+        rec = json.loads((run_dir / f"ibm_p{r['p']}.json").read_text(encoding="utf-8"))
+        stage = f"qaoa.ibm.p{r['p']}"
+        rec["submitted_at"] = next((e["ts"] for e in events if e.get("stage") == stage and e["event"] == "submit"), None)
+        rec["job_id_logged_at"] = next((e["ts"] for e in events if e.get("stage") == stage and e["event"] == "result"), None)
+        rec["timestamps_note"] = "from runs/platform_jobs.log on the executing machine (UTC)"
+        dump(out / "jobs" / f"ibm_p{r['p']}.json", rec)
+
+    dump(out / "problem.json", {
+        "problem": q["problem"], "exact": q["exact"],
+        "qubo": {"n": qubo.n, "offset": float(qubo.offset), "linear": [float(x) for x in qubo.linear],
+                 "quadratic": [[k, l, float(v)] for (k, l), v in sorted(qubo.quad.items())]},
+        "rebuild": "qaoa.qubo.build(schedule.json, qaoa_config.json) reproduces this QUBO (checked by the importer)",
+    })
+    dump(out / "angles.json", {str(r["p"]): {"gammas": r["angles"]["gammas"], "betas": r["angles"]["betas"],
+                                             "energy_scale": r["energy_scale"], "optimizer": r.get("optimizer")}
+                               for r in q["runs"] if r["source"] == "local"})
+    dump(out / "metrics.json", {
+        "ibm": {str(r["p"]): r["metrics"] for r in ibm_runs},
+        "local": {str(r["p"]): r["metrics"] for r in q["runs"] if r["source"] == "local"},
+        "qpiai_local": {str(r["p"]): r["metrics"] for r in q["runs"] if r["source"] == "qpiai_local"},
+        "random": next((r["metrics"] for r in q["runs"] if r["source"] == "random"), None),
+        "comparisons": q["comparisons"],
+    })
+    section = {k: v for k, v in q.items() if k not in ("table", "ledger_index")}
+    dump(out / "qaoa_section.json", section)
+    with (out / "table.csv").open("w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh, lineterminator="\n")
         w.writerow(["run_id", "p", "source", "status", "backend", "shots", *METRICS, *[f"hw_{k}" for k in HW], "status_text"])
         for r in q["table"]:
@@ -90,10 +130,27 @@ def main(argv=None) -> int:
             w.writerow([q["run_id"], "" if r["p"] is None else r["p"], r["source"], r["status"], r["backend"],
                         "" if r["shots"] is None else r["shots"], *[m.get(k, "") for k in METRICS],
                         *[hw.get(k, "") for k in HW], r.get("status_text") or ""])
-    manifest = {"run_id": q["run_id"], "sources": {rel(s): sha(s) for s in sources},
-                "outputs": {rel(jpath): sha(jpath), rel(cpath): sha(cpath)}}
-    (args.out_dir / f"{stem}.manifest.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8", newline="\n")
-    print(f"wrote {rel(jpath)}, {rel(cpath)}, {stem}.manifest.json ({len(ibm_ok)} IBM rows, ledger entry "
+    dump(out / "versions.json", {"python": platform.python_version(), "platform": f"{platform.system()} {platform.release()}",
+                                 "packages": {p: version(p) for p in PACKAGES},
+                                 "note": "environment of the machine that ran the IBM jobs, recorded at export"})
+
+    entry = None
+    if args.ledger.exists():
+        for line in args.ledger.read_text(encoding="utf-8").splitlines():
+            e = json.loads(line)
+            if e.get("type") == "qaoa.run" and q["run_id"] in json.dumps(e):
+                entry = {"index": e["index"], "payload_hash": e["payload_hash"], "ts": e["ts"]}
+    dump(out / "run.json", {
+        "label": LABEL, "run_id": q["run_id"], "executed_at": q["ts"], "schedule_sha256": q["schedule_sha256"],
+        "backend": ibm_runs[0]["backend"], "job_ids": [r["job_ids"][0] for r in ibm_runs],
+        "ledger_on_executing_machine": {"qaoa_run_entry": entry, "root": (res.get("ledger") or {}).get("root"),
+                                        "alg": (res.get("ledger") or {}).get("alg")},
+        "import": "python -m qaoa --ibm-import data/real_ibm_qaoa",
+    })
+    files = sorted(p for p in out.rglob("*") if p.is_file())
+    dump(out / "manifest.json", {"run_id": q["run_id"], "algorithm": "sha256",
+                                 "files": {p.relative_to(out).as_posix(): sha(p) for p in files}})
+    print(f"wrote {out.relative_to(REPO).as_posix()}/ ({len(files) + 1} files, {len(ibm_runs)} IBM jobs, ledger entry "
           f"{entry['index'] if entry else 'not found'})")
     return 0
 

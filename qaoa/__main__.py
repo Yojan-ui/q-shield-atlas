@@ -1,4 +1,4 @@
-"""python -m qaoa [--qpiai-local] [--qcloud] [--ibm] [--allow-more] | --ibm-fetch  ->  out/qaoa.json, runs/<run_id>/
+"""python -m qaoa [--qpiai-local] [--qcloud] [--ibm] [--allow-more] | --ibm-fetch | --ibm-import DIR  ->  out/qaoa.json, runs/<run_id>/
 
 QAOA on simulators. A measured cross-check against the exact optimum. No quantum advantage
 claimed; the problem is small enough for brute force.
@@ -8,6 +8,7 @@ exactly by brute force, runs local statevector QAOA for each p, samples it, and 
 same number of uniformly random bitstrings. --qcloud additionally samples the final circuits on
 a QpiAI QCloud simulator (paid, guarded, opt-in); --ibm samples them on IBM Quantum hardware
 (config/qaoa.json "ibm", guarded, opt-in) and --ibm-fetch re-polls jobs that were still queued.
+--ibm-import DIR attaches a packaged IBM run (tools/export_ibm_run.py) without IBM access (qaoa/ibm_import.py).
 """
 
 import argparse
@@ -20,7 +21,7 @@ import solvers
 from contracts.manifest import new_run_id, sha256_json, utc_now
 from schedule.platform_guard import DAILY_LIMIT, PlatformBudget
 
-from . import ibm_run, local_sim, metrics, qcloud_run, qpiai_local
+from . import ibm_import, ibm_run, local_sim, metrics, qcloud_run, qpiai_local
 from .qubo import build
 from .table import build_table
 
@@ -184,6 +185,7 @@ def main(argv=None):
     ap.add_argument("--qpiai-local", action="store_true", help="also sample the final circuits on the QpiAI SDK's in-process simulator (free, no network)")
     ap.add_argument("--ibm", action="store_true", help="opt-in: sample final circuits on IBM Quantum hardware (config/qaoa.json ibm)")
     ap.add_argument("--ibm-fetch", action="store_true", help="re-poll IBM jobs of out/qaoa.json that were still queued; submits nothing")
+    ap.add_argument("--ibm-import", type=Path, metavar="DIR", help="attach the IBM rows of a packaged run (e.g. data/real_ibm_qaoa); no IBM access")
     ap.add_argument("--allow-more", action="store_true", help=f"allow more than {DAILY_LIMIT} platform jobs per UTC day")
     ap.add_argument("--platform-log", type=Path, default=None,
                     help="shared daily-cap log (default RUNS/platform_jobs.log); point every workspace at one file")
@@ -192,6 +194,9 @@ def main(argv=None):
     cfg = json.loads(args.config.read_text())
     if args.ibm_fetch:
         fetch_ibm(args, cfg)
+        return 0
+    if args.ibm_import:
+        ibm_import.main(args.ibm_import, args.out_dir, args.runs)
         return 0
     schedule = json.loads(args.schedule.read_text())
     if not schedule.get("assets"):  # nothing to migrate: there is no wave to select, so no QUBO is built

@@ -553,10 +553,25 @@ instance; all 3 jobs DONE; signed into the ledger as `qaoa.run`, entry #3)
 | – | uniform random | 0.0034 | 0.0010 | 0.8109 | – | – | – | – |
 
 The QpiAI SDK local simulator rows of the same run (0.1216 / 0.1924 / 0.1562 feasible) agree with numpy within
-4σ. Source of every number: `data/real_ibm_qaoa/run_152aa6e0.json` and `run_152aa6e0_table.csv`, exported by
-`python tools/export_ibm_run.py` from `out/results.json`, `runs/152aa6e0…/ibm_p*.json` and the ledger, with
-SHA-256s in `run_152aa6e0.manifest.json` (raw ibm_fez counts included; `tests/test_real_ibm_qaoa.py`
-recomputes P(optimal) from them).
+4σ. Source of every number: the tracked package `data/real_ibm_qaoa/` (exported by `python tools/export_ibm_run.py`
+from `out/results.json`, `runs/152aa6e0…/ibm_p*.json`, `runs/platform_jobs.log` and the ledger): schedule and config
+the QUBO was built from, the QUBO and exact optimum, angles per p, raw counts, job IDs, transpile stats and physical
+layout, QPU seconds, timestamps, metrics, package versions, and `manifest.json` with the SHA-256 of every file.
+
+**Reproducing the IBM rows on another machine (no IBM access needed)**
+```bash
+git pull                                                        # brings data/real_ibm_qaoa/
+python -m qaoa --qpiai-local --schedule data/real_ibm_qaoa/schedule.json   # same problem, local rows
+python -m qaoa --ibm-import data/real_ibm_qaoa                  # attach the ibm_fez rows
+python -m ledger ingest && python -m ledger verify && python -m contracts.assemble && python -m atlas report
+```
+The importer verifies every SHA-256 in the manifest, rebuilds the QUBO from the packaged schedule and config,
+refuses a QAOA section whose problem differs, and recomputes every metric from the raw counts, refusing if
+they differ from the saved metrics. The rows are labelled "IBM ibm_fez, imported from data/real_ibm_qaoa (run
+executed 2026-10-29 on another machine)" (shown in the provenance tooltips and the report); the job IDs are
+IBM's. If that machine's own `out/schedule.json` gives a different week-1 problem, the QAOA section then describes
+the packaged problem (its `schedule_sha256` is the packaged schedule's), not the local plan; if the problems are
+equal, the `--schedule` flag can be dropped. Tests: `tests/test_qaoa_ibm_import.py`, `tests/test_real_ibm_qaoa.py`.
 
 **Reading it honestly**
 - At p = 1 the hardware keeps about 70 % of the simulator's feasible share and stays well above random.
@@ -585,7 +600,7 @@ source .env.sh                         # IBM_QUANTUM_TOKEN (and QPIAI_OPT_API_KE
 python -m qaoa --qpiai-local --ibm     # prints the estimate, then "Submitting 1 IBM Quantum jobs" x3
 python -m qaoa --ibm-fetch             # only if jobs were still queued
 python -m ledger ingest && python -m ledger verify && python -m contracts.assemble && python -m atlas report
-python tools/export_ibm_run.py         # refresh data/real_ibm_qaoa/
+python tools/export_ibm_run.py         # rewrite the data/real_ibm_qaoa/ package from this run
 ```
 
 ## Visualisation (`viz/`)
