@@ -220,8 +220,7 @@ dialog.confirm .actions { display: flex; justify-content: flex-end; gap: var(--s
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: var(--s-2) var(--s-4); margin: 0; font-size: var(--fs-16); }
 .kv dt { color: var(--text-2); font-size: var(--fs-16); letter-spacing: var(--track-label); text-transform: uppercase; padding-top: 3px; }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-.hero-figure { display: grid; gap: var(--s-2); }
-.hero-figure .display { color: var(--accent); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
 .signin-card { max-width: 400px; display: grid; gap: var(--s-3); }
 .scene-mark { width: 160px; height: 160px; color: var(--text-3); }
 .scene-mark .crack { color: var(--exposure); }
@@ -284,21 +283,18 @@ dialog.confirm .actions { display: flex; justify-content: flex-end; gap: var(--s
 }
 
 /* ---------- landing / sign-in ---------- */
-.chapters { list-style: none; margin: 0; padding: 0; border-top: var(--rule) solid var(--hairline); }
 .chapter { display: grid; grid-template-columns: 64px minmax(0, 3fr) minmax(0, 5fr) minmax(0, 4fr); gap: var(--gutter); align-items: baseline; padding: var(--s-5) 0; border-bottom: var(--rule) solid var(--hairline); }
-.chapter .c-num { color: var(--text-3); font-size: var(--fs-16); }
+
 .chapter p { margin: 0; color: var(--text-2); }
-.chapter .c-fact { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-2); }
-.cta { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) auto; gap: var(--gutter); align-items: center; padding: var(--s-6) 0; border-bottom: var(--rule) solid var(--hairline); }
-.cta p { margin: 0; }
+
 .signin-aside { padding-top: var(--s-8); }
 .shake { animation: shake 320ms var(--ease-overlay); }
 @keyframes shake { 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
 @media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
 @media (max-width: 760px) {
   .chapter { grid-template-columns: 40px 1fr; }
-  .chapter p, .chapter .c-fact { grid-column: 2; }
-  .cta { grid-template-columns: 1fr; }
+.chapter p { grid-column: 2; }
+
   .signin-aside { padding-top: 0; }
 }
 
@@ -327,10 +323,7 @@ body::before, body::after { content: ""; position: fixed; left: 0; right: 0; hei
 body::before { top: 0; transform-origin: top; } body::after { bottom: 0; transform-origin: bottom; }
 body.shot::before, body.shot::after { animation: letterbox var(--dur-shot) var(--ease-overlay); }
 @keyframes letterbox { 0%, 100% { transform: scaleY(0); } 25%, 70% { transform: scaleY(1); } }
-.q-dial { display: grid; gap: var(--s-2); margin-top: var(--s-4); }
-.q-dial input { width: 100%; accent-color: var(--exposure); }
-.q-dial .ticks { display: flex; justify-content: space-between; font: var(--fs-16) var(--font-mono); color: var(--text-2); }
-.q-dial .ticks b { color: var(--text); font-weight: 500; }
+
 .intro-hold .view-head h1, .intro-hold .display, .intro-hold .display + .lede { opacity: 0; }
 .view aside.start-9 { transition: opacity var(--dur-overlay) var(--ease-overlay) 200ms; }
 .intro-hold aside.start-9 { opacity: 0; transition: none; }  /* the dial and hero number follow the headline */

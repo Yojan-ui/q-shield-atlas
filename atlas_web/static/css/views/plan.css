@@ -1,9 +1,7 @@
 /* Plan and Proof pages only (views/schedule.js, views/ledger.js load it lazily). */
 /* Plan curves, Proof hash chain */
 .pl-hero{display:grid;gap:var(--s-3);margin-bottom:var(--s-6)}
-.pl-call{margin:0;font-size:var(--fs-28);font-weight:600}
-.pl-call .num{font-size:var(--fs-64);display:block;line-height:1.1}
-.pl-sub{font-size:18px;color:var(--text-2);font-weight:400}
+
 .pl-chart{width:100%;height:auto;display:block}
 .pl-chart text{font-size:16px;fill:var(--text-2);font-family:var(--font-mono)}
 .pl-line{fill:none;stroke:var(--text-3);stroke-width:2}
@@ -21,9 +19,8 @@
 .pl-opt{display:grid;gap:var(--s-3);margin-top:var(--s-6)}
 .pl-bar{fill:var(--text-2)}.pl-bar:hover,.pl-bar:focus{fill:var(--text)}
 .pl-cap{stroke:var(--caution);stroke-width:2;stroke-dasharray:6 4}
-.pl-obj{display:grid;gap:var(--s-2);max-width:900px}
-.pl-obj-row{display:grid;grid-template-columns:260px minmax(0,1fr) 90px;gap:var(--s-3);align-items:center;font-size:var(--fs-16)}
-.pl-obj-bar{height:14px;border:var(--rule) solid var(--hairline)}.pl-obj-bar span{display:block;height:100%;background:var(--text-3)}.pl-obj-bar span.best{background:var(--text)}
+
+.pl-obj-bar span{display:block;height:100%;background:var(--text-3)}.pl-obj-bar span.best{background:var(--text)}
 .pl-head{margin:0;font-size:var(--fs-28);font-weight:600;line-height:1.25;max-width:60ch}
 .pl-solver{margin:0;color:var(--text-2);font-size:var(--fs-16);overflow-wrap:anywhere}
 .pl-h3{margin:var(--s-4) 0 0;font-size:var(--fs-20)}

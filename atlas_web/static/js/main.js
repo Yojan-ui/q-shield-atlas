@@ -4,6 +4,7 @@ import { installTooltip } from "./components/tooltip.js";
 import { installToasts, toast } from "./components/toast.js";
 import { installRailKeys, strip as makeStrip } from "./components/strip.js";
 import { installPalette } from "./components/palette.js";
+import { installPresenter } from "./present.js";
 import { sound } from "./sound.js";
 import { MOTION, prefersReducedMotion } from "./motion.js";
 import { h } from "./dom.js";
@@ -184,6 +185,7 @@ async function boot() {
   await loadWorkspaces();
   installRailKeys((to) => navigate(to), () => (app.me ? app.ws : null));
   installPalette({ navigate, store, getState: () => ({ me: app.me, ws: app.ws, workspaces: app.workspaces }) });
+  installPresenter({ navigate, store, getWs: () => (app.me && /^\/w\//.test(location.pathname + location.hash.replace(/^#/, "")) ? app.ws : null) });
   await render("replace");
   document.body.dataset.ready = "1";
   document.body.dataset.readyAt = String(Math.round(performance.now()));

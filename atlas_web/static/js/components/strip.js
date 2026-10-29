@@ -29,7 +29,7 @@ export function strip({ api, store, onSignOut, onWorkspace, kiosk }) {
   snd.addEventListener("click", () => { const on = sound.toggle(); snd.setAttribute("aria-pressed", String(on)); snd.textContent = on ? "Sound on" : "Sound off"; if (on && location.pathname === "/") sound.hum(true); });
   const el = h("header", { class: "strip" },
     h("a", { class: "wordmark", href: "/", "aria-label": "Q-Shield Atlas home" }, logo(), h("span", { text: "Q-Shield Atlas" })),
-    ws, rail, h("div", { class: "strip-actions" }, modeBtn, snd), user);
+    ws, rail, h("div", { class: "strip-actions" }, h("button", { class: "btn quiet", type: "button", title: "Presenter mode (P)", onclick: () => dispatchEvent(new Event("atlas:present")), text: "Present" }), modeBtn, snd), user);
   let qbadge = null;  // quantum backend in use, shown once signed in (the status route needs a session)
   wsSelect.addEventListener("change", () => onWorkspace(wsSelect.value));
 

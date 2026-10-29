@@ -22,17 +22,6 @@ export function curveSeries(r, scenario) {
   return S.map(([label, x, cls]) => ({ label, cls, points: (pick(x) || {}).points || [], produced: (x && x.produced_by) || {} })).filter((s) => s.points.length);
 }
 
-export function labelWeek(series, k) {  // the week where series k is furthest from the others (ties: earliest)
-  const own = series[k].points;
-  let best = 0, bestD = -1;
-  own.forEach((p, i) => {
-    if (i === own.length - 1) return;
-    const d = Math.min(...series.filter((_, j) => j !== k).map((o) => Math.abs((o.points[i] || o.points.at(-1)).exposure_years - p.exposure_years)));
-    if (d > bestD) { bestD = d; best = i; }
-  });
-  return best;
-}
-
 // x-axis end: the last week any line still changes, + 1 (at least 4); and the week every line has reached 0
 export function axisEnd(S) {
   let active = 0, zero = 0;

@@ -1,9 +1,7 @@
 // Landing (public): the story told from the demo snapshot. Stage 4 turns each chapter into a scene in THE LATTICE.
 import { h, stagger } from "../dom.js";
-import { stat, statSkeleton } from "../components/stat.js";
-import { chip } from "../components/chip.js";
-import { lines } from "../components/states.js";
-import { headlineAvoided, HNDL, num, QAOA_LABEL } from "../model.js";
+import { statSkeleton } from "../components/stat.js";
+import { headlineAvoided, HNDL, num } from "../model.js";
 import { provAttr } from "../components/tooltip.js";
 import { dataView, honesty, mountScene, stage, viewCss } from "./common.js";
 import { FLOW } from "../flow.js";
@@ -81,8 +79,3 @@ export async function mount(ctx) {
   ctx.root.append(h("div", { class: "ld" }, heroEl, h("div", { class: "ld-stage" }, stageEl, chain,
     h("p", { class: "mv-how", text: "The demo bank's systems: red crystals still rely on classical crypto and turn cyan as each planned wave passes its lab gate. Below: the signed Proof Chain, one block per record." })), body));
 }
-
-function cellNum(c) {
-  return c && c.kind === "number" ? h("span", { class: "num", tabindex: "0", "data-prov": provAttr(c.source), text: c.text }) : h("span", { class: "fine", text: (c && c.text) || "not yet run" });
-}
-

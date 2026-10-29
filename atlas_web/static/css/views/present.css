@@ -1,0 +1,7 @@
+/* Presenter mode (js/present.js): sidebar and fine print hidden, 3D stage full screen, one large caption. */
+body.presenting .strip .rail, body.presenting .pg-details, body.presenting .foot, body.presenting .crumbs, body.presenting .fine,
+body.presenting .mv-how, body.presenting .pg-next, body.presenting .pg-actions{display:none !important}
+body.presenting .stage{height:calc(100vh - 220px) !important}
+body.presenting .page{padding-bottom:140px}
+.pr-cap{position:fixed;left:0;right:0;bottom:0;z-index:var(--z-toast);padding:var(--s-4) var(--s-6);background:var(--surface-solid);border-top:var(--rule) solid var(--hairline-strong);
+  font:600 30px/1.25 var(--font-sans);color:var(--text)}
