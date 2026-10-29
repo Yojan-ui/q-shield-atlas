@@ -1,4 +1,4 @@
-// Ledger: Merkle tower, inclusion proofs, tamper demo on a server-side copy.
+// Proof Chain (code/API name: ledger): Merkle tower, inclusion proofs, tamper demo on a server-side copy.
 import { sound } from "../sound.js";
 import { h, icon } from "../dom.js";
 import { stat, statSkeleton } from "../components/stat.js";
@@ -22,7 +22,7 @@ export async function mount(ctx) {
     keys: ["ledger"],
     skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton()), h("div", { class: "span-12" }, tableSkeleton(4))),
     render: ({ ledger: L }) => {
-      if (!L.available) return emptyState(notRun(ctx, "Ledger"));
+      if (!L.available) return emptyState(notRun(ctx, "Proof Chain"));
       const v = L.live_verification || {}, ws = ctx.ws;
       const src = { run_id: "n/a", solver: `${L.alg} via ${L.backend}`, job_id: "none (local ledger)", ledger_index: `0–${L.entry_count - 1}`, ts: v.checked_at || "n/a", note: `pubkey ${L.pubkey_fp.slice(0, 16)}…` };
       let layer = null, gen = 0, timer = 0;
@@ -106,12 +106,12 @@ export async function mount(ctx) {
           h("p", { class: "eyebrow", text: "tamper demo" }),
           h("p", { class: "fine", text: "Edits one entry in a temporary copy and runs python -m ledger verify on it. The real ledger is never touched; its hash is compared before and after." }),
           tamper, h("p", { id: "lg-hold", class: "fine", text: "Press and hold for 0.8 s (mouse, touch, or Space / Enter)." }), out, detail),
-        section("Entries", table({ caption: "Ledger entries", rows: L.entries, signal: ctx.signal, onRow: (e) => select(e.index), columns: [
+        section("Entries", table({ caption: "Proof Chain entries", rows: L.entries, signal: ctx.signal, onRow: (e) => select(e.index), columns: [
           { label: "#", key: "index", numeric: true }, { label: "type", key: "type", mono: true }, { label: "payload", key: "payload_ref", mono: true, optional: true },
           { label: "payload SHA-256", render: (e) => hc(e.payload_hash, "payload hash", 8) }, { label: "time", key: "ts", mono: true, optional: true }] })));
     },
   });
   ctx.root.append(h("div", { class: "grid" },
-    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Ledger", lede: "Every run manifest signed with ML-DSA-65 into an append-only hash chain with an RFC 6962 Merkle root. Change one byte and verification fails at exactly that entry." })),
+    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Proof Chain", lede: "Stage 2, right after Detect. Every run manifest signed with ML-DSA-65 into an append-only hash chain with an RFC 6962 Merkle root. Change one byte and verification fails at exactly that entry." })),
     h("div", { class: "span-12" }, body), h("div", { class: "span-12" }, honesty())));
 }

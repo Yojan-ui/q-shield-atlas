@@ -1,4 +1,4 @@
-// Pipeline: the 11 run_demo.sh steps as stations. Run streams SSE step events; failure shows the log tail.
+// Pipeline: the run_demo.sh steps as stations, grouped by stage (contracts/stages.json). Run streams SSE step events; failure shows the log tail.
 import { h, icon } from "../dom.js";
 import { chip } from "../components/chip.js";
 import { logConsole } from "../components/log.js";
@@ -6,7 +6,7 @@ import { lines } from "../components/states.js";
 import { toast } from "../components/toast.js";
 import { provAttr } from "../components/tooltip.js";
 import { confirmDialog } from "../components/dialog.js";
-import { num, missing, solverLabel, source, STEPS, stationsModel } from "../model.js";
+import { num, missing, solverLabel, source, STAGE_OF, STEPS, stationsModel } from "../model.js";
 import { header, honesty, mountScene, section, stage, wsEyebrow } from "./common.js";
 import { buildLattice } from "../engine/lattice.js";
 
@@ -25,8 +25,9 @@ export async function mount(ctx) {
   let current = {}; // step -> {status, duration}
 
   const drawStations = (model) => {
-    stationsEl.replaceChildren(...model.map((s) => h("li", { class: `station ${s.status}`, "aria-label": `${s.step}: ${s.status}` },
-      h("span", { class: "s-idx", text: String(s.index).padStart(2, "0") }), h("span", { class: "s-name", text: s.step }),
+    stationsEl.replaceChildren(...model.map((s) => h("li", { class: `station ${s.status}`, "aria-label": `${STAGE_OF[s.step].label} stage, step ${s.step}: ${s.status}` },
+      h("span", { class: "s-idx", text: String(s.index).padStart(2, "0") }),
+      h("span", { class: "s-name" }, h("span", { class: "s-stage", text: STAGE_OF[s.step].label }), h("span", { class: "s-step mono", text: s.step })),
       s.duration.kind === "number" ? h("span", { class: "s-dur num", tabindex: "0", "data-prov": provAttr(s.duration.source, `${s.step} duration`), text: `${s.duration.text} s` })
         : h("span", { class: "s-dur", text: s.duration.text }))));
   };
@@ -41,7 +42,7 @@ export async function mount(ctx) {
     const last = runs.runs[0];
     if (ro) {
       log.replaceWith(h("p", { class: "fine", style: { padding: "var(--s-4) 0" }, text: "This snapshot was produced by ./run_demo.sh in a terminal (its step logs are in out/demo_logs/). Runs started from this page stream their output here, line by line." }));
-      drawStations(STEPS.map((step, i) => ({ step, index: i + 1, status: r ? "ok" : "idle", duration: missing(r ? "snapshot" : "not yet run") })));
+      drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: r ? "ok" : "idle", duration: missing(r ? "snapshot" : "not yet run") })));
       status.replaceChildren(r ? chip("recorded", `snapshot from ./run_demo.sh, results.json ${r.generated_at}`) : chip("not yet run"));
     } else {
       drawStations(stationsModel(runs));
@@ -64,7 +65,7 @@ export async function mount(ctx) {
     log.clear(); tail.replaceChildren();
     current = Object.fromEntries(STEPS.map((s) => [s, { status: "pending" }]));
     es = new EventSource(`/api/workspaces/${ctx.ws}/runs/${runId}/events`);
-    const draw = () => drawStations(STEPS.map((step, i) => ({ step, index: i + 1, status: current[step].status,
+    const draw = () => drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: current[step].status,
       duration: current[step].dur !== undefined ? num(current[step].dur, { run_id: runId, solver: "atlas_web runner", job_id: "none", ledger_index: "n/a", ts: new Date().toISOString() }, 1) : missing(current[step].status) })));
     draw();
     runBtn.disabled = true;
@@ -85,7 +86,7 @@ export async function mount(ctx) {
   ctx.signal.addEventListener("abort", () => { if (es) es.close(); });
 
   runBtn.addEventListener("click", async () => {
-    const ok = await confirmDialog({ title: "Run the pipeline?", body: `Runs the 11 steps of run_demo.sh in workspace ${ctx.ws}: lab TLS services start on 127.0.0.1 and stop afterwards. Local only; no QpiAI credits are used.`, confirm: "Run" });
+    const ok = await confirmDialog({ title: "Run the pipeline?", body: `Runs the ${STEPS.length} steps of run_demo.sh in workspace ${ctx.ws}: lab TLS services start on 127.0.0.1 and stop afterwards. Local only; no QpiAI credits are used.`, confirm: "Run" });
     if (!ok) return;
     try {
       const res = await ctx.api.post(`/api/workspaces/${ctx.ws}/runs`, {});
@@ -110,17 +111,17 @@ export async function mount(ctx) {
     const L = buildLattice(THREE, group, scene, world.uniforms); world.uniforms.uWeek.value = 1e6; return L.hooks(ctx, stageEl);
   })).catch(() => {});
   ctx.root.append(h("div", { class: "grid" },
-    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Pipeline", lede: "The eleven steps of run_demo.sh, run as the existing module CLIs with this workspace's paths. Each station lights when its step completes.",
+    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Pipeline", lede: "Detect, then Proof Chain, then the rest: the run_demo.sh steps run as the existing module CLIs with this workspace's paths. Each station lights when its step completes.",
       aside: h("div", { class: "hero-figure" }, h("p", { class: "eyebrow", text: "schedule solver" }), solverEl, why), actions: [runBtn, status] })),
     section("Stations", stationsEl),
     h("div", { class: "span-12" }, stageEl),
     h("div", { class: "span-8" }, section("Output", h("div", {}, log, tail))),
     h("div", { class: "start-9" }, section("Preflight", pre)),
     h("div", { class: "span-12" }, honesty())));
-  drawStations(STEPS.map((step, i) => ({ step, index: i + 1, status: "idle", duration: missing("…") })));
+  drawStations(STEPS.map((step, i) => ({ step, stage: STAGE_OF[step], index: i + 1, status: "idle", duration: missing("…") })));
   try { await load(); } catch (err) { if (err.code !== "aborted") status.replaceChildren(chip("FAIL", err.message)); }
   preflight();
   const off = ctx.store.subscribe(({ ws, keys }) => { if (ws === ctx.ws && (keys.includes("results") || keys.includes("runs")) && !es) load().catch(() => {}); });
   ctx.signal.addEventListener("abort", off);
-  ctx.announce(`Pipeline for workspace ${ctx.ws}: eleven stations.`);
+  ctx.announce(`Pipeline for workspace ${ctx.ws}: ${STEPS.length} stations in ${new Set(STEPS.map((s) => STAGE_OF[s].id)).size} stages.`);
 }

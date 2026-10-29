@@ -8,6 +8,7 @@ Payloads are the immutable per-run files under runs/<run_id>/:
   gates.wave_run       runs/<id>/wave_runner.json per-wave status, config and transcript hashes
   qaoa.run             runs/<id>/manifest.json   QUBO, exact optimum, angles, metrics, QCloud job IDs
 A payload already in the ledger (same type and SHA-256) is not appended again.
+`only` limits ingestion to those entry types (the Proof Chain stage signs detect.run right after Detect).
 """
 
 import hashlib
@@ -54,10 +55,12 @@ def ledger_summary(ledger: Ledger, repo_root: Path) -> dict:
     }
 
 
-def ingest(ledger: Ledger, out_dir: Path, runs_dir: Path) -> tuple[list[dict], dict]:
+def ingest(ledger: Ledger, out_dir: Path, runs_dir: Path, only: set[str] | None = None) -> tuple[list[dict], dict]:
     seen = {(e["type"], e["payload_hash"]) for e in ledger.entries()}
     appended = []
     for entry_type, path in run_manifests(out_dir, runs_dir):
+        if only is not None and entry_type not in only:
+            continue
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if (entry_type, digest) in seen:
             continue

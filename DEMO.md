@@ -88,8 +88,8 @@ far more feasible plans than random, the two simulators agree, and we claim no q
 
 ## 7. Close (10 s): rail key **1** (Pipeline)
 
-**On screen:** the eleven run_demo.sh stations and the solver record "QpiAI Opt · local MILP · optimal · global optimum".
-**Say:** "Operators upload their own repository or point it at endpoints they are authorised to test, and the same eleven steps
+**On screen:** the twelve run_demo.sh stations in eight stages (Detect → Proof Chain → Plan → Handshakes → Gates → QAOA → Seal → Report) and the solver record "QpiAI Opt · local MILP · optimal · global optimum".
+**Say:** "Operators upload their own repository or point it at endpoints they are authorised to test, and the same twelve steps
 run on their data: find it, plan it, verify it, prove it."
 
 ---

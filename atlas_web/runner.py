@@ -16,12 +16,13 @@ import threading
 import time
 from pathlib import Path
 
+from contracts.stages import STEPS as STAGE_STEPS
+
 from .auth import Store
 from .config import PLATFORM_LOG, REPO, data_dir, limits, settings
 from .workspaces import Workspace, WorkspaceError
 
-STEPS = ("detect", "schedule", "capture", "gates", "qaoa", "ledger_ingest", "ledger_verify", "assemble",
-         "validate", "report", "validate_final")
+STEPS = STAGE_STEPS  # contracts/stages.json: one stage list for runner, API and UI
 SECRET_ENV = ("QPIAI_OPT_API_KEY", "QCLOUD_API_KEY")
 SERVICE_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 HOST_RE = re.compile(r"^(?=.{1,253}$)[A-Za-z0-9]([A-Za-z0-9-]{0,62})(\.[A-Za-z0-9]([A-Za-z0-9-]{0,62}))*$")
@@ -172,6 +173,7 @@ def pipeline_steps(ws: Workspace, probes: list[str], platform: bool = False, qcl
         detect += ["--probe", p]
     steps = [
         ("detect", detect),
+        ("ledger_open", [*py, "ledger", "ingest", "--only", "detect.run", *led]),  # Proof Chain: sign the Detect evidence first
         ("schedule", [*py, "schedule", "--inventory", str(ws.out / "inventory.json"), "--assumptions", str(ws.assumptions),
                       "--out", str(ws.out / "schedule.json"), "--runs", runs, "--platform-log", str(PLATFORM_LOG),
                       *(["--platform"] if platform else [])]),
@@ -189,6 +191,7 @@ def pipeline_steps(ws: Workspace, probes: list[str], platform: bool = False, qcl
     if calibration_payload is not None:  # signed right after the runs it caused, before verification
         i = [n for n, _ in steps].index("ledger_ingest") + 1
         steps.insert(i, ("calibration_sign", [*py, "ledger", "append", str(calibration_payload), "--type", "calibration.apply", *led]))
+    assert [n for n, _ in steps if n != "calibration_sign"] == list(STEPS), "pipeline_steps out of order with contracts/stages.json"
     return steps
 
 

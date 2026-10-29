@@ -147,7 +147,7 @@ export async function mount(ctx) {
         section("Dependencies", kv([["depends on", links(a.depends_on)], ["dependents", links(dependents)]])),
         section("Handshake evidence", handshake, { aside: a.standin ? mono(a.standin.lab_service) : null }),
         section("Gates", h("div", {}, gates), { aside: wave && wave.evidence ? mono(`wave run ${String(wave.evidence.run_id).slice(0, 12)}…`) : null }),
-        section("Ledger entries", ledger, { aside: h("span", { class: "fine", text: (r.ledger || {}).alg || "" }) }));
+        section("Proof Chain entries", ledger, { aside: h("span", { class: "fine", text: (r.ledger || {}).alg || "" }) }));
     },
   });
   ctx.root.append(h("div", { class: "grid" }, headEl, h("div", { class: "span-12" }, stageEl), h("div", { class: "span-12" }, body), h("div", { class: "span-12" }, honesty())));

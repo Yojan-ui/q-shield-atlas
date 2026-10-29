@@ -23,6 +23,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from contracts.manifest import sha256_hex
+from contracts.stages import STAGES
 
 from . import calibration, intake
 from . import workspaces as wsmod
@@ -367,6 +368,8 @@ def make_handler(app: App):
                 u = self.user()
                 return self.send_json(200, {"user": {k: u[k] for k in ("username", "role", "expires")} if u else None,
                                             "kiosk": app.kiosk, "demo": app.demo})
+            if route == ("GET", "stages"):  # contracts/stages.json: the same stage ids and step names as the runner
+                return self.send_json(200, {"stages": STAGES})
             if route == ("GET", "events"):
                 ws = self.workspace(self.query.get("ws", "demo"))
                 return self.file_events(ws)

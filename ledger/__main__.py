@@ -50,6 +50,7 @@ def main(argv=None):
     ap.add_argument("--runs", type=Path, default=REPO / "runs")
     ap.add_argument("--root", type=Path, default=REPO, help="directory payload_ref and ledger_ref are relative to")
     ap.add_argument("--keys-dir", type=Path, default=PRIVATE_KEY.parent)
+    ap.add_argument("--only", help="ingest: comma-separated entry types to sign now (e.g. detect.run); results.json is not reassembled")
     args = ap.parse_args(argv)
     backend = detect()
     private_key = args.keys_dir / PRIVATE_KEY.name
@@ -87,14 +88,15 @@ def main(argv=None):
         if not private_key.exists():
             sys.exit(f"no signing key at {private_key}; generate one (see README) - keys are never committed")
         ledger = Ledger(args.ledger, backend, private_key, args.public_key, args.root)
-        appended, summary = ingest(ledger, args.out_dir, args.runs)
+        only = set(args.only.split(",")) if args.only else None
+        appended, summary = ingest(ledger, args.out_dir, args.runs, only)
         (args.out_dir / "ledger_verify.json").unlink(missing_ok=True)  # any earlier verification is stale now
-        results = assemble(args.out_dir)
-        (args.out_dir / "results.json").write_text(json.dumps(results, indent=1))
+        if only is None:  # a partial ingest runs before schedule.json exists; the final ingest reassembles
+            (args.out_dir / "results.json").write_text(json.dumps(assemble(args.out_dir), indent=1))
         print(f"backend {backend.label}, alg ML-DSA-65, pubkey_fp {summary['pubkey_fp']}")
         for e in appended:
             print(f"  appended #{e['index']:<3} {e['type']:20} {e['payload_ref']}  payload {e['payload_hash'][:16]}")
-        print(f"entries {summary['entry_count']} (+{len(appended)}), root {summary['root']} -> results.json")
+        print(f"entries {summary['entry_count']} (+{len(appended)}), root {summary['root']}" + (" -> results.json" if only is None else f" (only {args.only})"))
         return 0
 
     if args.command == "verify":

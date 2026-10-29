@@ -102,5 +102,5 @@ test("view model: missing data is 'not yet run', never 0; solver label from reco
   assert.equal(solverLabel(sample), "QpiAI Opt · local MILP · optimal · global optimum");
   assert.equal(HNDL, "HNDL-exposed: recorded traffic relies on classical key exchange");
   const st = stationsModel({ runs: [] });
-  assert.equal(st.length, 11); assert.ok(st.every((s) => s.status === "idle" && s.duration.kind === "missing"));
+  assert.equal(st.length, 12); assert.deepEqual(st.slice(0, 2).map((s) => s.stage.label), ["Detect", "Proof Chain"]); assert.ok(st.every((s) => s.status === "idle" && s.duration.kind === "missing"));
 });

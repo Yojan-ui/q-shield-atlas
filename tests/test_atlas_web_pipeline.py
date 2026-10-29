@@ -8,11 +8,12 @@ from pathlib import Path
 
 import pytest
 
+from contracts.stages import STEPS as STAGE_STEPS
+
 from .atlas_web_helpers import PASSWORD, Client, sse_events, start_server
 
 REPO = Path(__file__).resolve().parent.parent
-STEPS = ["detect", "schedule", "capture", "gates", "qaoa", "ledger_ingest", "ledger_verify", "assemble", "validate",
-         "report", "validate_final"]
+STEPS = list(STAGE_STEPS)  # contracts/stages.json
 
 
 def repo_state():
@@ -74,9 +75,11 @@ def test_full_pipeline_in_temp_workspace(live):
     status, runs = c.get("/api/workspaces/bank/runs")
     assert runs["active"] is None and runs["runs"][0]["status"] == "PASS"
     assert [s["step"] for s in runs["runs"][0]["detail"]["summary"]] == STEPS
+    first = c.get("/api/workspaces/bank/results")[1]["results"]["ledger"]["entries"][0]
+    assert first["type"] == "detect.run"  # Proof Chain stage: Detect evidence is signed before anything else runs
     replay = sse_events(live.server_address[1], f"/api/workspaces/bank/runs/{res['run_id']}/events", c.cookies,
                         lambda e, d: e == "run_end", timeout=30)
-    assert len(replay) == len(evs)  # a finished run replays its full event log
+    assert [e for e in replay if e[0] != "heartbeat"] == [e for e in evs if e[0] != "heartbeat"]  # full event log (heartbeats are not events)
 
     status, body = c.get("/api/workspaces/bank/results")
     r = body["results"]

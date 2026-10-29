@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Q-Shield Atlas: regenerate everything (detect -> schedule -> capture -> gates -> qaoa -> ledger ->
+# Q-Shield Atlas: regenerate everything (detect -> proof chain -> schedule -> capture -> gates -> qaoa -> seal ->
 # results.json) and open the viz. Local only by default: no QpiAI Opt or QCloud jobs are submitted
 # unless --platform / --qcloud are given (both go through the guarded commands).
 #
@@ -131,7 +131,9 @@ summary() {
   echo "RESULT: ${STATUS}"
 }
 
+# stage order: contracts/stages.json (Detect -> Proof Chain -> Plan -> Handshakes -> Gates -> QAOA -> Seal -> Report)
 step detect          "$PY" -m detect --lab-probe web-gw=legacy
+step ledger_open     "$PY" -m ledger ingest --only detect.run
 step schedule        "$PY" -m schedule --inventory out/inventory.json ${PLATFORM_ARGS[@]+"${PLATFORM_ARGS[@]}"} ${ALLOW_MORE[@]+"${ALLOW_MORE[@]}"}
 step capture         "$PY" -m capture
 step gates           "$PY" -m gates

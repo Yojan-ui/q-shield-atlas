@@ -49,6 +49,19 @@ dashboard and a 3D exposure tower that read only `out/results.json`.
 
 Modules exchange data only through the JSON contracts in `contracts/`.
 
+**Stages** (`contracts/stages.json`, one list for `run_demo.sh`, `atlas_web/runner.py`, `GET /api/stages` and the UI):
+
+1. Detect
+2. Proof Chain (code/API name `ledger`): `ledger ingest --only detect.run` signs the Detect evidence before anything else runs
+3. Plan
+4. Handshakes
+5. Gates
+6. QAOA
+7. Seal: ingest every later run, then verify the whole chain
+8. Report
+
+The UI's step names are generated from that file (`python -m contracts.stages --write-js`), and a test keeps them in sync.
+
 ## Quickstart (one command)
 
 ```bash

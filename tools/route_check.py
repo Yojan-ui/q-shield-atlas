@@ -181,9 +181,9 @@ def flows(browser, base, cookies):
         page.send("Page.navigate", {"url": base + "/w/demo/pipeline"})
         page.wait_for("document.body.dataset.ready === '1'")
         r = lambda: page.eval("document.body.dataset.route")  # noqa: E731
-        page.send("Input.dispatchKeyEvent", {"type": "keyDown", "key": "3", "text": "3"})
-        page.send("Input.dispatchKeyEvent", {"type": "keyUp", "key": "3"})
-        page.wait_for("document.body.dataset.route === 'schedule'", 5) or problems.append(f"key 3 -> {r()}")
+        page.send("Input.dispatchKeyEvent", {"type": "keyDown", "key": "4", "text": "4"})
+        page.send("Input.dispatchKeyEvent", {"type": "keyUp", "key": "4"})
+        page.wait_for("document.body.dataset.route === 'schedule'", 5) or problems.append(f"key 4 -> {r()}")
         page.eval("document.querySelector('a[href=\"/w/demo/ledger\"]').click()")
         page.wait_for("document.body.dataset.route === 'ledger'", 5) or problems.append(f"rail click -> {r()}")
         page.eval("history.back()")

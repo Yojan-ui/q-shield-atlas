@@ -5,8 +5,9 @@ import { buildModel, NOT_YET_RUN, QAOA_LABEL } from "./vizdata.js";
 
 export { NOT_YET_RUN, QAOA_LABEL };
 export const HNDL = "HNDL-exposed: recorded traffic relies on classical key exchange";
-export const STEPS = ["detect", "schedule", "capture", "gates", "qaoa", "ledger_ingest", "ledger_verify", "assemble",
-  "validate", "report", "validate_final"];
+import { STAGES, STAGE_OF, STEPS } from "./stages.js";  // generated from contracts/stages.json
+
+export { STAGES, STAGE_OF, STEPS };
 
 const has = (x) => x !== null && x !== undefined;
 export const missing = (text = NOT_YET_RUN) => ({ kind: "missing", text });
@@ -87,7 +88,7 @@ export function stationsModel(runsPayload) {
   return STEPS.map((step, i) => {
     const s = summary[step];
     const status = !s ? (last && last.status === "running" ? "pending" : "idle") : s.exit_code === 0 ? "ok" : "fail";
-    return { step, index: i + 1, status, duration: s ? num(s.duration_s, { run_id: last.id, solver: "atlas_web runner", job_id: "none", ledger_index: "n/a", ts: new Date(last.started * 1000).toISOString() }, 1) : missing(status === "pending" ? "pending" : "not yet run") };
+    return { step, stage: STAGE_OF[step], index: i + 1, status, duration: s ? num(s.duration_s, { run_id: last.id, solver: "atlas_web runner", job_id: "none", ledger_index: "n/a", ts: new Date(last.started * 1000).toISOString() }, 1) : missing(status === "pending" ? "pending" : "not yet run") };
   });
 }
 
