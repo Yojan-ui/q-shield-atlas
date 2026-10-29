@@ -6,7 +6,7 @@ import { table, tableSkeleton } from "../components/table.js";
 import { emptyState } from "../components/states.js";
 import { provAttr } from "../components/tooltip.js";
 import { headlineAvoided } from "../model.js";
-import { dataView, header, honesty, mountScene, notRun, section, stage, viewCss, wsEyebrow } from "./common.js";
+import { dataView, honesty, mountScene, notRun, section, stage, viewCss } from "./common.js";
 import { buildLattice } from "../engine/lattice.js";
 import { sound } from "../sound.js";
 import { estimateBlock } from "../components/estimate.js";

@@ -11,7 +11,7 @@ import { prefersReducedMotion } from "../motion.js";
 import { HNDL } from "../model.js";
 import { provAttr } from "../components/tooltip.js";
 import { authName, buildChannel, fmtBytes, packetsOf, pickLanes, sessionProv, transcriptList } from "../components/channel.js";
-import { clusterOf } from "../scenes/migration.js";
+import { clusterOf } from "../scenes/graph.js";
 import { dataView, honesty, mountScene, notRun, stage, viewCss } from "./common.js";
 import { buildLanes3d } from "../scenes/lanes3d.js";
 import { bullets, detailsList, nextStep, pageHead } from "../components/page.js";

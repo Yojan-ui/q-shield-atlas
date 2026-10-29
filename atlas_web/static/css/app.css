@@ -72,8 +72,8 @@ h1[tabindex="-1"]:focus, main[tabindex="-1"]:focus { outline: none; } /* route h
 .page { position: relative; z-index: var(--z-page); padding: calc(var(--strip-h) + var(--s-7)) var(--page-pad) var(--s-8); max-width: var(--page-max); margin: 0 auto; min-height: 100vh; }
 .grid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); column-gap: var(--gutter); row-gap: var(--s-6); }
 .span-12 { grid-column: 1 / -1; } .span-8 { grid-column: span 8; } .span-7 { grid-column: span 7; } .span-6 { grid-column: span 6; }
-.span-5 { grid-column: span 5; } .span-4 { grid-column: span 4; } .span-3 { grid-column: span 3; }
-.start-9 { grid-column: 9 / span 4; } .start-8 { grid-column: 8 / span 5; }
+.span-5 { grid-column: span 5; } .span-4 { grid-column: span 4; }
+.start-9 { grid-column: 9 / span 4; }
 .eyebrow { margin: 0 0 var(--s-3); font-size: var(--fs-16); line-height: 1.25; letter-spacing: var(--track-label); text-transform: uppercase; color: var(--text-2); font-weight: var(--weight-medium); }
 .eyebrow .accent { color: var(--accent); }
 h1, .h1 { margin: 0; font: var(--weight-semibold) var(--fs-40)/var(--lh-tight) var(--font-display); letter-spacing: var(--track-tight); }
@@ -333,9 +333,6 @@ body.shot::before, body.shot::after { animation: letterbox var(--dur-shot) var(-
 .intro-hold .view-head h1, .intro-hold .display, .intro-hold .display + .lede { opacity: 0; }
 .view aside.start-9 { transition: opacity var(--dur-overlay) var(--ease-overlay) 200ms; }
 .intro-hold aside.start-9 { opacity: 0; transition: none; }  /* the dial and hero number follow the headline */
-.hold { position: relative; overflow: hidden; }
-.hold::after { content: ""; position: absolute; inset: auto 0 0 0; height: 2px; background: var(--exposure); transform: scaleX(0); transform-origin: left; }
-.hold.holding::after { transform: scaleX(1); transition: transform 800ms linear; }
 .sound-toggle[aria-pressed="true"] { color: var(--accent); }
 dialog.palette { width: min(560px, calc(100% - 32px)); margin-top: 14vh; padding: 0; background: var(--surface-raised); color: var(--text); border: var(--rule) solid var(--hairline-strong); border-radius: var(--r-surface); }
 dialog.palette::backdrop { background: var(--scrim); }

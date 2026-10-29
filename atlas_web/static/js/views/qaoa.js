@@ -5,7 +5,7 @@ import { chip } from "../components/chip.js";
 import { table, tableSkeleton } from "../components/table.js";
 import { emptyState } from "../components/states.js";
 import { num, QAOA_LABEL } from "../model.js";
-import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
+import { dataView, honesty, mountScene, notRun, stage } from "./common.js";
 import { buildQaoaCloud } from "../scenes/qaoa.js";
 import { quantumPanel } from "../components/quantum.js";
 import { bullets, detailsList, main, nextStep, pageHead } from "../components/page.js";

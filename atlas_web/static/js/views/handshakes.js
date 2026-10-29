@@ -6,7 +6,7 @@ import { emptyState } from "../components/states.js";
 import { hashCopy } from "../components/copy.js";
 import { provAttr } from "../components/tooltip.js";
 import { HNDL, NOT_YET_RUN as NR, num, source } from "../model.js";
-import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
+import { dataView, honesty, mountScene, notRun, section, stage } from "./common.js";
 import { buildHandshakes, rowsOf } from "../scenes/handshakes.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";

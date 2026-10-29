@@ -41,3 +41,9 @@ test("layout is deterministic and finite at 1,000 nodes", () => {
   assert.ok([...a.pos].every(Number.isFinite));
   assert.equal(topByRisk(nodes, 3).length, 3);
 });
+
+import { clusterOf } from "../static/js/scenes/graph.js";
+test("banks become clusters; other systems cluster by kind", () => {
+  assert.equal(clusterOf({ name: "netbanking.abc.bank.in (abc, netbanking)", kind: "tls_gateway" }), "abc");
+  assert.equal(clusterOf({ name: "Payments API", kind: "api" }), "api");
+});
