@@ -6,6 +6,7 @@
 import { h, icon } from "../dom.js";
 import { stat } from "./stat.js";
 import { FLOW } from "../flow.js";
+import { more } from "./more.js";
 
 export const DETAIL_TITLES = ["How it works", "Why this method", "Evidence & sources", "Limits"];
 
@@ -35,19 +36,11 @@ const WHY = [[/exposure/i, "Every exposure-year is a year that recorded traffic 
   [/qaoa|feasible|optimal|choice|share/i, "It shows how close the quantum cross-check gets to the proven answer; no advantage is claimed."], [/drift|safe/i, "A live connection can differ from what the configuration claims."]];
 export const whyOf = (it) => it.why || (WHY.find(([re]) => re.test(`${it.label} ${it.unit || ""}`)) || [null, "It is the number this step hands to the next one."])[1];
 
-// "Why this matters" disclosure (button + panel), used inside every stat card
+// "Why this matters" disclosure (components/more.js), used inside every stat card
 export function whyBlock(it) {
-  const id = `why-${Math.random().toString(36).slice(2, 9)}`, src = it.cell && it.cell.source;
-  const btn = h("button", { class: "why-btn", type: "button", "aria-expanded": "false", "aria-controls": id }, "Why this matters ▾");
-  const panel = h("div", { class: "why-panel", id, hidden: true }, h("div", { class: "why-inner" },
-    it.mean ? h("p", {}, h("b", { text: "What it means: " }), it.mean) : null, h("p", {}, h("b", { text: "Why it matters: " }), whyOf(it)),
-    src ? h("p", { class: "tech why-src" }, h("b", { text: "Source: " }), [src.run_id && `run ${src.run_id}`, src.solver, src.ts].filter((x) => x && x !== "n/a").join(" · ") || "n/a") : null));
-  btn.addEventListener("click", () => {
-    const open = btn.getAttribute("aria-expanded") !== "true";
-    btn.setAttribute("aria-expanded", String(open)); btn.textContent = open ? "Why this matters ▴" : "Why this matters ▾";
-    panel.hidden = !open; if (open) requestAnimationFrame(() => panel.classList.add("on")); else panel.classList.remove("on");
-  });
-  return [btn, panel];
+  const src = it.cell && it.cell.source;
+  return more("Why this matters", it.mean ? h("p", {}, h("b", { text: "What it means: " }), it.mean) : null, h("p", {}, h("b", { text: "Why it matters: " }), whyOf(it)),
+    src ? h("p", { class: "tech why-src" }, h("b", { text: "Source: " }), [src.run_id && `run ${src.run_id}`, src.solver, src.ts].filter((x) => x && x !== "n/a").join(" · ") || "n/a") : null);
 }
 
 // one card: title, big number, short unit; details in the disclosure

@@ -1,4 +1,4 @@
-// Landing (public): the story told from the demo snapshot. Stage 4 turns each chapter into a scene in THE LATTICE.
+// Landing (public): the story told from the demo snapshot; section text beyond one line sits in "More ▾".
 import { h, stagger } from "../dom.js";
 import { statSkeleton } from "../components/stat.js";
 import { headlineAvoided, HNDL, num } from "../model.js";
@@ -9,15 +9,15 @@ import { rollNumber } from "../motion.js";
 import { buildLattice } from "../engine/lattice.js";
 import { placeLabels } from "../scenes/labels.js";
 import { dd } from "../components/dd.js";
+import { more } from "../components/more.js";
 
 export async function mount(ctx) {
   await Promise.all([viewCss("landing"), viewCss("pillars")]);
   ctx.ws = "demo";
   let scenario = ctx.query.get("scenario");
   let lattice = null;
-  const stageEl = stage(ctx, { tall: true, label: "THE LATTICE: the demo inventory. Red flickering crystals rely on classical crypto; red beams rise with each asset's exposure-years in the selected Q-day scenario; cyan cells passed the lab gates.", tall: true });
-  // Title sequence (<= 3 s, any input skips, reduced motion = instant): crystals ignite red one by one with beams
-  // rising, the headline wipes in, then the waves turn crystals cyan in plan order (red threat -> system -> cyan).
+  const stageEl = stage(ctx, { tall: true, label: "THE LATTICE: the demo inventory. Red flickering crystals rely on classical crypto; red beams rise with each asset's exposure-years in the selected Q-day scenario; cyan cells passed the lab gates." });
+  // title sequence (<= 3 s; any input skips; reduced motion = instant)
   const reveal = () => { if (ctx.root.classList.contains("intro-hold")) { ctx.root.classList.remove("intro-hold"); stagger(heroEl); } };
   // the headline paints at once (no hold): the 3D title sequence plays behind it
   const skip = () => { if (ctx.world.uniforms) ctx.world.uniforms.uIntro.value = 1; reveal(); };
@@ -108,6 +108,9 @@ export async function mount(ctx) {
 
 const REPO_URL = "https://github.com/Yojan-ui/q-shield-atlas";  // a plain link (navigation), not a loaded resource
 
+// one line per FLOW step; FLOW .does goes in "More ▾"
+const SHORT = ["Find quantum-breakable crypto", "Lock in what we found", "Best migration order", "Test each wave for real", "Quantum cross-check", "Prove it's safe and untouched", "A person signs off"];
+
 // sections below the hero: real numbers from the real workspaces (signed-in only; the API is not public)
 const REAL = [["real-banks", "public Indian bank endpoints, one recorded TLS handshake each (CC0 dataset)"], ["online-boutique", "Google's microservices demo, pinned commit"],
   ["otel-demo", "OpenTelemetry demo, pinned commit"]];
@@ -122,22 +125,24 @@ function sections(ctx, go) {
   const sec = (title, ...kids) => h("section", { class: "ld-sec" }, h("h2", { class: "ld-h2", text: title }), ...kids);
   // 1 the problem
   const fact = h("p", { class: "ld-fact" }, ctx.me ? "Loading the real-banks observation…" : "Sign in to see the real-banks observation.");
+  const seen = h("p", {});
   if (ctx.me && known.has("real-banks")) {
     Promise.all([ctx.store.get("real-banks", "move", { signal: ctx.signal }), ctx.store.get("real-banks", "results", { signal: ctx.signal })]).then(([mv, res]) => {
       const b = bankShare(mv), ts = res && res.results && res.results.detect && res.results.detect.ts;
-      fact.replaceChildren(...(b ? [h("span", { class: "ld-big num", text: `${b.classical} of ${b.total}` }), ` public bank endpoints still negotiate classical key exchange (observed ${ts ? ts.slice(0, 10) : "date not recorded"}, real-banks workspace).`]
+      fact.replaceChildren(...(b ? [h("span", { class: "ld-big num", text: `${b.classical} of ${b.total}` }), " public bank endpoints still use classical key exchange."]
         : ["real-banks observation: not yet run"]));
+      if (b) seen.textContent = `Observed ${ts ? ts.slice(0, 10) : "date not recorded"}, real-banks workspace.`;
     }).catch(() => { fact.textContent = "real-banks observation: not yet run"; });
   } else if (ctx.me) fact.textContent = "real-banks observation: not yet run";
   // 3 real data cards
   const cards = h("div", { class: "ld-cards" }, REAL.map(([id, what]) => {
-    const c = h("div", { class: "ld-card" }, h("p", { class: "ld-k", text: id }), h("p", { class: "ld-u", text: what }));
+    const c = h("div", { class: "ld-card" }, h("p", { class: "ld-k", text: id }));
     const nums = h("p", { class: "ld-cnum" }, ctx.me ? (known.has(id) ? "…" : "not yet run") : "sign in to see the numbers");
-    c.append(nums, h("a", { class: "btn", href: go(`/w/${id}/pipeline`), text: "Open" }));
+    c.append(nums, h("a", { class: "btn", href: go(`/w/${id}/pipeline`), text: "Open" }), ...more("More", h("p", { text: what })));
     if (ctx.me && known.has(id)) ctx.store.get(id, "results", { signal: ctx.signal }).then((res) => {
       const r = res && res.results;
-      nums.replaceChildren(...(r && r.detect ? [h("span", { class: "num", text: String(r.assets.length) }), " systems to migrate · ", h("span", { class: "num", text: String(r.detect.summary.vulnerable_findings) }),
-        " findings · ", h("span", { class: "num", text: r.exposure ? String(r.exposure.makespan_weeks) : "–" }), " weeks"] : ["not yet run"]));
+      const st = (v, k) => h("span", { class: "ld-cn" }, h("span", { class: "num", text: String(v) }), ` ${k}`);
+      nums.replaceChildren(...(r && r.detect ? [st(r.assets.length, "systems"), st(r.detect.summary.vulnerable_findings, "findings"), st(r.exposure ? r.exposure.makespan_weeks : "–", "weeks")] : ["not yet run"]));
     }).catch(() => { nums.textContent = "not yet run"; });
     return c;
   }));
@@ -146,11 +151,13 @@ function sections(ctx, go) {
   const scan = h("form", { class: "ld-scan", onsubmit: (e) => { e.preventDefault(); ctx.navigate(go(`/settings/new-workspace?url=${encodeURIComponent(url.value.trim())}`)); } },
     url, h("button", { class: "btn primary", type: "submit", text: "Scan" }));
   return [
-    sec("The problem in 10 seconds", h("p", { class: "ld-say", text: "Harvest now, decrypt later: traffic protected by RSA or elliptic-curve key exchange can be recorded today and read once a large quantum computer exists." }), fact),
-    sec("How it works", h("ol", { class: "ld-steps" }, FLOW.map((f, i) => h("li", {}, h("a", { href: go(`/w/demo/${f.route}`) }, h("span", { class: "num", text: String(i + 1) }), h("b", { text: f.label }), h("span", { class: "ld-u", text: f.does })))))),
+    sec("The problem in 10 seconds", fact, h("div", {}, ...more("More", h("p", { text: "Harvest now, decrypt later: traffic protected by RSA or elliptic-curve key exchange can be recorded today and read once a large quantum computer exists." }), seen))),
+    sec("How it works", h("ol", { class: "ld-steps" }, FLOW.map((f, i) => h("li", {}, h("a", { href: go(`/w/demo/${f.route}`) }, h("span", { class: "num", text: String(i + 1) }), h("b", { text: f.label })),
+      h("span", { class: "ld-u", text: SHORT[i] }), h("div", {}, ...more("More", h("p", { text: f.does }))))))),
     sec("Real data", cards),
-    sec("Bring your own", h("p", { class: "ld-say", text: "Point it at a public repository: it is cloned into a new workspace and scanned; nothing runs until you start the pipeline." }), scan),
-    sec("Honest by design", h("ul", { class: "ld-list" }, ["Real TLS handshakes and real public data where marked; migrations and lab stand-ins are simulated.", "No quantum advantage claimed: QAOA is a simulator cross-check against the exact optimum.",
-      "Every result is signed (ML-DSA-65) into a hash-chained Proof Chain; any edit is detected.", "Paid QpiAI platform runs are disabled; everything shown ran locally."].map((t) => h("li", { text: t })))),
+    sec("Bring your own", h("p", { class: "ld-say", text: "Scan any public GitHub repository." }), scan,
+      h("div", {}, ...more("More", h("p", { text: "It is cloned into a new workspace and scanned; nothing runs until you start the pipeline." })))),
+    sec("Honest by design", h("p", { class: "ld-say", text: "Simulated parts are labelled; nothing is overclaimed." }), h("div", {}, ...more("More", h("ul", { class: "ld-list" }, ["Real TLS handshakes and real public data where marked; migrations and lab stand-ins are simulated.", "No quantum advantage claimed: QAOA is a simulator cross-check against the exact optimum.",
+      "Every result is signed (ML-DSA-65) into a hash-chained Proof Chain; any edit is detected.", "Paid QpiAI platform runs are disabled; everything shown ran locally."].map((t) => h("li", { text: t })))))),
   ];
 }

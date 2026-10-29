@@ -1,7 +1,7 @@
 /* Layout and components. Values come from tokens.css only. */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { background: var(--base); }
+html { background: var(--base); scroll-padding-top: calc(var(--strip-h) + var(--s-4)); }
 body {
   margin: 0; min-height: 100vh; background: var(--base); color: var(--text);
   font: var(--weight-regular) var(--fs-16)/var(--lh-body) var(--font-sans);
