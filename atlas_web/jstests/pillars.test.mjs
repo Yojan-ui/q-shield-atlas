@@ -73,3 +73,18 @@ test("a step lights only from its own stages, not its position", () => {
   assert.equal(st[FLOW.findIndex((f) => f.id === "ledger")], "running");
   assert.ok(st.every((x, i) => FLOW[i].id === "ledger" || x !== "running"));
 });
+
+import { axisEnd, mergeIdentical, spreadLabels } from "../static/js/views/schedule.js";
+test("schedule chart: axis end, identical plans merged, labels never overlap", () => {
+  const pts = (...v) => v.map((x, i) => ({ week: i, exposure_years: x }));
+  const S = [{ cls: "opt", short: "Optimised", label: "o", points: pts(7, 0, 0, 0, 0, 0) }, { cls: "fcfs", short: "FCFS", label: "f", points: pts(7, 7, 0, 0, 0, 0) },
+    { cls: "greedy", short: "Greedy", label: "g", points: pts(7, 0, 0, 0, 0, 0) }];
+  assert.deepEqual(axisEnd(S), { end: 4, zero: 2 });  // last change at week 2 -> +1 = 3, minimum 4
+  const M = mergeIdentical(S);
+  assert.equal(M.length, 2);
+  assert.equal(M[0].label, "Optimised = Greedy (identical plan)");
+  assert.equal(mergeIdentical([S[0], S[2], { ...S[2], short: "FCFS" }])[0].label, "Optimised = Greedy = FCFS (identical plan)");
+  const y = spreadLabels([300, 300, 301], 24, 20, 360);
+  const sorted = [...y].sort((a, b) => a - b);
+  assert.ok(sorted[1] - sorted[0] >= 24 && sorted[2] - sorted[1] >= 24 && sorted[2] <= 360);
+});

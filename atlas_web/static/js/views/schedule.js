@@ -33,25 +33,96 @@ export function labelWeek(series, k) {  // the week where series k is furthest f
   return best;
 }
 
+// x-axis end: the last week any line still changes, + 1 (at least 4); and the week every line has reached 0
+export function axisEnd(S) {
+  let active = 0, zero = 0;
+  for (const s of S) {
+    s.points.forEach((p, i) => { const nx = s.points[i + 1]; if (nx && nx.exposure_years !== p.exposure_years) active = Math.max(active, nx.week); });
+    const z = s.points.find((p) => p.exposure_years <= 1e-9);
+    zero = Math.max(zero, z ? z.week : s.points.at(-1).week);
+  }
+  return { end: Math.max(4, active + 1), zero };
+}
+
+// series whose points are identical are drawn once (+ an offset copy) under one merged label
+export function mergeIdentical(S) {
+  const same = (a, b) => a.points.length === b.points.length && a.points.every((p, i) => p.week === b.points[i].week && Math.abs(p.exposure_years - b.points[i].exposure_years) < 1e-9);
+  const out = [];
+  for (const s of S) {
+    const twin = out.find((o) => same(o, s));
+    if (twin) { twin.twins.push(s); twin.label = `${[twin.short, ...twin.twins.map((t) => t.short)].join(" = ")} (identical plan)`; } else out.push({ ...s, twins: [] });
+  }
+  return out;
+}
+
+// right-hand labels at the line ends, pushed apart so they never overlap (min gap px), kept inside [top, bottom]
+export function spreadLabels(ys, gap, top, bottom) {
+  const o = ys.map((y, i) => ({ y, i })).sort((a, b) => a.y - b.y);
+  for (let k = 1; k < o.length; k++) o[k].y = Math.max(o[k].y, o[k - 1].y + gap);
+  const over = o.length ? o[o.length - 1].y - bottom : 0;
+  if (over > 0) for (const x of o) x.y -= over;
+  for (let k = 0; k < o.length; k++) o[k].y = Math.max(o[k].y, top + k * gap);
+  const res = []; for (const x of o) res[x.i] = x.y; return res;
+}
+
+const SHORT = { opt: "Optimised", fcfs: "FCFS", greedy: "Greedy" };
+
 function curves(r, scenario) {
-  const S = curveSeries(r, scenario);
-  if (!S.length) return h("p", { class: "mv-note", text: "Exposure curves: not yet run" });
-  const W = 1100, H = 440, L = 70, R = 20, T = 20, B = 54;
-  const maxW = Math.max(...S.flatMap((s) => s.points.map((p) => p.week))), maxY = Math.max(...S.flatMap((s) => s.points.map((p) => p.exposure_years)));
-  const X = (w) => L + (w / Math.max(1, maxW)) * (W - L - R), Y = (v) => T + (1 - v / Math.max(1e-9, maxY)) * (H - T - B);
+  const S0 = curveSeries(r, scenario).map((s) => ({ ...s, short: SHORT[s.cls] }));
+  if (!S0.length) return h("p", { class: "mv-note", text: "Exposure curves: not yet run" });
+  const { end, zero } = axisEnd(S0);
+  const cut = (s) => ({ ...s, points: s.points.filter((p) => p.week <= end) });
+  const S = mergeIdentical(S0).map((s) => ({ ...cut(s), twins: s.twins.map(cut) }));
+  const W = 1100, H = 420, L = 92, R = 400, T = 20, B = 54;  // wide right margin: end labels never clip
+  const maxY = Math.max(...S.flatMap((s) => s.points.map((p) => p.exposure_years)), 1e-9);
+  const X = (w) => L + (w / end) * (W - L - R), Y = (v) => T + (1 - v / maxY) * (H - T - B);
   const svg = h("svg", { viewBox: `0 0 ${W} ${H}`, class: "pl-chart", role: "img", "aria-label": `Remaining exposure-years by week, scenario ${scenario}: ${S.map((s) => s.label).join(", ")}` });
-  for (let i = 0; i <= 4; i++) { const v = (maxY * i) / 4; svg.append(h("line", { ns: "svg", x1: L, x2: W - R, y1: Y(v), y2: Y(v), class: "bn-grid" }), h("text", { ns: "svg", x: L - 10, y: Y(v) + 5, "text-anchor": "end" }, v.toFixed(0))); }
-  for (let w = 0; w <= maxW; w++) svg.append(h("text", { ns: "svg", x: X(w), y: H - B + 26, "text-anchor": "middle" }, String(w)));
+  for (let i = 0; i <= 4; i++) { const v = (maxY * i) / 4; svg.append(h("line", { ns: "svg", x1: L, x2: W - R, y1: Y(v), y2: Y(v), class: "bn-grid" }), h("text", { ns: "svg", x: L - 10, y: Y(v) + 5, "text-anchor": "end" }, v.toFixed(maxY < 1 ? 3 : maxY < 10 ? 1 : 0))); }
+  for (let w = 0; w <= end; w += Math.max(1, Math.ceil(end / 12))) svg.append(h("text", { ns: "svg", x: X(w), y: H - B + 26, "text-anchor": "middle" }, String(w)));
   svg.append(h("text", { ns: "svg", x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle" }, "week of the migration"),
     h("text", { ns: "svg", x: 14, y: T + (H - T - B) / 2, transform: `rotate(-90 14 ${T + (H - T - B) / 2})`, "text-anchor": "middle" }, "exposure-years still ahead"));
-  S.forEach((s, k) => {
-    svg.append(h("polyline", { ns: "svg", class: `pl-line ${s.cls}`, points: s.points.map((p) => `${X(p.week).toFixed(1)},${Y(p.exposure_years).toFixed(1)}`).join(" ") }));
+  const pts = (s, dy = 0) => s.points.map((p) => `${X(p.week).toFixed(1)},${(Y(p.exposure_years) + dy).toFixed(1)}`).join(" ");
+  S.forEach((s) => {
+    svg.append(h("polyline", { ns: "svg", class: `pl-line ${s.cls}`, points: pts(s) }));
+    s.twins.forEach((t, k) => svg.append(h("polyline", { ns: "svg", class: `pl-line ${t.cls}`, points: pts(t, -4 * (k + 1)) })));  // identical plan: drawn offset, same data
     s.points.forEach((p) => svg.append(h("circle", { ns: "svg", class: `pl-pt ${s.cls}`, cx: X(p.week), cy: Y(p.exposure_years), r: 5, tabindex: "0",
       "data-prov": provAttr({ run_id: (s.produced.run_ids || []).join(", ") || "n/a", solver: s.produced.solver || "n/a", job_id: "none (local solve, no platform job ID)", ts: r.generated_at, note: `${scenario} · week ${p.week}: ${p.exposure_years.toFixed(2)} exposure-years` }, s.label) })));
-    const i = labelWeek(S, k), p = s.points[i];
-    svg.append(h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(p.week) + 12, y: Y(p.exposure_years) - 12 }, s.label));
   });
-  return svg;
+  const ends = S.map((s) => Y(s.points.at(-1).exposure_years));
+  spreadLabels(ends, S.some((s) => s.twins.length) ? 46 : 30, T + 10, H - B - 12).forEach((y, k) => {
+    const s = S[k];
+    svg.append(h("line", { ns: "svg", x1: X(end) + 4, y1: ends[k], x2: X(end) + 16, y2: y - 5, class: "bn-grid" }),
+      s.twins.length ? h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y: y - 10 }, h("tspan", { ns: "svg", text: s.label.replace(" (identical plan)", "") }),
+        h("tspan", { ns: "svg", x: X(end) + 20, dy: 20, text: "(identical plan)" })) : h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y }, s.label));
+  });
+  const makespan = r.exposure && r.exposure.makespan_weeks;
+  return h("div", {}, svg, h("p", { class: "mv-note", text: `All systems migrated by week ${makespan ?? "–"} (optimised plan). Exposure still ahead reaches 0 by week ${zero}; the axis stops at week ${end}, after which no line changes.` }));
+}
+
+// the optimisation itself: per-wave effort against the weekly capacity (results.waves + assumptions), and the
+// weighted objective the MILP minimises for the optimised plan and both baselines (expected_weighted)
+function optimisation(r) {
+  const waves = r.waves || [], cap = (r.assumptions || {}).capacity_days_per_week;
+  if (!waves.length || !cap) return h("p", { class: "mv-note", text: "Optimisation graph: not yet run" });
+  const W = 1100, H = 300, L = 70, R = 20, T = 24, B = 50;
+  const maxE = Math.max(cap, ...waves.map((w) => w.effort_days || 0)), n = waves.length;
+  const bw = Math.min(46, ((W - L - R) / n) * 0.7), X = (i) => L + ((i + 0.5) * (W - L - R)) / n, Y = (v) => T + (1 - v / maxE) * (H - T - B);
+  const svg = h("svg", { viewBox: `0 0 ${W} ${H}`, class: "pl-chart", role: "img", "aria-label": `Effort per wave against a capacity of ${cap} engineer-days per week, ${n} waves` });
+  for (let i = 0; i <= 2; i++) { const v = (maxE * i) / 2; svg.append(h("line", { ns: "svg", x1: L, x2: W - R, y1: Y(v), y2: Y(v), class: "bn-grid" }), h("text", { ns: "svg", x: L - 10, y: Y(v) + 5, "text-anchor": "end" }, v.toFixed(0))); }
+  waves.forEach((w, i) => {
+    svg.append(h("rect", { ns: "svg", class: "pl-bar", x: X(i) - bw / 2, y: Y(w.effort_days || 0), width: bw, height: Y(0) - Y(w.effort_days || 0), tabindex: "0",
+      "data-prov": provAttr({ run_id: ((r.exposure.produced_by || {}).run_ids || []).join(", ") || "n/a", solver: (r.exposure.produced_by || {}).solver || "n/a", job_id: "none (local solve)", ts: r.generated_at, note: `week ${w.week}: ${w.assets.length} systems, ${w.effort_days} of ${cap} engineer-days` }, `wave week ${w.week}`) }));
+    if (n <= 24 || i % Math.ceil(n / 24) === 0) svg.append(h("text", { ns: "svg", x: X(i), y: H - B + 24, "text-anchor": "middle" }, String(w.week)));
+  });
+  svg.append(h("line", { ns: "svg", class: "pl-cap", x1: L, x2: W - R, y1: Y(cap), y2: Y(cap) }), h("text", { ns: "svg", class: "pl-lab", x: W - R, y: Y(cap) - 8, "text-anchor": "end" }, `capacity ${cap} engineer-days / week (assumption)`),
+    h("text", { ns: "svg", x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle" }, "wave (week) · bar = assumed effort of the systems in it"));
+  const obj = [["Optimised (QpiAI Opt MILP)", r.exposure], ["Greedy", (r.baselines || {}).greedy], ["FCFS", (r.baselines || {}).fcfs]].filter(([, x]) => x && typeof x.expected_weighted === "number");
+  const maxO = Math.max(...obj.map(([, x]) => x.expected_weighted)), minO = Math.min(...obj.map(([, x]) => x.expected_weighted));
+  const objEl = h("div", { class: "pl-obj" }, obj.map(([label, x]) => h("div", { class: "pl-obj-row" }, h("span", { class: "pl-obj-l", text: label }),
+    h("span", { class: "pl-obj-bar" }, h("span", { style: { width: `${(x.expected_weighted / maxO) * 100}%` }, class: x.expected_weighted === minO ? "best" : "" })),
+    h("span", { class: "num", text: x.expected_weighted.toFixed(2) }))));
+  return h("div", {}, svg, h("p", { class: "mv-how", text: "How to read this: each bar is one weekly wave of the optimised plan; no bar may exceed the capacity line, and a system never moves before what it depends on." }),
+    h("p", { class: "pl-sub", text: "Objective the MILP minimises (risk- and scenario-weighted exposure-years, lower is better):" }), objEl);
 }
 
 export async function mount(ctx) {
@@ -63,7 +134,7 @@ export async function mount(ctx) {
   const stageEl = stage(ctx, { label: "The plan over time: scrub the week; a crystal turns cyan when its wave passed the lab gates, and its HNDL beam goes out." });
   let waveWeeks = [], lastWeek = null;
   // the stage sits under the hero stats (hero number above the fold); moved into the grid when the data renders
-  const stageWrap = h("div", { class: "tech" }, stageEl, h("label", { class: "sg-row week-scrub" }, h("span", { class: "eyebrow", style: { margin: 0 }, text: "week" }), weekIn, weekOut));
+  const stageWrap = h("div", {}, stageEl, h("label", { class: "sg-row week-scrub" }, h("span", { class: "eyebrow", style: { margin: 0 }, text: "week" }), weekIn, weekOut));
   const setWeek = (wk) => {
     weekOut.textContent = `week ${wk}`;
     if (ctx.world.uniforms) ctx.world.uniforms.uWeek.value = wk;
@@ -102,8 +173,10 @@ export async function mount(ctx) {
         heroEl.replaceChildren(
           h("p", { class: "pl-call" }, "Exposure-years avoided vs FCFS: ", h("span", { class: "num", tabindex: "0", "data-prov": a.fcfs.source ? provAttr(a.fcfs.source, "avoided vs FCFS") : null, text: a.fcfs.text }),
             h("span", { class: "pl-sub", text: `vs greedy: ${a.greedy.text} · scenario ${scenario}` })),
+          h("h2", { class: "mv-h2", text: "Comparison: exposure still ahead, week by week" }),
           curves(m.results, scenario),
           h("p", { class: "mv-how", text: "How to read this: each line is how much exposure (years that data stays readable after Q-Day) is still ahead at each week. Lower is better; the gap at week 0 is the total avoided. Lines are unweighted exposure-years; the optimiser minimises the risk- and scenario-weighted total, so lines can cross." }));
+        heroEl.append(h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Optimisation: effort per wave vs capacity, and the objective" }), optimisation(m.results)));
         statsEl.replaceChildren(keyStats([
           { label: "weeks to migrate", cell: m.makespan, unit: "optimised plan", mean: "When the last wave finishes, at the assumed team capacity." },
           { label: "exposure avoided vs first-come-first-served", cell: a.fcfs, unit: "exposure-years", mean: "Less time that sensitive data stays readable to a future quantum computer, compared with the simple order." },
