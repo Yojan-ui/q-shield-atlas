@@ -186,8 +186,11 @@ def flows(browser, base, cookies):
         page.send("Input.dispatchKeyEvent", {"type": "keyDown", "key": "5", "text": "5"})  # rail order: Ledger is 4, Schedule 5 (display order)
         page.send("Input.dispatchKeyEvent", {"type": "keyUp", "key": "5"})
         page.wait_for("document.body.dataset.route === 'schedule'", 5) or problems.append(f"key 5 -> {r()}")
-        page.eval("document.querySelector('a[href=\"/w/demo/ledger\"]').click()")
+        # the stepper links the Ledger twice (?section=2 and ?section=6); click step 2
+        page.eval("document.querySelector('.rail a[href=\"/w/demo/ledger?section=2\"]').click()")
         page.wait_for("document.body.dataset.route === 'ledger'", 5) or problems.append(f"rail click -> {r()}")
+        if "section=2" not in page.eval("location.search"):
+            problems.append(f"rail click lost ?section=2 ({page.eval('location.search')})")
         page.eval("history.back()")
         page.wait_for("document.body.dataset.route === 'schedule'", 5) or problems.append(f"back -> {r()}")
         page.eval("history.back()")
