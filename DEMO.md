@@ -18,8 +18,10 @@ HTML comment next to it (view the raw file to see them).
 - [ ] Start the app in venue mode: `python -m atlas_web --demo --kiosk --port 8080` (127.0.0.1; `--kiosk` hides sign-out).
 - [ ] Sign in once as a **viewer** account (create it beforehand: `python -m atlas_web create-user --role viewer`),
       then go back to `/` so the pitch starts on the landing page. Browser zoom 100 %, window at least 1280×720.
-- [ ] Offline fallback ready: `python -m atlas_web export`, then open `atlas_web/dist/index.html` once to check it loads
-      (no server, works over file://; the tamper button replays a result recorded at export time, labelled "recorded").
+- [ ] Offline fallback ready (from the release, made from this exact snapshot):
+      `gh release download v2.0-demo -R Yojan-ui/q-shield-atlas -p q-shield-atlas-web-snapshot.zip -D ~/Desktop --clobber && unzip -oq ~/Desktop/q-shield-atlas-web-snapshot.zip -d ~/Desktop`,
+      then `open ~/Desktop/q-shield-atlas-web-snapshot/index.html` once to check it loads (no server, no network; works over
+      file://; the tamper button replays a result recorded at export time, labelled "recorded").
 
 ---
 
@@ -94,9 +96,12 @@ run on their data: find it, plan it, verify it, prove it."
 
 | symptom | do this (≤ 5 s) |
 |---|---|
-| app tab blank / server gone | `open atlas_web/dist/index.html`: the static export (no server, no network); same click path, tamper shows "recorded" |
+| app tab blank / server gone | `open ~/Desktop/q-shield-atlas-web-snapshot/index.html`: the release's static snapshot (no server, no network); same click path, tamper shows "recorded" |
 | no WebGL on the venue machine | nothing to do: every route shows its 2D content with a notice |
 | port busy | `python -m atlas_web --demo --kiosk` (free port) and use the printed URL |
-| anything else | `open out/report.html`: the signed, offline report |
+| anything else | `open out/report.html` (or the release asset `q-shield-atlas-report.html`): the signed, offline report |
+
+Check the fallback matches the release: `shasum -a 256 ~/Desktop/q-shield-atlas-web-snapshot.zip` should print
+`4563d751f062af6dccf7867a4ba85b0be2b7748571f68aab4a30621532fa86a2`.
 
 After the demo: stop the server with Ctrl+C (it stops any running step and its lab services).
