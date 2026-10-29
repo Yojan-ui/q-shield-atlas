@@ -6,5 +6,5 @@
 .lg-out.cracked { border-top-color: var(--exposure); }
 .lg-out.healed { border-top-color: var(--pass); }
 .lg-gap { margin-top: var(--s-3); }
-.lg-proof { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-1); font-size: var(--fs-12); }
+.lg-proof { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-1); font-size: var(--fs-16); }
 .lg-proof li { display: flex; justify-content: space-between; gap: var(--s-3); border-bottom: var(--rule) solid var(--hairline); padding: var(--s-1) 0; }

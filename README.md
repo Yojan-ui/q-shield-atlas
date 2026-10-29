@@ -188,8 +188,18 @@ python -m atlas_web export                       # static read-only snapshot in 
 - **Pages:** the route rail follows the stage order. Keys 1–9: Pipeline, Detect, Proof Chain, Plan, Handshakes, QAOA, Benchmark, Review, Migration.
   - **Pipeline** opens with "At a glance": one card per stage, each with a plain name, one status (Done / Running /
     Failed / Not run), the key number and a "what this means" line.
-  - Every page footer carries the colour legend.
-  - **Plan** shows the time estimate: the MILP makespan, plus a capacity lower bound of total assumed effort ÷ weekly
+  - Every page footer carries the colour legend. Every chart has a one-line "How to read this" caption.
+  - **Detect** opens with a 3D dependency graph of the inventory: one node per system (`results.assets` plus
+    `inventory.not_vulnerable`), one line per declared `depends_on`. Red = RSA/ECC/DH/DSA found; amber = needs a live
+    probe; cyan = PQC/hybrid key exchange (a classical certificate signature alone is noted in the side panel);
+    grey = nothing vulnerable. Node size is the risk weight (an assumption); a white ring marks recorded
+    static-vs-live drift. Click a node for its file:line evidence. Flat 2D graph on request and without WebGL.
+  - **Plan** shows remaining exposure-years per week for the optimised plan, FCFS and greedy (`remaining_by_week`,
+    unweighted, so lines can cross) and a large "Exposure-years avoided vs FCFS" from `avoided`.
+  - **Proof Chain** shows the ledger as linked blocks (green when the live check verified). The one-click tamper
+    test edits a temporary copy server-side and verifies it; blocks turn red from the failing index, then the page
+    shows the real ledger's SHA-256 unchanged.
+  - **Plan** also shows the time estimate: the MILP makespan, plus a capacity lower bound of total assumed effort ÷ weekly
     capacity. You can set a deadline in weeks, and the page flags clearly when the estimate exceeds it. The deadline
     is saved per workspace for operators; otherwise it is kept in this browser only.
   - **Benchmark** (`python -m bench`, or the button) solves the same link cutover instances (6–16 QUBO variables)
@@ -200,13 +210,20 @@ python -m atlas_web export                       # static read-only snapshot in 
   - **Review** lists the latest run's plan, waves, QAOA run and benchmark as items awaiting review. Operators
     approve or reject each one with a required reason. Each decision is signed into the Proof Chain as
     `review.decision` and bound to the item's run_id and evidence SHA-256, and the chain is then re-verified.
-  - **Migration** shows every system moving through three lanes (old encryption → moving now → post-quantum), week
-    by week, following the logged plan.
-    - Each tile carries its wave's lab gate result, and the lab-tested connections are listed.
-    - "Verified in lab" is the strongest state shown. Nothing claims a production migration.
-    - Play animates the weeks. With reduced motion (OS setting or the Motion toggle) tiles change lanes without
-      animation.
-    - This view is 2D. The 3D week-by-week view is the LATTICE on Plan.
+  - **Migration (Move)** is sender vs receiver: a replay of the recorded lab handshakes, packet by packet.
+    - Each packet is one message of the recorded `openssl s_client -msg` transcript (`runs/<run_id>/transcript_*.txt`,
+      used only when its SHA-256 matches `capture.json`), as wide as its recorded byte length; key shares are drawn
+      inside their hello. API: `GET /api/workspaces/<ws>/move`.
+    - Lanes: before (same client, classical X25519 server, HNDL-exposed), after (hybrid X25519MLKEM768), and the
+      recorded classical-only attempt (refused / accepted / "not run"). RSA vs ML-DSA-65 server authentication sizes
+      from the recorded Certificate and CertificateVerify.
+    - The week slider walks the logged plan; each wave shows its recorded lab gate results ("not run in this wave"
+      where a gate did not run). "Verified in lab" is the strongest state, for lab stand-ins only. Bank endpoints are
+      "observed" (one recorded handshake) and "planned", never applied.
+    - **Run fresh handshake now** (operators; `fresh_handshake.enabled` in `config/atlas_web.json`): runs the lab
+      capture on 127.0.0.1 only, evaluates the gates, replays it labelled "not part of results.json, not signed",
+      and logs it under `atlas_web/data/fresh_handshakes/<run_id>/` (git-ignored). Nothing else is written.
+    - With reduced motion (OS setting or the Motion toggle) nothing plays by itself; Step walks the messages.
 - **Roles:** viewer (read), operator (run, upload, calibrate), admin (users; paid QpiAI runs, which stay disabled in
   `config/atlas_web.json` until the account issues are fixed). scrypt passwords, hashed session tokens, CSRF
   double-submit, login rate limit.

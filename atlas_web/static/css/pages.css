@@ -51,10 +51,10 @@
   .rail a .full{display:inline !important}.rail a .short,.rail a kbd{display:none !important}
   .rail a[aria-current="page"]{background:var(--surface-raised)}
   .rail a[aria-current="page"]::after{display:none}
-  .rail .r-num{display:inline;font-family:var(--font-mono);font-size:var(--fs-12);color:var(--text-3)}
+  .rail .r-num{display:inline;font-family:var(--font-mono);font-size:var(--fs-16);color:var(--text-3)}
   .rail .r-tick{display:inline-flex;color:var(--pass)}
   .rail .r-tick svg{width:14px;height:14px}
-  .rail .r-group{display:block;margin:var(--s-4) var(--s-3) var(--s-1);font-size:var(--fs-11);letter-spacing:var(--track-label);text-transform:uppercase;color:var(--text-3)}
+  .rail .r-group{display:block;margin:var(--s-4) var(--s-3) var(--s-1);font-size:var(--fs-16);letter-spacing:var(--track-label);text-transform:uppercase;color:var(--text-3)}
   body:has(.rail:not([hidden])) .page{margin-left:var(--side-w);max-width:min(var(--page-max),calc(100vw - var(--side-w)))}
 }
 [data-mode="beginner"] .tech{display:none !important}
@@ -81,7 +81,7 @@
 .acc>summary::-webkit-details-marker{display:none}
 .acc>summary:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 .acc-title{font-weight:600}
-.acc-sum{color:var(--text-2);font-size:var(--fs-14)}
+.acc-sum{color:var(--text-2);font-size:var(--fs-16)}
 .acc>summary svg{width:16px;height:16px;color:var(--text-3);transition:transform .2s ease-out}
 .acc[open]>summary svg{transform:rotate(180deg)}
 .acc-body{padding:0 var(--s-2) var(--s-4);display:grid;gap:var(--s-3);color:var(--text-2)}

@@ -111,7 +111,7 @@ export function buildGraph({ THREE, world, group }, G, L, { reduced, labelsEl, s
   const graph = new THREE.Group(); group.add(graph);
   group.position.set(-L.radius * 0.35, 0, 0);  // leave room for the side panel on the right
   const m = new THREE.Matrix4(), col = new THREE.Color();
-  const sphere = new THREE.SphereGeometry(1, 18, 12);
+  const sphere = n > 300 ? new THREE.IcosahedronGeometry(1, 1) : new THREE.SphereGeometry(1, 18, 12);  // fewer triangles for big graphs
   const mesh = new THREE.InstancedMesh(sphere, new THREE.MeshBasicMaterial({ fog: false })  /* unlit: the legend colour exactly */, Math.max(1, n));
   mesh.count = n;
   nodes.forEach((x, i) => {
