@@ -7,7 +7,7 @@ import { pageHead } from "../components/page.js";
 const slug = (u) => (u.replace(/\.git$/, "").split("/").filter(Boolean).pop() || "repo").toLowerCase().replace(/[^a-z0-9-]/g, "-").slice(0, 40);
 
 export async function mount(ctx) {
-  const url = field({ label: "Public GitHub repository URL", name: "url", type: "url", placeholder: "https://github.com/org/repo", hint: "public https only; cloned read-only into a new workspace", required: true,
+  const url = field({ label: "Public GitHub repository URL", name: "url", type: "url", value: ctx.query.get("url") || "", placeholder: "https://github.com/org/repo", hint: "public https only; cloned read-only into a new workspace", required: true,
     validate: (v) => (/^https:\/\/[^\s]+$/.test(v) ? "" : "must start with https://") });
   const name = field({ label: "Workspace name", name: "name", placeholder: "defaults to the repository name" });
   const msg = h("p", { class: "mv-note", "aria-live": "polite" }), btn = h("button", { class: "btn primary", type: "submit", text: "Create workspace and clone" });

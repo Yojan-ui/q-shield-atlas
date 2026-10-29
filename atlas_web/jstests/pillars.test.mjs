@@ -104,3 +104,10 @@ test("schedule: objective per scenario, solver line and plain headline come from
   assert.equal(planHeadline(null, null, "Z2030"), "Plan comparison: not yet run");
   assert.equal(solverLine({}), "Solved with: not yet run");
 });
+
+import { bankShare } from "../static/js/views/landing.js";
+test("landing: bank share counts only recorded observations", () => {
+  assert.equal(bankShare(null), null);
+  assert.equal(bankShare({ observed: {} }), null);
+  assert.deepEqual(bankShare({ observed: { a: { outcome: "classical" }, b: { outcome: "hybrid_pq" }, c: { outcome: "classical" } } }), { classical: 2, total: 3 });
+});

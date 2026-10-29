@@ -89,11 +89,10 @@ export async function mount(ctx) {
         big(d.available ? d.assets : num(null), 0, "systems exposed", "RSA / ECC / DH today (demo bank)"),
         big(a.fcfs, 3, "exposure-years avoided", `vs first-come-first-served, Q-Day ${(m.scenarios.find((x) => x.name === scenario) || {}).year || ""}`),
         big(l.available ? l.entries : num(null), 0, "signed proof records", verified ? "ML-DSA-65, all verified" : "ML-DSA-65 · not verified"));
-      const steps = h("ol", { class: "ld-steps", "aria-label": "The pipeline, in order" }, FLOW.map((f, i) => h("li", {}, h("a", { href: go(`/w/demo/${f.route}`) }, h("span", { class: "num", text: String(i + 1) }), f.label))));
-      return h("div", { class: "ld-below" }, steps,
-        h("p", { class: "ld-honest", text: "Lab demo. Real public data where marked. Migrations are simulated. No quantum advantage claimed." }),
-        h("p", { class: "mv-note", text: `${HNDL}. Data: demo snapshot, results.json generated ${r.generated_at}.` }),
-        honesty());
+      return h("div", { class: "ld-below" }, ...sections(ctx, go),
+        h("p", { class: "mv-note", text: `${HNDL}. Data: demo snapshot, results.json generated ${r.generated_at}.` }), honesty(),
+        h("footer", { class: "ld-foot" }, h("a", { href: REPO_URL, rel: "noopener", text: "github.com/Yojan-ui/q-shield-atlas" }),
+          h("span", { text: "Team Q-Shield Atlas" }), h("span", { text: "Built for NITTE hackathon, PQC-01" })));
     },
   });
   const heroEl = h("header", { class: "ld-hero" },
@@ -114,4 +113,53 @@ export async function mount(ctx) {
     h("section", { class: "ld-top", "aria-label": "Q-Shield Atlas" }, h("div", { class: "ld-left" }, heroEl, numsEl),
       h("div", { class: "ld-right" }, stageEl, h("div", { class: "ld-chainrow" }, chainLabel, chain))),
     body));
+}
+
+const REPO_URL = "https://github.com/Yojan-ui/q-shield-atlas";  // a plain link (navigation), not a loaded resource
+
+// sections below the hero: real numbers from the real workspaces (signed-in only; the API is not public)
+const REAL = [["real-banks", "public Indian bank endpoints, one recorded TLS handshake each (CC0 dataset)"], ["online-boutique", "Google's microservices demo, pinned commit"],
+  ["otel-demo", "OpenTelemetry demo, pinned commit"]];
+
+export function bankShare(move) {  // X of N observed public endpoints still on classical key exchange
+  const ob = Object.values((move && move.observed) || {});
+  return ob.length ? { classical: ob.filter((o) => o.outcome === "classical").length, total: ob.length } : null;
+}
+
+function sections(ctx, go) {
+  const known = new Set(((ctx.workspaces || []) || []).map((w) => w.id));
+  const sec = (title, ...kids) => h("section", { class: "ld-sec" }, h("h2", { class: "ld-h2", text: title }), ...kids);
+  // 1 the problem
+  const fact = h("p", { class: "ld-fact" }, ctx.me ? "Loading the real-banks observation…" : "Sign in to see the real-banks observation.");
+  if (ctx.me && known.has("real-banks")) {
+    Promise.all([ctx.store.get("real-banks", "move", { signal: ctx.signal }), ctx.store.get("real-banks", "results", { signal: ctx.signal })]).then(([mv, res]) => {
+      const b = bankShare(mv), ts = res && res.results && res.results.detect && res.results.detect.ts;
+      fact.replaceChildren(...(b ? [h("span", { class: "ld-big num", text: `${b.classical} of ${b.total}` }), ` public bank endpoints still negotiate classical key exchange (observed ${ts ? ts.slice(0, 10) : "date not recorded"}, real-banks workspace).`]
+        : ["real-banks observation: not yet run"]));
+    }).catch(() => { fact.textContent = "real-banks observation: not yet run"; });
+  } else if (ctx.me) fact.textContent = "real-banks observation: not yet run";
+  // 3 real data cards
+  const cards = h("div", { class: "ld-cards" }, REAL.map(([id, what]) => {
+    const c = h("div", { class: "ld-card" }, h("p", { class: "ld-k", text: id }), h("p", { class: "ld-u", text: what }));
+    const nums = h("p", { class: "ld-cnum" }, ctx.me ? (known.has(id) ? "…" : "not yet run") : "sign in to see the numbers");
+    c.append(nums, h("a", { class: "btn", href: go(`/w/${id}/pipeline`), text: "Open" }));
+    if (ctx.me && known.has(id)) ctx.store.get(id, "results", { signal: ctx.signal }).then((res) => {
+      const r = res && res.results;
+      nums.replaceChildren(...(r && r.detect ? [h("span", { class: "num", text: String(r.assets.length) }), " systems to migrate · ", h("span", { class: "num", text: String(r.detect.summary.vulnerable_findings) }),
+        " findings · ", h("span", { class: "num", text: r.exposure ? String(r.exposure.makespan_weeks) : "–" }), " weeks"] : ["not yet run"]));
+    }).catch(() => { nums.textContent = "not yet run"; });
+    return c;
+  }));
+  // 4 bring your own
+  const url = h("input", { type: "url", class: "ld-url", placeholder: "https://github.com/org/repo", "aria-label": "Public GitHub repository URL" });
+  const scan = h("form", { class: "ld-scan", onsubmit: (e) => { e.preventDefault(); ctx.navigate(go(`/settings/new-workspace?url=${encodeURIComponent(url.value.trim())}`)); } },
+    url, h("button", { class: "btn primary", type: "submit", text: "Scan" }));
+  return [
+    sec("The problem in 10 seconds", h("p", { class: "ld-say", text: "Harvest now, decrypt later: traffic protected by RSA or elliptic-curve key exchange can be recorded today and read once a large quantum computer exists." }), fact),
+    sec("How it works", h("ol", { class: "ld-steps" }, FLOW.map((f, i) => h("li", {}, h("a", { href: go(`/w/demo/${f.route}`) }, h("span", { class: "num", text: String(i + 1) }), h("b", { text: f.label }), h("span", { class: "ld-u", text: f.does })))))),
+    sec("Real data", cards),
+    sec("Bring your own", h("p", { class: "ld-say", text: "Point it at a public repository: it is cloned into a new workspace and scanned; nothing runs until you start the pipeline." }), scan),
+    sec("Honest by design", h("ul", { class: "ld-list" }, ["Real TLS handshakes and real public data where marked; migrations and lab stand-ins are simulated.", "No quantum advantage claimed: QAOA is a simulator cross-check against the exact optimum.",
+      "Every result is signed (ML-DSA-65) into a hash-chained Proof Chain; any edit is detected.", "Paid QpiAI platform runs are disabled; everything shown ran locally."].map((t) => h("li", { text: t })))),
+  ];
 }
