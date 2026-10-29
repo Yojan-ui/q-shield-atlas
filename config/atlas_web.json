@@ -5,7 +5,7 @@
     "opt_enabled": false,
     "opt_blocked_reason": "QpiAI Opt platform submissions were rejected by the server: \"no active storage quota found for organization\" (2026-10-28). No platform job was created. Disabled until the account has a storage quota.",
     "qcloud_enabled": false,
-    "qcloud_blocked_reason": "QCloud job creation was rejected: \"an active subscription is required to run jobs\" (2026-10-28). No QCloud job was created. Disabled until the account has a subscription."
+    "qcloud_blocked_reason": "QCloud job creation was rejected: \"an active subscription is required to run jobs\" (2026-10-28T15:29:50Z, run a7985b93f3a5490aaa3636c969dcc1c3). No QCloud job was created. Disabled until the account has a subscription."
   },
   "fresh_handshake": {
     "note": "Move page 'Run fresh handshake now' (operators): starts the lab TLS services on 127.0.0.1 via capture/, one handshake per service and client, then stops them. Never an external host. Logged under atlas_web/data/fresh_handshakes/ (git-ignored); not part of results.json, not signed. Enabled by the user on 2026-10-29.",

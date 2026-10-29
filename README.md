@@ -296,6 +296,21 @@ python -m atlas_web export                       # static read-only snapshot in 
 - **Toolchain:** OpenSSL >= 3.5 is required (ML-KEM groups, ML-DSA); the system LibreSSL and older
   OpenSSL builds do not work.
 
+## Quantum: QpiAI Opt, QpiAI QSV and QCloud
+
+Full write-up with every logged value and the commands to reproduce it: `docs/QUANTUM.md`.
+
+- SDKs: `qpiai-opt` 0.0.9 and `qpiai-quantum` 0.3.0 from `pip install -r requirements.txt`. `quantum-sdk/` is a
+  git-ignored reference clone of github.com/qpiai/quantum-sdk (v0.7.5). The pipeline does not use it.
+- QpiAI Opt (scheduling MILP, local): optimal in 0.1215455 s, run 641f5d49ae3e4a19b4e2500a0f1047e9,
+  job_id null because local solves issue no platform job ID (traced by run_id and input/output SHA-256).
+- QpiAI QSV-Local (QAOA wave selection, 14 QUBO variables, 2048 shots): P(optimal set) 0.0137 / 0.0186 / 0.0171
+  for p = 1 / 2 / 3, vs 0.0010 for uniform random. Run f8bf1b797021460d96be5efbb1a84acb, 2026-10-29T01:52:20Z.
+- QpiAI QCloud: login and device listing work. Job creation was rejected on 2026-10-28 ("an active subscription
+  is required to run jobs"), so no QCloud job was created and QCloud runs stay disabled.
+- IBM ibm_fez (real hardware): 3 jobs on 2026-10-29 (see "IBM Quantum hardware run" below). A measured cross-check against the
+  exact optimum; no quantum advantage is claimed.
+
 ## Opt-in paid runs
 
 Default runs never submit QpiAI Opt or QCloud jobs (`QSHIELD_FORBID_PLATFORM=1`; tests force it).

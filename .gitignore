@@ -11,3 +11,4 @@ keys/
 atlas_web/data/
 atlas_web/dist/
 atlas_web/screenshots/**/*.png
+quantum-sdk/

@@ -9,6 +9,7 @@ import { num, QAOA_LABEL } from "../model.js";
 import { dataView, honesty, mountScene, notRun, stage } from "./common.js";
 import { buildQaoaCloud } from "../scenes/qaoa.js";
 import { quantumPanel } from "../components/quantum.js";
+import { backendTable } from "../components/backends.js";
 import { bullets, detailsList, main, nextStep, pageHead, whyBlock, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 import { provAttr } from "../components/tooltip.js";
@@ -83,6 +84,7 @@ export async function mount(ctx) {
           sH ? pm(sH, `The same circuit run on IBM's ${hwName} quantum computer. Hardware noise lowers this at this circuit depth.`) : null),
         main(h("div", {}, ctx.wsInfo && !ctx.wsInfo.read_only || ctx.ws === "demo" ? quantumPanel(ctx) : null, stageWrap,
           dd({ read: "left is QAOA on the simulator, the middle cloud (when shown) the same circuits on IBM real hardware, right a uniform random guess. The bigger the shell, the more shots met the constraints; the bigger the core, the more shots hit the exact optimum." })), { title: "QAOA against the exact answer" }),
+        backendTable(ctx, m.results),
         detailsList([
           { title: "How it works", summary: "One week's choice becomes a small yes/no problem that QAOA samples.", body: bullets([
             ["The choice is written as a ", term("qubo", "QUBO"), " (at most 16 variables): value of migrating now, minus penalties for breaking capacity or dependencies."],
