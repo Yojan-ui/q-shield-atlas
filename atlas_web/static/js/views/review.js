@@ -5,7 +5,8 @@ import { chip } from "../components/chip.js";
 import { table, tableSkeleton } from "../components/table.js";
 import { emptyState } from "../components/states.js";
 import { toast } from "../components/toast.js";
-import { dataView, honesty, notRun } from "./common.js";
+import { dataView, honesty, mountScene, notRun, stage, viewCss } from "./common.js";
+import { buildPillars } from "../scenes/pillars.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";
 
@@ -39,7 +40,17 @@ const proof = (ctx, i) => h("p", { class: "fine" }, i.ledger_index !== null && i
   ? [h("a", { href: `/w/${ctx.ws}/ledger`, text: `Proof Chain #${i.ledger_index}` }), " · ", chip(i.signature === "verified" ? "verified" : "NOT_RUN", `signature ${i.signature}`)]
   : chip("NOT_RUN", "not signed yet"), h("span", { class: "mono", text: ` · run ${i.run_id.slice(0, 12)}` }));
 
+// one block per review item, coloured by its real Proof Chain signature status (review.listing):
+// verified = green, not verified = red, not signed yet = wireframe
+export const SIG_STATE = { verified: "ok", "not verified": "fail" };
+export const reviewItems = (items) => items.map((i) => ({ id: i.id, label: `${i.kind}${i.ledger_index !== null && i.ledger_index !== undefined ? ` #${i.ledger_index}` : ""}\n${i.signature}`,
+  h: 0.25, state: SIG_STATE[i.signature] || "missing" }));
+
 export async function mount(ctx) {
+  await viewCss("pillars");
+  const labels3d = h("div", { class: "gr-labels", "aria-hidden": "true" });
+  const stageEl = stage(ctx, { label: "One block per review item, coloured by its Proof Chain signature: green verified, red not verified, outline not signed yet.", fallback: h("span") });
+  stageEl.append(labels3d);
   const body = dataView(ctx, {
     keys: ["reviews"],
     skeleton: () => tableSkeleton(4),
@@ -51,7 +62,10 @@ export async function mount(ctx) {
       const why = R.read_only ? "Read-only demo snapshot: decisions cannot be recorded here." : !R.can_decide ? "Viewers can see decisions; an operator or admin records them." : null;
       const focus = ctx.query.get("item");
       if (focus) requestAnimationFrame(() => { const el = ctx.root.querySelector(".rv-item.hl"); if (el) el.scrollIntoView({ block: "center" }); });
+      mountScene(ctx, "review", { available: true }, (env) => buildPillars(env, reviewItems(R.items), { labelsEl: labels3d, stageEl, reduced: ctx.world.reduced,
+        onPick: (it) => { const el = ctx.root.querySelector(`#item-${it.id.replace(/[^a-z0-9-]/gi, "-")}`); if (el) el.scrollIntoView({ block: "center" }); } })).catch(() => {});
       return h("div", {},
+        stageEl, h("p", { class: "mv-how", text: "How to read this: one block per result awaiting or past review. Green: its ML-DSA-65 signature in the Proof Chain verifies. Red: it does not. Outline: not signed yet. Click a block to jump to it." }),
         keyStats([
           { label: "awaiting review", cell: n(pending.length), unit: "results", mean: why || "Each needs a person's approve or reject, with a reason." },
           { label: "approved", cell: n(done.filter((i) => i.status === "approved").length), unit: "signed decisions", mean: "Approved steps can go ahead in the real migration plan." },

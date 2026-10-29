@@ -41,3 +41,12 @@ test("Benchmark bars come only from measured runtimes; nothing measured is 'not 
   const c = benchItems({ crypto: { primitives: { "ML-DSA-65": { public_key_der_bytes: 1974, signature_bytes: 3309 }, "ECDSA P-256": { public_key_der_bytes: 91, signature_bytes: 72 } } } }, "crypto");
   assert.equal(c.find((x) => x.id === "ML-DSA-65").h, 1);
 });
+
+import { reviewItems } from "../static/js/views/review.js";
+test("Review blocks are coloured by the real signature status", () => {
+  const it = reviewItems([{ id: "a", kind: "plan", ledger_index: 3, signature: "verified" }, { id: "b", kind: "wave", ledger_index: 4, signature: "not verified" },
+    { id: "c", kind: "qaoa", ledger_index: null, signature: "not signed yet" }]);
+  assert.deepEqual(it.map((x) => x.state), ["ok", "fail", "missing"]);
+  assert.match(it[0].label, /plan #3/);
+  assert.doesNotMatch(it[2].label, /#/);
+});
