@@ -85,7 +85,7 @@ test("schedule chart: axis end, identical plans merged, labels never overlap", (
   const M = mergeIdentical(S);
   assert.equal(M.length, 2);
   assert.equal(M[0].label, "Optimised = Greedy (identical plan)");
-  assert.equal(mergeIdentical([S[0], S[2], { ...S[2], short: "FCFS" }])[0].label, "Optimised = Greedy = FCFS (identical plan)");
+  assert.equal(mergeIdentical([S[0], S[2], { ...S[2], short: "FCFS" }])[0].label, "All three orders give the same plan");
   const y = spreadLabels([300, 300, 301], 24, 20, 360);
   const sorted = [...y].sort((a, b) => a - b);
   assert.ok(sorted[1] - sorted[0] >= 24 && sorted[2] - sorted[1] >= 24 && sorted[2] <= 360);

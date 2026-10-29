@@ -12,6 +12,8 @@ import { sound } from "../sound.js";
 import { estimateBlock } from "../components/estimate.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";
+import { otherOptions, qualityBlock, whyMilp } from "../components/solvers.js";
+import { runtimeChart } from "./bench.js";
 
 // Remaining exposure-years per week for the optimised plan and both baselines (results.json remaining_by_week),
 // one scenario, direct labels where the lines are furthest apart. Values are unweighted; the optimiser minimises the
@@ -39,7 +41,7 @@ export function mergeIdentical(S) {
   const out = [];
   for (const s of S) {
     const twin = out.find((o) => same(o, s));
-    if (twin) { twin.twins.push(s); twin.label = `${[twin.short, ...twin.twins.map((t) => t.short)].join(" = ")} (identical plan)`; } else out.push({ ...s, twins: [] });
+    if (twin) { twin.twins.push(s); twin.label = twin.twins.length === 2 ? "All three orders give the same plan" : `${[twin.short, ...twin.twins.map((t) => t.short)].join(" = ")} (identical plan)`; } else out.push({ ...s, twins: [] });
   }
   return out;
 }
@@ -98,7 +100,7 @@ function curves(r, scenario) {
   spreadLabels(ends, S.some((s) => s.twins.length) ? 52 : 30, T + 10, H - B - 16).forEach((y, k) => {
     const s = S[k];
     svg.append(h("line", { ns: "svg", x1: X(end) + 4, y1: ends[k], x2: X(end) + 16, y2: y - 5, class: "bn-grid" }),
-      s.twins.length ? h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y: y - 10 }, h("tspan", { ns: "svg", text: s.label.replace(" (identical plan)", "") }),
+      s.twins.length === 1 ? h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y: y - 10 }, h("tspan", { ns: "svg", text: s.label.replace(" (identical plan)", "") }),
         h("tspan", { ns: "svg", x: X(end) + 20, dy: 24, text: "(identical plan)" })) : h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y }, s.label));
   });
   const makespan = r.exposure && r.exposure.makespan_weeks;
@@ -190,6 +192,7 @@ export async function mount(ctx) {
     weekIn.value = String(Number.isFinite(q) && ctx.query.get("week") !== null ? Math.min(q, scene.weeks.length - 1) : scene.weeks.length - 1);
     return mountScene(ctx, "schedule", scene, ({ THREE, world, group }) => {
       lattice = buildLattice(THREE, group, scene, world.uniforms);
+      world.fit(group, (scene.nodes || []).map((n) => n.pos));  // auto-fit, refit on resize
       if (scenario) lattice.setScenario(scenario);
       setWeek(Number(weekIn.value));
       return lattice.hooks(ctx, stageEl);
@@ -203,7 +206,12 @@ export async function mount(ctx) {
       if (!names.includes(scenario)) scenario = names[0];
       const statsEl = h("div", {}), heroEl = h("section", { class: "pl-hero" });
       const benchLink = h("span");  // "Compare solvers" only when this workspace has Benchmark optimizer data
-      ctx.store.get(ctx.ws, "bench", { signal: ctx.signal }).then((P) => { if (P && P.bench) benchLink.replaceChildren(" · ", h("a", { href: `/w/${ctx.ws}/bench?tab=optimizers`, text: "Compare solvers →" })); }).catch(() => {});
+      const solversEl = h("div", { class: "sv-wrap" }, h("p", { class: "mv-note", text: "Loading the solver benchmark…" }));
+      ctx.store.get(ctx.ws, "bench", { signal: ctx.signal }).then((P) => {
+        if (P && P.bench) benchLink.replaceChildren(" · ", h("a", { href: `/w/${ctx.ws}/bench?tab=optimizers`, text: "Compare solvers →" }));
+        solversEl.replaceChildren(qualityBlock(P, ctx),
+          P && P.bench ? h("div", {}, h("h3", { class: "pl-h3", text: "Runtime vs problem size (log scale)" }), runtimeChart(P.bench.rows, P.bench.instances)) : null);
+      }).catch(() => { solversEl.replaceChildren(qualityBlock(null, ctx)); });
       const picker = h("div", { class: "sg-row", role: "radiogroup", "aria-label": "CRQC scenario" });
       const draw = () => {
         const a = headlineAvoided(m, scenario);
@@ -213,7 +221,8 @@ export async function mount(ctx) {
           h("h2", { class: "mv-h2", text: "Comparison: exposure still ahead, week by week" }),
           curves(m.results, scenario),
           h("p", { class: "mv-how", text: "How to read this: each line is how much exposure (years that data stays readable after Q-Day) is still ahead at each week. Lower is better; the gap at week 0 is the total avoided. Lines are unweighted exposure-years; the optimiser minimises the risk- and scenario-weighted total, so lines can cross." }));
-        heroEl.append(h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Optimisation: the objective by Q-Day scenario" }), optimisation(m.results)));
+        heroEl.append(h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Optimisation: the objective by Q-Day scenario" }), optimisation(m.results)),
+          h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Why MILP, and how the solvers compare" }), whyMilp(m.results), solversEl, otherOptions()));
         statsEl.replaceChildren(keyStats([
           { label: "weeks to migrate", cell: m.makespan, unit: "optimised plan", mean: "When the last wave finishes, at the assumed team capacity." },
           { label: "exposure avoided vs first-come-first-served", cell: a.fcfs, unit: "exposure-years", mean: "Less time that sensitive data stays readable to a future quantum computer, compared with the simple order." },

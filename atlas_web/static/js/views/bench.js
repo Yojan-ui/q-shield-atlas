@@ -11,6 +11,7 @@ import { dataView, honesty, mountScene, stage, viewCss } from "./common.js";
 import { buildPillars } from "../scenes/pillars.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";
+import { qualityBlock } from "../components/solvers.js";
 
 // monochrome (colour is reserved for pass / fail / warn): series differ by grey level and dash pattern, and every
 // line is labelled directly at its end
@@ -28,7 +29,7 @@ const secs = (x) => (x === null || x === undefined ? "–" : x < 0.01 ? `${(x * 
 
 // runtime (log scale) against problem size, one line per solver; a <title> on every point is its tooltip
 export function runtimeChart(rows, instances) {
-  const W = 640, H = 300, L = 56, R = 150, T = 16, B = 40;
+  const W = 760, H = 320, L = 84, R = 190, T = 16, B = 44;  // room for "100 ms" ticks and end labels at 16px
   const xs = instances.map((i) => i.n_variables), x0 = Math.min(...xs), x1 = Math.max(...xs);
   const pts = rows.filter((r) => r.status === "ok" && r.runtime_s > 0 && SERIES.some((s) => s.key === seriesKey(r)));
   const lo = Math.floor(Math.log10(Math.min(...pts.map((r) => r.runtime_s)))), hi = Math.ceil(Math.log10(Math.max(...pts.map((r) => r.runtime_s))));
@@ -53,7 +54,7 @@ export function runtimeChart(rows, instances) {
     const last = line[line.length - 1];
     ends.push({ x: X(last.n_variables) + 8, y: Y(last.runtime_s) + 4, text: s.label.split(" (")[0] });
   }
-  ends.sort((a, b) => a.y - b.y).forEach((e, i, all) => { if (i && e.y - all[i - 1].y < 14) e.y = all[i - 1].y + 14; });  // no overlapping end labels
+  ends.sort((a, b) => a.y - b.y).forEach((e, i, all) => { if (i && e.y - all[i - 1].y < 22) e.y = all[i - 1].y + 22; });  // 16px labels: 22 px apart, never overlapping
   for (const e of ends) svg.append(h("text", { ns: "svg", x: e.x, y: e.y, class: "bn-label" }, e.text));
   return svg;
 }
@@ -135,6 +136,7 @@ function optimizerTab(ctx, P) {
   const src = { run_id: b.run_id, solver: "python -m bench", ts: b.ts };
   return h("div", {},
     h("div", { class: "bn-claim" }, chip("recorded", "measured"), h("p", { text: b.label })),
+    h("h3", { class: "pl-h3", text: "Solution quality (same chart as the Plan page)" }), qualityBlock(P, ctx),
     keyStats([
       sq.milp && sq.greedy ? { label: "best rule of thumb vs MILP", cell: cell(100 * Math.max(sq.greedy.approximation_ratio, sq.fcfs.approximation_ratio), 1, src), unit: "% of the optimum (100 = optimal)", mean: "How close the best simple rule (greedy or first-come-first-served) gets to QpiAI Opt's proven best plan." } : null,
       { label: "QAOA found the optimum", cell: cell(qaoaHits, 0, src), unit: `of ${b.instances.length} small wave-selection problems (p = 1)`, mean: "At these sizes random guessing finds it too; see P(optimum) in the table." },
@@ -173,7 +175,7 @@ function optimizerTab(ctx, P) {
 }
 
 export async function mount(ctx) {
-  await viewCss("pillars");
+  await Promise.all([viewCss("pillars"), viewCss("plan")]);
   const labels3d = h("div", { class: "gr-labels", "aria-hidden": "true" }), note3d = h("p", { class: "mv-how" });
   const stageEl = stage(ctx, { label: "Measured benchmark values as bars", fallback: h("span") });
   stageEl.append(labels3d);
