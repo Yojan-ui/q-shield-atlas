@@ -147,3 +147,13 @@ def test_full_pipeline_in_temp_workspace(live):
         v = os.environ.get(k)
         if v and len(v) >= 8:
             assert v not in log
+
+
+def test_operator_forbid_platform_always_wins(monkeypatch):
+    from atlas_web.runner import step_env
+
+    monkeypatch.delenv("QSHIELD_FORBID_PLATFORM", raising=False)
+    assert step_env(False)["QSHIELD_FORBID_PLATFORM"] == "1"
+    assert "QSHIELD_FORBID_PLATFORM" not in step_env(True)  # an enabled platform run without the operator's guard
+    monkeypatch.setenv("QSHIELD_FORBID_PLATFORM", "1")
+    assert step_env(True)["QSHIELD_FORBID_PLATFORM"] == "1"  # operator's guard is never dropped

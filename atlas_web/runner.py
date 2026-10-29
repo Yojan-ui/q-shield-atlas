@@ -44,7 +44,7 @@ def env_file_values() -> dict:
 def step_env(platform: bool) -> dict:
     env = {**env_file_values(), **os.environ, "PYTHONUNBUFFERED": "1"}
     env.pop("SSLKEYLOGFILE", None)
-    if platform:
+    if platform and os.environ.get("QSHIELD_FORBID_PLATFORM") != "1":  # an operator's QSHIELD_FORBID_PLATFORM=1 always wins
         env.pop("QSHIELD_FORBID_PLATFORM", None)
     else:
         env["QSHIELD_FORBID_PLATFORM"] = "1"  # the guard refuses every paid submission
