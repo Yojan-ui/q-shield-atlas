@@ -8,7 +8,7 @@ import { num, QAOA_LABEL } from "../model.js";
 import { dataView, honesty, mountScene, notRun, stage } from "./common.js";
 import { buildQaoaCloud } from "../scenes/qaoa.js";
 import { quantumPanel } from "../components/quantum.js";
-import { bullets, detailsList, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, main, nextStep, pageHead, whyBlock } from "../components/page.js";
 import { term } from "../glossary.js";
 
 const pct = (x) => `${(x * 100).toFixed(2)} %`;
@@ -58,7 +58,7 @@ export async function mount(ctx) {
       mountScene(ctx, "qaoa", { available: true }, ({ THREE, world, group }) =>
         (cloud = buildQaoaCloud(THREE, group, { levels: levels.map((r) => f(r.raw.metrics)), random: f(rm), n, level: idx }, world))).catch(() => {});
       const nr = (r) => h("span", { class: "fine", text: r.status.startsWith("not_") ? "not run" : r.status.replaceAll("_", " ") });
-      const pm = (el, text) => h("div", { class: "pg-stat" }, el, h("p", { class: "pg-mean", text }));
+      const pm = (el, text) => h("div", { class: "pg-stat" }, el, ...whyBlock({ label: el.querySelector(".label") ? el.querySelector(".label").textContent : "", mean: text }));
       return h("div", {},
         h("div", { class: "pg-stats" },
           pm(stat({ label: "systems in this choice", cell: num(prob.assets.length, q.exact.objective.source), unit: `week ${prob.week} · ${prob.n_variables} QUBO variables` }),

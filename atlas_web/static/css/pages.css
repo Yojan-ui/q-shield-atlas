@@ -127,3 +127,8 @@ table.data td.n{white-space:nowrap}
 .mv-note{margin:0;color:var(--text-2);font-size:var(--fs-16)}
 .rail a.sub { padding-left: calc(var(--s-3) + 1.4em); } .rail a.sub .r-num { min-width: 0; }
 .rail a .full { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+.pg-stats{align-items:start}.stat .prov{display:none}.pg-mean{display:none}
+.why-btn{all:unset;cursor:pointer;justify-self:start;font-size:13px;color:var(--text-2);margin-top:var(--s-1)}.why-btn:hover{color:var(--text)}.why-btn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.why-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .2s ease}.why-panel.on{grid-template-rows:1fr}.why-inner{overflow:hidden;display:grid;gap:var(--s-2)}.why-inner p{margin:0;font-size:var(--fs-16);color:var(--text-2)}
+@media (prefers-reduced-motion:reduce){.why-panel{transition:none}}
+.why-panel[hidden]{display:none}

@@ -12,7 +12,7 @@ import { num } from "../model.js";
 import { prefersReducedMotion } from "../motion.js";
 import { buildLedger, TAMPER } from "../scenes/ledger.js";
 import { dataView, honesty, mountScene, notRun, stage, viewCss } from "./common.js";
-import { bullets, detailsList, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, main, nextStep, pageHead, whyBlock } from "../components/page.js";
 import { term } from "../glossary.js";
 
 const kv = (...pairs) => h("dl", { class: "kv" }, pairs.flatMap(([k, v]) => [h("dt", { text: k }), h("dd", {}, v)]));
@@ -103,12 +103,12 @@ export async function mount(ctx) {
       return h("div", {},
         h("div", { class: "pg-stats" },
           h("div", { class: "pg-stat" }, stat({ label: "signed records", cell: num(L.entry_count, src), unit: "ML-DSA-65, hash-chained" }),
-            h("p", { class: "pg-mean", text: "Every scan, plan, gate result and review decision, in order." })),
+            ...whyBlock({ label: "proof chain", mean: "Every scan, plan, gate result and review decision, in order.", cell: { source: src } })),
           h("div", { class: "pg-stat" }, st("chain check",
             v.ok === true ? chip("verified", `verified, ${v.entries_checked ?? L.entry_count} records`) : v.ok === false ? chip("FAIL", `fails at #${v.first_failure && v.first_failure.index}`) : chip("NOT_RUN", v.status_text || "not verified")),
-            h("p", { class: "pg-mean", text: "Every signature and fingerprint was re-checked when this page loaded." })),
+            ...whyBlock({ label: "proof chain", mean: "Every signature and fingerprint was re-checked when this page loaded.", cell: { source: src } })),
           h("div", { class: "pg-stat" }, st("signing key", hc(L.pubkey_fp, "public key fingerprint")),
-            h("p", { class: "pg-mean", text: "The public key anyone can use to check the signatures." }))),
+            ...whyBlock({ label: "proof chain", mean: "The public key anyone can use to check the signatures.", cell: { source: src } }))),
         proofSections(L, (RS && RS.results) || null, ctx),
         h("section", { class: "lc" }, h("h2", { class: "mv-h2", text: "Hash chain: every block links to the one before" }), chainNote,
           h("div", { class: "sg-row" }, tamper, h("p", { id: "lg-hold", class: "mv-note", text: "Edits one record in a temporary copy and runs the read-only verifier on it. The real ledger is never touched; nothing is recorded." })), out,
