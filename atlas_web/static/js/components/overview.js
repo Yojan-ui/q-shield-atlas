@@ -3,7 +3,7 @@
 import { h } from "../dom.js";
 import { chip } from "./chip.js";
 import { FLOW } from "../flow.js";
-import { HNDL, solverLabel } from "../model.js";
+import { solverLabel } from "../model.js";
 
 
 export function colorLegend() {

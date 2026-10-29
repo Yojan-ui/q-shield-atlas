@@ -12,8 +12,8 @@ import { sound } from "../sound.js";
 import { estimateBlock } from "../components/estimate.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead, dd } from "../components/page.js";
 import { term } from "../glossary.js";
-import { otherOptions, qualityBlock, whyMilp } from "../components/solvers.js";
-import { runtimeChart } from "./bench.js";
+import { whyMilp } from "../components/solvers.js";
+import { compareBlock, runBench } from "../components/compare.js";
 
 // Remaining exposure-years per week for the optimised plan and both baselines (results.json remaining_by_week),
 // one scenario, direct labels where the lines are furthest apart. Values are unweighted; the optimiser minimises the
@@ -205,24 +205,30 @@ export async function mount(ctx) {
       const names = m.scenarios.map((s) => s.name);
       if (!names.includes(scenario)) scenario = names[0];
       const statsEl = h("div", {}), heroEl = h("section", { class: "pl-hero" });
-      const benchLink = h("span");  // "Compare solvers" only when this workspace has Benchmark optimizer data
       const solversEl = h("div", { class: "sv-wrap" }, h("p", { class: "mv-note", text: "Loading the solver benchmark…" }));
       ctx.store.get(ctx.ws, "bench", { signal: ctx.signal }).then((P) => {
-        if (P && P.bench) benchLink.replaceChildren(" · ", h("a", { href: `/w/${ctx.ws}/bench?tab=optimizers`, text: "Compare solvers →" }));
-        solversEl.replaceChildren(qualityBlock(P, ctx),
-          P && P.bench ? h("div", {}, h("h3", { class: "pl-h3", text: "Runtime vs problem size (log scale)" }), runtimeChart(P.bench.rows, P.bench.instances)) : null);
-      }).catch(() => { solversEl.replaceChildren(qualityBlock(null, ctx)); });
+        solversEl.replaceChildren(compareBlock(ctx, P) || runBench(ctx));
+      }).catch(() => { solversEl.replaceChildren(runBench(ctx)); });
       const picker = h("div", { class: "sg-row", role: "radiogroup", "aria-label": "CRQC scenario" });
+      let tie = false;
+      const demoEl = h("div", { class: "cmp-demo" });
+      const drawDemo = () => ctx.ws !== "demo" && ctx.store.get("demo", "results", { signal: ctx.signal }).then((d) => {
+        const sc = d && (d.assumptions.scenarios.find((s) => s.name === scenario) || d.assumptions.scenarios[0]);
+        if (sc) demoEl.replaceChildren(h("h3", { class: "pl-h3", text: "Harder inventory: demo snapshot" }), chip("recorded", "read-only demo snapshot"), curves(d, sc.name));
+      }).catch(() => {});
       const draw = () => {
         const a = headlineAvoided(m, scenario);
+        tie = mergeIdentical(curveSeries(m.results, scenario)).length === 1;
+        if (tie) drawDemo();
         heroEl.replaceChildren(
           h("p", { class: "pl-head", tabindex: "0", "data-prov": a.fcfs.source ? provAttr(a.fcfs.source, "avoided vs FCFS") : null, text: planHeadline(a.fcfs, a.greedy, scenario) }),
-          h("p", { class: "pl-solver mono" }, solverLine(m.results), benchLink),
+          dd({ source: solverLine(m.results) }),
           h("h2", { class: "mv-h2", text: "Comparison: exposure still ahead, week by week" }),
-          curves(m.results, scenario),
+          tie ? h("p", { class: "cmp-tie", text: `Same plan for all orders (${m.results.assets.length} systems)` }) : curves(m.results, scenario), tie ? demoEl : null,
           dd({ read: "each line is how much exposure (years that data stays readable after Q-Day) is still ahead at each week. Lower is better; the gap at week 0 is the total avoided. Lines are unweighted exposure-years; the optimiser minimises the risk- and scenario-weighted total, so lines can cross." }));
         heroEl.append(h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Optimisation: the objective by Q-Day scenario" }), optimisation(m.results)),
-          h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Why MILP, and how the solvers compare" }), whyMilp(m.results), solversEl, otherOptions()));
+          h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Why MILP" }), whyMilp(m.results)),
+          h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Classical vs quantum vs hybrid" }), solversEl));
         statsEl.replaceChildren(keyStats([
           { label: "weeks to migrate", cell: m.makespan, unit: "optimised plan", mean: "When the last wave finishes, at the assumed team capacity." },
           { label: "exposure avoided vs first-come-first-served", cell: a.fcfs, unit: "exposure-years", mean: "Less time that sensitive data stays readable to a future quantum computer, compared with the simple order." },

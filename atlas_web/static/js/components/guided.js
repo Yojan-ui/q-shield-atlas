@@ -15,7 +15,6 @@ import { buildLedger } from "../scenes/ledger.js";
 import { buildLanes3d } from "../scenes/lanes3d.js";
 import { pickLanes } from "./channel.js";
 import { reviewItems } from "../views/review.js";
-import { flowFacts } from "./overview.js";
 
 const AUTO_MS = 3000;
 const n0 = (x) => Number(x).toLocaleString("en-US");

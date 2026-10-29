@@ -13,7 +13,6 @@ import { term } from "../glossary.js";
 
 const res = (x) => (x && x.result) || NR;
 const hash = (v, label) => (v ? hashCopy(v, { label }) : h("span", { class: "fine", text: NR }));
-const tx = (v) => hash(v, "transcript hash");
 const sub = (text, cls = "") => h("span", { class: `sub ${cls}`, text });
 const two = (a, b) => h("span", {}, a, b);
 const mono = (text) => h("span", { class: "mono", text });
