@@ -8,7 +8,8 @@ const sample = JSON.parse(readFileSync(new URL("../../tests/fixtures/results_sam
 
 test("flow facts: one key number and backend per step, from results only", () => {
   const f = flowFacts(sample, { items: [{ status: "pending" }, { status: "approved" }] });
-  assert.deepEqual(Object.keys(f).sort(), FLOW.map((s) => s.id).sort());
+  for (const s of FLOW) assert.ok(f[s.id], `fact for ${s.id}`);
+  assert.match(f.detect.num, /^\d+ → \d+$/);
   assert.equal(f.inventory.num, String(sample.assets.length));
   assert.match(f.schedule.backend, /QpiAI Opt/);
   assert.match(f.waves.backend, /awaiting account activation/);

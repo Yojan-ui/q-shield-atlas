@@ -10,8 +10,10 @@ import { dataView, honesty, mountScene, notRun, section, stage, viewCss } from "
 import { buildLattice } from "../engine/lattice.js";
 import { sound } from "../sound.js";
 import { estimateBlock } from "../components/estimate.js";
-import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead, dd } from "../components/page.js";
 import { term } from "../glossary.js";
+import { whyMilp } from "../components/solvers.js";
+import { compareBlock, runBench } from "../components/compare.js";
 
 // Remaining exposure-years per week for the optimised plan and both baselines (results.json remaining_by_week),
 // one scenario, direct labels where the lines are furthest apart. Values are unweighted; the optimiser minimises the
@@ -39,7 +41,7 @@ export function mergeIdentical(S) {
   const out = [];
   for (const s of S) {
     const twin = out.find((o) => same(o, s));
-    if (twin) { twin.twins.push(s); twin.label = `${[twin.short, ...twin.twins.map((t) => t.short)].join(" = ")} (identical plan)`; } else out.push({ ...s, twins: [] });
+    if (twin) { twin.twins.push(s); twin.label = twin.twins.length === 2 ? "All three orders give the same plan" : `${[twin.short, ...twin.twins.map((t) => t.short)].join(" = ")} (identical plan)`; } else out.push({ ...s, twins: [] });
   }
   return out;
 }
@@ -98,11 +100,11 @@ function curves(r, scenario) {
   spreadLabels(ends, S.some((s) => s.twins.length) ? 52 : 30, T + 10, H - B - 16).forEach((y, k) => {
     const s = S[k];
     svg.append(h("line", { ns: "svg", x1: X(end) + 4, y1: ends[k], x2: X(end) + 16, y2: y - 5, class: "bn-grid" }),
-      s.twins.length ? h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y: y - 10 }, h("tspan", { ns: "svg", text: s.label.replace(" (identical plan)", "") }),
+      s.twins.length === 1 ? h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y: y - 10 }, h("tspan", { ns: "svg", text: s.label.replace(" (identical plan)", "") }),
         h("tspan", { ns: "svg", x: X(end) + 20, dy: 24, text: "(identical plan)" })) : h("text", { ns: "svg", class: `pl-lab ${s.cls}`, x: X(end) + 20, y }, s.label));
   });
   const makespan = r.exposure && r.exposure.makespan_weeks;
-  return h("div", {}, svg, h("p", { class: "mv-note", text: `All systems migrated by week ${makespan ?? "–"} (optimised plan). Exposure still ahead reaches 0 by week ${zero}; the axis stops at week ${end}, after which no line changes.` }));
+  return h("div", {}, svg, dd({ shows: `All systems migrated by week ${makespan ?? "–"} (optimised plan); exposure still ahead reaches 0 by week ${zero}.`, read: `The axis stops at week ${end}, after which no line changes.` }));
 }
 
 // the optimisation itself: per-wave effort against the weekly capacity (results.waves + assumptions), and the
@@ -123,7 +125,7 @@ function optimisation(r) {
   svg.append(h("line", { ns: "svg", class: "pl-cap", x1: L, x2: W - R, y1: Y(cap), y2: Y(cap) }), h("text", { ns: "svg", class: "pl-lab", x: W - R, y: Y(cap) - 8, "text-anchor": "end" }, `capacity ${cap} engineer-days / week (assumption)`),
     h("text", { ns: "svg", x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle" }, "wave (week) · bar = assumed effort of the systems in it"));
   return h("div", {}, objectiveChart(r), h("h3", { class: "pl-h3", text: "Effort per wave vs team capacity (the real plan)" }), svg,
-    h("p", { class: "mv-how", text: "How to read this: each bar is one weekly wave of the optimised plan; no bar may exceed the capacity line, and a system never moves before what it depends on." }));
+    dd({ read: "each bar is one weekly wave of the optimised plan; no bar may exceed the capacity line, and a system never moves before what it depends on." }));
 }
 
 // the objective the MILP minimises (risk- and scenario-weighted exposure), per Q-Day scenario, for MILP / FCFS / Greedy
@@ -157,7 +159,7 @@ function objectiveChart(r) {
     });
     svg.append(h("text", { ns: "svg", class: "pl-lab", x: L + gi * gw + gw / 2, y: H - 8, "text-anchor": "middle" }, `Q-Day ${g.year}`));
   });
-  return h("div", {}, svg, h("p", { class: "mv-how", text: "How to read this: bar height is the objective the MILP minimises (risk- and scenario-weighted exposure-years) for each Q-Day year; lower is better. Inside each FCFS / Greedy bar: how much lower (in %) the MILP's value is than that plan's." }));
+  return h("div", {}, svg, dd({ read: "bar height is the objective the MILP minimises (risk- and scenario-weighted exposure-years) for each Q-Day year; lower is better. Inside each FCFS / Greedy bar: how much lower (in %) the MILP's value is than that plan's." }));
 }
 
 export async function mount(ctx) {
@@ -190,6 +192,7 @@ export async function mount(ctx) {
     weekIn.value = String(Number.isFinite(q) && ctx.query.get("week") !== null ? Math.min(q, scene.weeks.length - 1) : scene.weeks.length - 1);
     return mountScene(ctx, "schedule", scene, ({ THREE, world, group }) => {
       lattice = buildLattice(THREE, group, scene, world.uniforms);
+      world.fit(group, (scene.nodes || []).map((n) => n.pos));  // auto-fit, refit on resize
       if (scenario) lattice.setScenario(scenario);
       setWeek(Number(weekIn.value));
       return lattice.hooks(ctx, stageEl);
@@ -202,18 +205,30 @@ export async function mount(ctx) {
       const names = m.scenarios.map((s) => s.name);
       if (!names.includes(scenario)) scenario = names[0];
       const statsEl = h("div", {}), heroEl = h("section", { class: "pl-hero" });
-      const benchLink = h("span");  // "Compare solvers" only when this workspace has Benchmark optimizer data
-      ctx.store.get(ctx.ws, "bench", { signal: ctx.signal }).then((P) => { if (P && P.bench) benchLink.replaceChildren(" · ", h("a", { href: `/w/${ctx.ws}/bench?tab=optimizers`, text: "Compare solvers →" })); }).catch(() => {});
+      const solversEl = h("div", { class: "sv-wrap" }, h("p", { class: "mv-note", text: "Loading the solver benchmark…" }));
+      ctx.store.get(ctx.ws, "bench", { signal: ctx.signal }).then((P) => {
+        solversEl.replaceChildren(compareBlock(ctx, P) || runBench(ctx));
+      }).catch(() => { solversEl.replaceChildren(runBench(ctx)); });
       const picker = h("div", { class: "sg-row", role: "radiogroup", "aria-label": "CRQC scenario" });
+      let tie = false;
+      const demoEl = h("div", { class: "cmp-demo" });
+      const drawDemo = () => ctx.ws !== "demo" && ctx.store.get("demo", "results", { signal: ctx.signal }).then((d) => {
+        const sc = d && (d.assumptions.scenarios.find((s) => s.name === scenario) || d.assumptions.scenarios[0]);
+        if (sc) demoEl.replaceChildren(h("h3", { class: "pl-h3", text: "Harder inventory: demo snapshot" }), chip("recorded", "read-only demo snapshot"), curves(d, sc.name));
+      }).catch(() => {});
       const draw = () => {
         const a = headlineAvoided(m, scenario);
+        tie = mergeIdentical(curveSeries(m.results, scenario)).length === 1;
+        if (tie) drawDemo();
         heroEl.replaceChildren(
           h("p", { class: "pl-head", tabindex: "0", "data-prov": a.fcfs.source ? provAttr(a.fcfs.source, "avoided vs FCFS") : null, text: planHeadline(a.fcfs, a.greedy, scenario) }),
-          h("p", { class: "pl-solver mono" }, solverLine(m.results), benchLink),
+          dd({ source: solverLine(m.results) }),
           h("h2", { class: "mv-h2", text: "Comparison: exposure still ahead, week by week" }),
-          curves(m.results, scenario),
-          h("p", { class: "mv-how", text: "How to read this: each line is how much exposure (years that data stays readable after Q-Day) is still ahead at each week. Lower is better; the gap at week 0 is the total avoided. Lines are unweighted exposure-years; the optimiser minimises the risk- and scenario-weighted total, so lines can cross." }));
-        heroEl.append(h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Optimisation: the objective by Q-Day scenario" }), optimisation(m.results)));
+          tie ? h("p", { class: "cmp-tie", text: `Same plan for all orders (${m.results.assets.length} systems)` }) : curves(m.results, scenario), tie ? demoEl : null,
+          dd({ read: "each line is how much exposure (years that data stays readable after Q-Day) is still ahead at each week. Lower is better; the gap at week 0 is the total avoided. Lines are unweighted exposure-years; the optimiser minimises the risk- and scenario-weighted total, so lines can cross." }));
+        heroEl.append(h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Optimisation: the objective by Q-Day scenario" }), optimisation(m.results)),
+          h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Why MILP" }), whyMilp(m.results)),
+          h("section", { class: "pl-opt" }, h("h2", { class: "mv-h2", text: "Classical vs quantum vs hybrid" }), solversEl));
         statsEl.replaceChildren(keyStats([
           { label: "weeks to migrate", cell: m.makespan, unit: "optimised plan", mean: "When the last wave finishes, at the assumed team capacity." },
           { label: "exposure avoided vs first-come-first-served", cell: a.fcfs, unit: "exposure-years", mean: "Less time that sensitive data stays readable to a future quantum computer, compared with the simple order." },
@@ -226,11 +241,13 @@ export async function mount(ctx) {
       const a = m.results.assumptions;
       return h("div", {},
         h("div", { class: "pg-actions", style: { marginTop: 0, marginBottom: "var(--s-4)" } }, h("span", { class: "fine", text: "Q-Day assumption:" }), picker), heroEl, statsEl,
-        main(h("div", {}, estimateBlock(ctx), table({ caption: "Migration waves", rows: m.waves, columns: [
-          { label: "week", render: (w) => h("span", { class: "num", tabindex: "0", "data-prov": provAttr(w.source, `wave week ${w.week}`), text: String(w.week) }), numeric: true },
-          { label: "systems", render: (w) => h("span", {}, w.assets.map((id, i) => [i ? ", " : "", h("a", { href: `/w/${ctx.ws}/asset/${encodeURIComponent(id)}`, text: id })])) },
-          { label: "effort (engineer-days)", numeric: true, render: (w) => String((m.results.waves.find((x) => x.week === w.week) || {}).effort_days ?? "–") },
-          { label: "gate result", render: (w) => chip(w.status) }] })), { title: "The plan, week by week" }),
+        main(h("div", {}, estimateBlock(ctx), table({ caption: "Migration waves", rows: m.waves,
+          expand: (w) => ({ why: h("span", {}, "Systems: ", w.assets.map((id, i) => [i ? ", " : "", h("a", { href: `/w/${ctx.ws}/asset/${encodeURIComponent(id)}`, text: id })]), `. Placed in week ${w.week} to cut weighted exposure fastest within capacity.`),
+            run_id: w.source && w.source.run_id, ts: w.source && w.source.ts, technical: w.source && w.source.solver }), columns: [
+          { label: "week", numeric: true, render: (w) => String(w.week) },
+          { label: "systems", numeric: true, render: (w) => String(w.assets.length) },
+          { label: "effort (days)", numeric: true, optional: true, render: (w) => String((m.results.waves.find((x) => x.week === w.week) || {}).effort_days ?? "–") },
+          { label: "gate", render: (w) => chip(w.status) }] })), { title: "The plan, week by week" }),
         stageWrap,
         detailsList([
           { title: "How it works", summary: "An exact optimiser places every system in a week, within capacity and dependencies.", body: bullets([

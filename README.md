@@ -156,6 +156,24 @@ and draw calls; `prefers-reduced-motion` gives a static camera.
 
 ## Web app (`atlas_web/`)
 
+### Running the UI
+
+```bash
+conda activate pqc && source .env.sh && python -m atlas_web --port 8000   # then open http://127.0.0.1:8000/
+python -m atlas_web create-user --role admin                               # first time only (no default user)
+```
+
+The pipeline is shown in the order the backend runs it, and each step lights only from its own run events:
+**1 Detect** (findings → systems · drift alerts) → **2 Proof chain opened** (the existing chain is verified, then the
+Detect evidence is signed) → **3 Plan** (QpiAI Opt MILP vs FCFS / greedy) → **4 Handshake gates** → **5 Wave selection**
+(QAOA on a simulator vs the exact answer) → **6 Proof verified** (every result signed, the chain re-verified) → **7 Review**.
+Run pipeline on any non-demo workspace opens the guided 3D run with its live log; Replay last run replays the latest
+recorded run. Scan your own repo (landing or `/settings/new-workspace`) clones a public GitHub repository, suggests
+service manifests, and after you confirm them on Detect the run starts from the Pipeline page. The demo workspace is a
+read-only snapshot. Press P on any workspace for presenter mode.
+Checks: `python tools/ui_check.py` (every page, 3 sizes: console, failed requests, overlapping / clipped text,
+overflow) and `python tools/browser_flow.py` (GitHub-URL flow + live runs in a real browser).
+
 `python -m atlas_web` serves a login-protected, routed web app on 127.0.0.1 that drives the whole pipeline
 through the existing module CLIs (one subprocess per step, with workspace path flags) and shows the results in
 THE LATTICE, one persistent three.js world (vendored, hash-checked; 2D fallback without WebGL).

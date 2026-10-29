@@ -3,6 +3,7 @@
 // called hardware.
 import { h, icon } from "../dom.js";
 import { chip } from "./chip.js";
+import { dd } from "./dd.js";
 
 let statusP = null;
 export const quantumStatus = (api) => (statusP ||= api.get("/api/quantum/status").catch((e) => { statusP = null; throw e; }));
@@ -35,9 +36,7 @@ export function quantumPanel(ctx) {
       out.replaceChildren(
         h("p", {}, chip(ok ? "PASS" : "partially_verified", ok ? "found the exact best answer" : "close to the best answer"), h("b", { text: ` ${r.backend}` }),
           h("span", { class: "fine", text: ` · ${r.n_variables} qubits · ${r.shots} shots · ${r.runtime_s.toFixed(1)} s` })),
-        h("p", { class: "fine", text: `What this means: for week ${r.week}, QAOA picked ${r.best_feasible.assets ? r.best_feasible.assets.join(", ") : "no feasible set"} to cut over; the exact optimum is ${r.exact_optimum.assets.join(", ")}. ${pct(r.p_optimal_assets)} of shots landed on it. ${r.fallback_reason ? "Ran on QpiAI's local simulator; cloud-ready." : ""}` }),
-        h("p", { class: "fine mono", text: r.job_id ? `job ${r.job_id}` : `no job ID: ${r.job_id_reason}` }),
-        h("p", { class: "fine", text: r.note }));
+        dd({ shows: `For week ${r.week}, QAOA picked ${r.best_feasible.assets ? r.best_feasible.assets.join(", ") : "no feasible set"} to cut over; the exact optimum is ${r.exact_optimum.assets.join(", ")}. ${pct(r.p_optimal_assets)} of shots landed on it. ${r.fallback_reason ? "Ran on QpiAI's local simulator; cloud-ready." : ""}`, read: r.note, source: r.job_id ? `job ${r.job_id}` : `no job ID: ${r.job_id_reason}` }));
       ctx.announce(`QAOA run on ${r.backend}: ${ok ? "exact best answer found" : "approximate answer"}.`);
     } catch (err) {
       if (err.code === "aborted") return;

@@ -4,7 +4,6 @@ import { installTooltip } from "./components/tooltip.js";
 import { installToasts, toast } from "./components/toast.js";
 import { installRailKeys, strip as makeStrip } from "./components/strip.js";
 import { installPalette } from "./components/palette.js";
-import { installPresenter } from "./present.js";
 import { sound } from "./sound.js";
 import { MOTION, prefersReducedMotion } from "./motion.js";
 import { h } from "./dom.js";
@@ -185,7 +184,15 @@ async function boot() {
   await loadWorkspaces();
   installRailKeys((to) => navigate(to), () => (app.me ? app.ws : null));
   installPalette({ navigate, store, getState: () => ({ me: app.me, ws: app.ws, workspaces: app.workspaces }) });
-  installPresenter({ navigate, store, getWs: () => (app.me && /^\/w\//.test(location.pathname + location.hash.replace(/^#/, "")) ? app.ws : null) });
+  // presenter mode loads on first use (P or the Present button), keeping it out of the first load
+  let presenter = null;
+  const presenterGetWs = () => ((app.me && /^\/w\//.test(location.pathname + location.hash.replace(/^#/, "")) ? app.ws : null));
+  const startPresenter = () => import("./present.js").then((mod) => { presenter ||= mod.installPresenter({ navigate, store, getWs: presenterGetWs }); presenter.start(); });
+  addEventListener("keydown", (e) => {
+    if (presenter || (e.key !== "p" && e.key !== "P") || e.metaKey || e.ctrlKey || e.altKey || (e.target instanceof Element && e.target.closest("input, textarea, select, dialog, [contenteditable]"))) return;
+    e.preventDefault(); startPresenter();
+  }, { capture: true });
+  addEventListener("atlas:present", () => { if (!presenter) startPresenter(); });
   await render("replace");
   document.body.dataset.ready = "1";
   document.body.dataset.readyAt = String(Math.round(performance.now()));

@@ -6,8 +6,8 @@
 .gr-legend .num{color:var(--text-2)}
 .lg-ring{width:14px;height:14px;border-radius:50%;border:2px solid var(--text);display:inline-block}
 .gr-body{position:relative}
-.gr-view{min-height:62vh;border:var(--rule) solid var(--hairline)}
-.stage.gr-stage{height:max(62vh,520px);border:0}
+.gr-view{min-height:360px;border:var(--rule) solid var(--hairline)}
+.stage.gr-stage{height:max(360px,60vh);border:0}
 .stage.gr-stage.flat{height:auto}
 .gr-labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .gr-label{position:absolute;left:0;top:0;font:16px/1.25 var(--font-mono);color:var(--text-2);white-space:nowrap;background:rgba(0,0,0,.66);padding:1px 6px}

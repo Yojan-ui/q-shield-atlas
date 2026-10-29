@@ -11,7 +11,7 @@ import { buildGraph, classicalSig, CLASSES, graphModel, layout, VULN } from "../
 import { provAttr } from "../components/tooltip.js";
 import { prefersReducedMotion } from "../motion.js";
 import { num } from "../model.js";
-import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 import { dataView, honesty, mountScene, notRun, section, stage, viewCss } from "./common.js";
 
@@ -92,7 +92,7 @@ function graphHero(ctx, r, observed, inventory) {
     h("li", {}, h("span", { class: "lg-ring", "aria-hidden": "true" }), "White ring: drift (static scan and live handshake disagree) ", h("span", { class: "num", text: String(G.nodes.filter((x) => x.drift).length) })));
   return h("section", { class: "gr" }, legend,
     h("div", { class: "gr-body" }, h("div", { class: "gr-view" }, el, flatWrap), panel),
-    h("div", { class: "gr-bar" }, h("p", { class: "mv-how", text: `How to read this: ${G.nodes.length} systems from the inventory, ${G.edges.length} declared dependencies (lines). Node size is the risk weight (an assumption). ${G.bank ? "Clusters are banks." : "Clusters are system kinds."} Drag to turn, ⌥-scroll to zoom.` }),
+    h("div", { class: "gr-bar" }, dd({ read: `${G.nodes.length} systems from the inventory, ${G.edges.length} declared dependencies (lines). Node size is the risk weight (an assumption). ${G.bank ? "Clusters are banks." : "Clusters are system kinds."} Drag to turn, ⌥-scroll to zoom.` }),
       h("div", { class: "sg-row" }, resetBtn, modeBtn)));
 }
 
@@ -210,7 +210,8 @@ export async function mount(ctx) {
       skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton()), h("div", { class: "span-12" }, tableSkeleton(5))),
       render: ({ model: m, move, inventory }) => {
         const d = m && m.detect;
-        if (!d || !d.available) return emptyState(notRun(ctx, "Detect"));
+        // not run yet (e.g. a freshly cloned repo): the intake is the next step, so it is shown here, not hidden in details
+        if (!d || !d.available) return h("div", { class: "dt-fresh" }, emptyState(notRun(ctx, "Detect")), ...intakeEls);
         ctx.announce(`${d.vulnerable.text} vulnerable findings in ${d.files.text} scanned files.`);
         const r = m.results;
         return h("div", {},
@@ -220,12 +221,12 @@ export async function mount(ctx) {
             { label: "files scanned", cell: d.files, unit: "code, configs, certificates", mean: "Everything in the source tree was read; nothing was run." },
             { label: "live connections probed", cell: num(d.probes.length, d.files.source), unit: "one TLS handshake each", mean: d.probes.length ? "Real handshakes show what a service actually negotiates." : "No live probe in this run." },
           ]),
-          main(h("div", {}, table({ caption: "Static findings", rows: d.findings, signal: ctx.signal, columns: [
-            { label: "file:line", render: (f) => `${f.file}:${f.line}`, mono: true }, { label: "algorithm family", key: "family" }, { label: "used for", key: "use" },
-            { label: "rule", key: "rule", mono: true, optional: true }, { label: "snippet", optional: true, render: (f) => h("span", { class: "mono fine", text: (f.snippet || "").slice(0, 80) }) }] })), { title: "Findings" }),
-          d.probes.length ? main(table({ caption: "Live TLS probes", rows: d.probes, columns: [
-            { label: "service", key: "service" }, { label: "endpoint", key: "endpoint", mono: true }, { label: "key exchange", render: (p) => p.ok ? p.group : chip("FAIL", "no handshake") },
-            { label: "certificate", key: "cert", mono: true }, { label: "drift", render: (p) => p.drift.length ? h("span", {}, p.drift.map((k) => chip("HNDL-exposed", k))) : chip("PASS", "none") }] }), { title: "Live connections" }) : null,
+          main(h("div", {}, table({ caption: "Static findings", rows: d.findings, signal: ctx.signal,
+            expand: (f) => ({ why: `${f.family} used for ${f.use}: quantum-breakable.`, technical: h("span", { class: "mono", text: `${f.file}:${f.line} · rule ${f.rule} · ${(f.snippet || "").slice(0, 160)}` }) }), columns: [
+            { label: "file", render: (f) => `${f.file.split("/").pop()}:${f.line}`, mono: true }, { label: "family", render: (f) => chip("HNDL-exposed", f.family) }, { label: "used for", render: (f) => chip("recorded", f.use) }] })), { title: "Findings" }),
+          d.probes.length ? main(table({ caption: "Live TLS probes", rows: d.probes, expand: (p) => ({ why: p.drift.length ? `Drift: ${p.drift.join(", ")}` : "Live handshake matches the configuration.", technical: h("span", { class: "mono", text: `${p.endpoint} · cert ${p.cert}` }) }), columns: [
+            { label: "service", key: "service" }, { label: "key exchange", render: (p) => p.ok ? chip(/MLKEM/i.test(p.group) ? "hybrid" : "HNDL-exposed", p.group) : chip("FAIL", "no handshake") },
+            { label: "drift", render: (p) => p.drift.length ? chip("HNDL-exposed", `${p.drift.length} drift`) : chip("PASS", "none") }] }), { title: "Live connections" }) : null,
           detailsList([
             { title: "How it works", summary: "Pattern rules read code, configs, dependencies and certificates; probes do one handshake.", body: bullets([
               "Every finding has a file, a line and the rule that matched.",

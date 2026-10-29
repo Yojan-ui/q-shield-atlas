@@ -9,7 +9,7 @@ import { num, QAOA_LABEL } from "../model.js";
 import { dataView, honesty, mountScene, notRun, stage } from "./common.js";
 import { buildQaoaCloud } from "../scenes/qaoa.js";
 import { quantumPanel } from "../components/quantum.js";
-import { bullets, detailsList, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, main, nextStep, pageHead, whyBlock, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 import { provAttr } from "../components/tooltip.js";
 import { hashCopy } from "../components/copy.js";
@@ -73,7 +73,7 @@ export async function mount(ctx) {
       mountScene(ctx, "qaoa", { available: true }, ({ THREE, world, group }) =>
         (cloud = buildQaoaCloud(THREE, group, { levels: levels.map((r) => f(r.raw.metrics)), hw: showHw ? hwLevels.map((r) => f(r.raw.metrics)) : null, random: f(rm), n, level: idx }, world))).catch(() => {});
       const nr = (r) => h("span", { class: "fine", text: r.status.startsWith("not_") ? "not run" : r.status.replaceAll("_", " ") });
-      const pm = (el, text) => h("div", { class: "pg-stat" }, el, h("p", { class: "pg-mean", text }));
+      const pm = (el, text) => h("div", { class: "pg-stat" }, el, ...whyBlock({ label: el.querySelector(".label") ? el.querySelector(".label").textContent : "", mean: text }));
       return h("div", {},
         h("div", { class: "pg-stats" },
           pm(stat({ label: "systems in this choice", cell: num(prob.assets.length, q.exact.objective.source), unit: `week ${prob.week} · ${prob.n_variables} QUBO variables` }),
@@ -82,7 +82,7 @@ export async function mount(ctx) {
           pm(sO, "Share of answers that are exactly the best choice; compare with the random baseline below it."),
           sH ? pm(sH, `The same circuit run on IBM's ${hwName} quantum computer. Hardware noise lowers this at this circuit depth.`) : null),
         main(h("div", {}, ctx.wsInfo && !ctx.wsInfo.read_only || ctx.ws === "demo" ? quantumPanel(ctx) : null, stageWrap,
-          h("p", { class: "mv-how", text: "How to read this: left is QAOA on the simulator, the middle cloud (when shown) the same circuits on IBM real hardware, right a uniform random guess. The bigger the shell, the more shots met the constraints; the bigger the core, the more shots hit the exact optimum." })), { title: "QAOA against the exact answer" }),
+          dd({ read: "left is QAOA on the simulator, the middle cloud (when shown) the same circuits on IBM real hardware, right a uniform random guess. The bigger the shell, the more shots met the constraints; the bigger the core, the more shots hit the exact optimum." })), { title: "QAOA against the exact answer" }),
         detailsList([
           { title: "How it works", summary: "One week's choice becomes a small yes/no problem that QAOA samples.", body: bullets([
             ["The choice is written as a ", term("qubo", "QUBO"), " (at most 16 variables): value of migrating now, minus penalties for breaking capacity or dependencies."],
@@ -99,7 +99,7 @@ export async function mount(ctx) {
             { label: "status", render: (r) => (r.hardware ? hwStatus(r.hardware)
               : r.cells ? h("span", {}, chip("ok", "measured"), h("span", { class: "sub", text: r.raw.job_ids.length ? `job ${r.raw.job_ids.join(", ")}` : "no job ID (local)" }))
               : h("span", { class: "fine", text: r.status_cell.text })) }] }),
-            h("p", { class: "fine", text: `Particle allocation encodes each run's measured feasible fraction and P(optimal set) (${n} particles per cloud); positions are layout.` })) },
+            dd({ read: `Particle allocation encodes each run's measured feasible fraction and P(optimal set) (${n} particles per cloud); positions are layout.` })) },
           { title: "Limits", summary: hwRows.length ? `Simulators plus one real-hardware sample on IBM ${hwName}; no quantum advantage is claimed.` : "Simulators only, 16 qubits at most; no quantum advantage is claimed.", body: bullets([
             QAOA_LABEL,
             ...(hwRows.length ? [`IBM ${hwName}: the same circuits (angles tuned on the simulator) sampled once per p on real hardware. Hardware noise lowers feasibility at this circuit depth; this is a measured cross-check, not an advantage claim.`] : []), "QpiAI Cloud: awaiting account activation; QpiAI-Indus-1 hardware is never used."]) }]),

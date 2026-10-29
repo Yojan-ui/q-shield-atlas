@@ -52,7 +52,7 @@
   .rail a .full{display:inline !important}.rail a .short,.rail a kbd{display:none !important}
   .rail a[aria-current="page"]{background:var(--surface-raised)}
   .rail a[aria-current="page"]::after{display:none}
-  .rail .r-num{display:inline;font-family:var(--font-mono);font-size:var(--fs-16);color:var(--text-3)}
+  .rail .r-num{display:inline-block;min-width:2.6em;font-family:var(--font-mono);font-size:var(--fs-16);color:var(--text-3)}
   .rail .r-tick{display:inline-flex;color:var(--pass)}
   .rail .r-tick svg{width:14px;height:14px}
   .rail .r-group{display:block;margin:var(--s-4) var(--s-3) var(--s-1);font-size:var(--fs-16);letter-spacing:var(--track-label);text-transform:uppercase;color:var(--text-3)}
@@ -122,6 +122,14 @@
 .bn-why .pg-list{color:var(--text)}
 table.data td.n{white-space:nowrap}
 /* shared page text (Move, Detect, Plan, Proof) */
-.mv-how{margin:0;color:var(--text-2);font-size:var(--fs-16);max-width:110ch}
 .mv-h2{margin:0;font-size:var(--fs-28)}
 .mv-note{margin:0;color:var(--text-2);font-size:var(--fs-16)}
+.rail a.sub { padding-left: calc(var(--s-3) + 1.4em); } .rail a.sub .r-num { min-width: 0; }
+.rail a .full { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+.pg-stats{align-items:start}.stat .prov{display:none}.pg-mean{display:none}
+.why-btn{all:unset;cursor:pointer;justify-self:start;font-size:13px;color:var(--text-2);margin-top:var(--s-1)}.why-btn:hover{color:var(--text)}.why-btn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.why-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .2s ease}.why-panel.on{grid-template-rows:1fr}.why-inner{overflow:hidden;display:grid;gap:var(--s-2)}.why-inner p{margin:0;font-size:var(--fs-16);color:var(--text-2)}
+@media (prefers-reduced-motion:reduce){.why-panel{transition:none}}
+.why-panel[hidden]{display:none}
+.dd{margin:var(--s-2) 0 0;font-size:var(--fs-16)}.dd>summary{cursor:pointer;color:var(--text-2);font-size:13px;list-style:none}.dd>summary::-webkit-details-marker{display:none}.dd[open]>summary{color:var(--text)}
+.dd-body{display:grid;gap:var(--s-1);padding:var(--s-2) 0 0;max-width:90ch}.dd-body p{margin:0;color:var(--text-2)}

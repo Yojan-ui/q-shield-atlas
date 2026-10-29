@@ -1,0 +1,4 @@
+/* expandable table rows (components/table.js) */
+tr.xp-tr{cursor:pointer}tr.xp-tr:focus-visible{outline:2px solid var(--text);outline-offset:-2px}td.xp-c,th.xp-c{width:28px;padding-right:0;color:var(--text-2)}
+table.data td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32ch}table.data tr.xp-row td{white-space:normal;max-width:none}
+.xp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--s-3);padding:var(--s-2) 0 var(--s-3)}.xp b{display:block;font-size:13px;color:var(--text-2);margin-bottom:var(--s-1)}.xp-ev{display:flex;flex-wrap:wrap;gap:var(--s-2);align-items:center}

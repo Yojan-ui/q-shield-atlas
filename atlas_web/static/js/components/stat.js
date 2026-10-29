@@ -12,6 +12,7 @@ export function stat({ label, cell, unit = "", tone = "", title = "" }) {
       value.classList.remove("missing");
       prov.hidden = false;
       prov.setAttribute("data-prov", provAttr(c.source, title || label));
+      value.setAttribute("data-prov", provAttr(c.source, title || label));  // the source tooltip sits on the number (no (i) icon)
       value.setAttribute("aria-label", `${label}: ${c.text}${unit ? ` ${unit}` : ""}`);
       rollNumber(value, c.value, c.digits ?? (c.text.split(".")[1] || "").length);
     } else {
@@ -21,6 +22,7 @@ export function stat({ label, cell, unit = "", tone = "", title = "" }) {
       value.removeAttribute("aria-label");
       prov.hidden = true;
       prov.removeAttribute("data-prov");
+      value.removeAttribute("data-prov");
     }
   };
   el.update(cell);

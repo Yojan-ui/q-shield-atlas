@@ -1,6 +1,20 @@
 // Data table: sticky header, tabular numerals, sortable columns (click a header), row links, virtualised beyond 200 rows.
+// expand(row) -> {why, hash, run_id, ts, technical}: a chevron per row; click / Enter / Space opens a panel under it.
 import { h } from "../dom.js";
 import { provAttr } from "./tooltip.js";
+import { hashCopy } from "./copy.js";
+
+const css = () => typeof document !== "undefined" && !document.querySelector('style[data-all-css], link[data-view-css="table"]')
+  && document.head.append(h("link", { rel: "stylesheet", href: "/assets/css/views/table.css", "data-view-css": "table" }));
+
+function panel(x, n) {
+  const ev = [x.hash ? hashCopy(x.hash, { label: "evidence hash" }) : null, x.run_id ? h("span", { class: "mono", text: `run ${x.run_id}` }) : null,
+    x.ts ? h("span", { class: "mono", text: x.ts }) : null].filter(Boolean);
+  return h("tr", { class: "xp-row", hidden: true }, h("td", { colspan: String(n) }, h("div", { class: "xp" },
+    x.why ? h("div", {}, h("b", { text: "Why" }), h("div", {}, x.why)) : null,
+    h("div", {}, h("b", { text: "Evidence" }), h("div", { class: "xp-ev" }, ev.length ? ev : "none recorded")),
+    x.technical ? h("div", { class: "tech" }, h("b", { text: "Technical" }), h("div", {}, x.technical)) : null)));
+}
 
 const ROW_H = 40, VIRTUAL_AT = 200, OVERSCAN = 8;
 
@@ -35,8 +49,10 @@ export function table(opts) {
   return outer;
 }
 
-function rawTable({ columns, rows, caption, onRow = null, rowHref = null, empty = "No rows", signal = null, sortState = null, onSort = null }) {
-  const cls = (c) => [c.numeric ? "n" : "", c.mono ? "mono" : "", c.optional ? "opt" : ""].join(" ").trim() || null;
+function rawTable({ columns, rows, caption, onRow = null, rowHref = null, empty = "No rows", signal = null, sortState = null, onSort = null, expand = null }) {
+  if (expand && rows.length <= VIRTUAL_AT) css(), columns = [{ label: h("span", { class: "sr-only", text: "details" }), sortable: false, chev: true, render: () => h("span", { class: "xp-chev", "aria-hidden": "true", text: "▸" }) }, ...columns];
+  else expand = null;
+  const cls = (c) => [c.numeric ? "n" : "", c.mono ? "mono" : "", c.optional ? "opt" : "", c.chev ? "xp-c" : ""].join(" ").trim() || null;
   const thead = h("thead", {}, h("tr", {}, columns.map((c, i) => {
     const on = sortState && sortState.i === i;
     return h("th", { scope: "col", class: cls(c), "aria-sort": on ? (sortState.dir > 0 ? "ascending" : "descending") : null },
@@ -49,17 +65,23 @@ function rawTable({ columns, rows, caption, onRow = null, rowHref = null, empty 
   const rowNode = (row) => {
     const tr = h("tr", { class: onRow || rowHref ? "clickable" : "" }, columns.map((c) => h("td", { class: cls(c) }, cellNode(c, row))));
     if (rowHref) {
-      const first = tr.querySelector("td");
+      const first = tr.querySelectorAll("td")[expand ? 1 : 0];
       const a = h("a", { href: rowHref(row) }, ...first.childNodes);
       first.replaceChildren(a);
-      tr.addEventListener("click", (e) => { if (!(e.target instanceof Element && e.target.closest("a, button, .num"))) a.click(); }, signal ? { signal } : undefined);
+      if (!expand) tr.addEventListener("click", (e) => { if (!(e.target instanceof Element && e.target.closest("a, button, .num"))) a.click(); }, signal ? { signal } : undefined);
     } else if (onRow) tr.addEventListener("click", () => onRow(row), signal ? { signal } : undefined);
-    return tr;
+    if (!expand) return tr;
+    const x = expand(row) || {}, p = panel(x, columns.length);
+    tr.classList.add("xp-tr"); tr.tabIndex = 0; tr.setAttribute("aria-expanded", "false");
+    const toggle = () => { const open = p.hidden; p.hidden = !open; tr.setAttribute("aria-expanded", String(open)); tr.querySelector(".xp-chev").textContent = open ? "▾" : "▸"; };
+    tr.addEventListener("click", (e) => { if (!(e.target instanceof Element && e.target.closest("a, button, .num, input, select"))) toggle(); }, signal ? { signal } : undefined);
+    tr.addEventListener("keydown", (e) => { if (e.target === tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(); } }, signal ? { signal } : undefined);
+    return [tr, p];
   };
   if (!rows.length) {
     tbody.append(h("tr", {}, h("td", { colspan: String(columns.length), class: "fine", text: empty })));
   } else if (rows.length <= VIRTUAL_AT) {
-    tbody.append(...rows.map(rowNode));
+    tbody.append(...rows.flatMap(rowNode));
   } else {
     let first = -1;
     const draw = () => {

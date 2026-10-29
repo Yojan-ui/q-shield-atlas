@@ -7,7 +7,7 @@ import { emptyState } from "../components/states.js";
 import { toast } from "../components/toast.js";
 import { dataView, honesty, mountScene, notRun, stage, viewCss } from "./common.js";
 import { buildPillars } from "../scenes/pillars.js";
-import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead, dd } from "../components/page.js";
 import { term } from "../glossary.js";
 
 const STATUS = { pending: ["pending", "awaiting review"], approved: ["PASS", "approved"], rejected: ["FAIL", "rejected"] };
@@ -65,7 +65,7 @@ export async function mount(ctx) {
       mountScene(ctx, "review", { available: true }, (env) => buildPillars(env, reviewItems(R.items), { labelsEl: labels3d, stageEl, reduced: ctx.world.reduced,
         onPick: (it) => { const el = ctx.root.querySelector(`#item-${it.id.replace(/[^a-z0-9-]/gi, "-")}`); if (el) el.scrollIntoView({ block: "center" }); } })).catch(() => {});
       return h("div", {},
-        stageEl, h("p", { class: "mv-how", text: "How to read this: one block per result awaiting or past review. Green: its ML-DSA-65 signature in the Proof Chain verifies. Red: it does not. Outline: not signed yet. Click a block to jump to it." }),
+        stageEl, dd({ read: "one block per result awaiting or past review. Green: its ML-DSA-65 signature in the Proof Chain verifies. Red: it does not. Outline: not signed yet. Click a block to jump to it." }),
         keyStats([
           { label: "awaiting review", cell: n(pending.length), unit: "results", mean: why || "Each needs a person's approve or reject, with a reason." },
           { label: "approved", cell: n(done.filter((i) => i.status === "approved").length), unit: "signed decisions", mean: "Approved steps can go ahead in the real migration plan." },
@@ -73,13 +73,11 @@ export async function mount(ctx) {
         main(pending.length ? h("ul", { class: "rv-list" }, pending.map((i) => h("li", { class: `rv-item${focus === i.id ? " hl" : ""}`, id: `item-${i.id.replace(/[^a-z0-9-]/gi, "-")}` },
           h("div", {}, h("p", { class: "rv-title" }, chip("pending", "awaiting review"), ` ${i.title}`), h("p", { class: "fine", text: i.summary }), why3(i), proof(ctx, i)),
           R.can_decide ? decisionForm(ctx, i, refresh) : null))) : h("p", { class: "fine", text: "Nothing is waiting: every result of the latest run has a decision." }), { title: "Awaiting review" }),
-        done.length ? main(table({ caption: "Review decisions", rows: done, columns: [
-          { label: "item", render: (i) => h("span", {}, i.title, h("span", { class: "sub", text: i.summary })) },
+        done.length ? main(table({ caption: "Review decisions", rows: done, expand: (i) => ({ why: `${i.decision.reason} (${i.decision.by})`, hash: i.evidence_sha256, run_id: i.run_id, ts: i.decision.ts, technical: i.summary }), columns: [
+          { label: "item", key: "title" },
           { label: "decision", render: (i) => chip(...STATUS[i.status]) },
-          { label: "reason", render: (i) => i.decision.reason },
-          { label: "by", render: (i) => i.decision.by, optional: true },
-          { label: "when (UTC)", render: (i) => i.decision.ts, mono: true, optional: true },
-          { label: "decision record", numeric: true, render: (i) => h("a", { href: `/w/${ctx.ws}/ledger`, text: `#${i.decision.ledger_index}` }) }] }), { title: "Decided" }) : null,
+          { label: "signature", render: (i) => chip(i.signature === "verified" ? "verified" : "NOT_RUN", i.signature) },
+          { label: "record", numeric: true, render: (i) => h("a", { href: `/w/${ctx.ws}/ledger`, text: `#${i.decision.ledger_index}` }) }] }), { title: "Decided" }) : null,
         detailsList([
           { title: "How it works", summary: "Each decision is a small signed record bound to the exact evidence it judged.", body: bullets([
             "The record holds the item, its run and the SHA-256 of that run's evidence, the decision, the reason, who and when.",

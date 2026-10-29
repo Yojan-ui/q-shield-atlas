@@ -208,3 +208,35 @@ def test_verifying_a_copy_never_touches_recorded_results(tmp_path):
     copy_path.write_text("".join(canonical(e).decode() + "\n" for e in entries))
     assert cli.main(["verify", "--ledger", str(copy_path)]) == 1
     assert {p: p.read_bytes() for p in before} == before
+
+
+# ---------- verify before append (ledger_open / ingest / append) ----------
+
+def test_ingest_verifies_intact_chain_before_append(world, keys, capsys):
+    import ledger.__main__ as cli
+    from ledger.backend import detect as _detect
+
+    cli.check_chain_before_append(world["path"], keys / "pk.pem", _detect(), world["root"])
+    assert f"chain verified ({N} entries) before append" in capsys.readouterr().out
+
+
+def test_tampered_chain_stops_before_append(world, keys):
+    import ledger.__main__ as cli
+    from ledger.backend import detect as _detect
+
+    entries = read_entries(world["path"])
+    entries[2]["type"] = "tampered"
+    rewrite(world["path"], entries)
+    before = world["path"].read_bytes()
+    with pytest.raises(SystemExit) as e:
+        cli.check_chain_before_append(world["path"], keys / "pk.pem", _detect(), world["root"])
+    assert "Proof Chain verification FAILED at #2" in str(e.value) and "nothing was signed" in str(e.value)
+    assert world["path"].read_bytes() == before  # nothing appended
+
+
+def test_empty_ledger_is_fine_before_first_append(tmp_path, keys, capsys):
+    import ledger.__main__ as cli
+    from ledger.backend import detect as _detect
+
+    cli.check_chain_before_append(tmp_path / "ledger.jsonl", keys / "pk.pem", _detect(), tmp_path)
+    assert "nothing to verify" in capsys.readouterr().out

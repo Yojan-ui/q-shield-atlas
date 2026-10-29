@@ -27,11 +27,37 @@ export function pageHead(ctx, { route, title, headline, actions = null, aside = 
     actions ? h("div", { class: "pg-actions" }, actions) : null);
 }
 
-// [{label, cell, unit, mean, tone}] -> at most three stats, each with its plain-language line
+// "Why it matters" lines by topic of the stat (plain words); a stat may pass its own `why`
+const WHY = [[/exposure/i, "Every exposure-year is a year that recorded traffic stays readable once a quantum computer exists."],
+  [/finding|system|migrate|vulnerable|exposed/i, "You can only migrate what you have found."], [/week/i, "A shorter plan closes the harvest-now-decrypt-later window sooner."],
+  [/record|chain|sign|proof|ledger|key/i, "A signed, verified chain proves no result was changed afterwards."], [/handshake|post-quantum|lab|connection|probe/i, "Only a recorded handshake proves post-quantum key exchange is really used."],
+  [/rollback/i, "A tested rollback means a failed wave cannot leave a system broken."], [/review|approved|rejected|decision/i, "A person signs off each step before it is used."],
+  [/qaoa|feasible|optimal|choice|share/i, "It shows how close the quantum cross-check gets to the proven answer; no advantage is claimed."], [/drift|safe/i, "A live connection can differ from what the configuration claims."]];
+export const whyOf = (it) => it.why || (WHY.find(([re]) => re.test(`${it.label} ${it.unit || ""}`)) || [null, "It is the number this step hands to the next one."])[1];
+
+// "Why this matters" disclosure (button + panel), used inside every stat card
+export function whyBlock(it) {
+  const id = `why-${Math.random().toString(36).slice(2, 9)}`, src = it.cell && it.cell.source;
+  const btn = h("button", { class: "why-btn", type: "button", "aria-expanded": "false", "aria-controls": id }, "Why this matters ▾");
+  const panel = h("div", { class: "why-panel", id, hidden: true }, h("div", { class: "why-inner" },
+    it.mean ? h("p", {}, h("b", { text: "What it means: " }), it.mean) : null, h("p", {}, h("b", { text: "Why it matters: " }), whyOf(it)),
+    src ? h("p", { class: "tech why-src" }, h("b", { text: "Source: " }), [src.run_id && `run ${src.run_id}`, src.solver, src.ts].filter((x) => x && x !== "n/a").join(" · ") || "n/a") : null));
+  btn.addEventListener("click", () => {
+    const open = btn.getAttribute("aria-expanded") !== "true";
+    btn.setAttribute("aria-expanded", String(open)); btn.textContent = open ? "Why this matters ▴" : "Why this matters ▾";
+    panel.hidden = !open; if (open) requestAnimationFrame(() => panel.classList.add("on")); else panel.classList.remove("on");
+  });
+  return [btn, panel];
+}
+
+// one card: title, big number, short unit; details in the disclosure
+export function statCard(it) {
+  return h("div", { class: "pg-stat" }, stat({ label: it.label, cell: it.cell, unit: it.unit || "", tone: it.tone || "" }), ...whyBlock(it));
+}
+
+// [{label, cell, unit, mean, why, tone}] -> at most three cards
 export function keyStats(items) {
-  return h("div", { class: "pg-stats" }, items.slice(0, 3).map((it) => h("div", { class: "pg-stat" },
-    stat({ label: it.label, cell: it.cell, unit: it.unit || "", tone: it.tone || "" }),
-    h("p", { class: "pg-mean", text: it.mean }))));
+  return h("div", { class: "pg-stats" }, items.slice(0, 3).map(statCard));
 }
 
 // [{title, summary, body}] ; title one of DETAIL_TITLES (others allowed for page-specific detail)
@@ -53,3 +79,5 @@ export function nextStep(ctx, route, label = null) {
 export function main(node, { title = null } = {}) {
   return h("section", { class: "pg-main" }, title ? h("h2", { class: "pg-h2", text: title }) : null, node);
 }
+
+export { dd } from "./dd.js";
