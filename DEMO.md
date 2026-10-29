@@ -104,6 +104,6 @@ run on their data: find it, plan it, verify it, prove it."
 | anything else | `open out/report.html` (or the release asset `q-shield-atlas-report.html`): the signed, offline report |
 
 Check the fallback matches the release: `shasum -a 256 ~/Desktop/q-shield-atlas-web-snapshot.zip` should print
-`3f78e7c479a817b36e128ef7cf61652dd33a87bd4b852bbd657f051e09d12fc4`.
+`8cecacbf91addc7bfb53a90ecd461dd7541006cd93ab8659de66dd51a95e44da`.
 
 After the demo: stop the server with Ctrl+C (it stops any running step and its lab services).
