@@ -10,7 +10,8 @@ const demo = existsSync(DEMO) ? read(DEMO) : null;
 const skip = demo ? false : "out/results.json not present (run ./run_demo.sh)";
 
 test("backend rows: Opt, QSV-Local and QCloud from recorded data; no IBM row without ibm data", { skip }, () => {
-  const rows = backendRows(demo);
+  const noIbm = { ...demo, qaoa: { ...demo.qaoa, table: demo.qaoa.table.filter((r) => r.source !== "ibm") } };  // run_demo.sh may import IBM rows
+  const rows = backendRows(noIbm);
   assert.deepEqual(rows.map((r) => r.backend), ["QpiAI Opt (local MILP)", "QpiAI QSV-Local simulator", "QpiAI QCloud"]);
   const opt = demo.solver_runs.find((s) => s.stage.endsWith(".expected.expected"));
   assert.equal(rows[0].expand.run_id, opt.run_id);
@@ -33,7 +34,7 @@ test("QCloud row shows the recorded blocker text and live device count from /api
 
 test("IBM row only when results carry source ibm rows, with their job IDs", { skip }, () => {
   const ibm = { ...demo.qaoa.table.find((r) => r.source === "qpiai_local"), source: "ibm", backend: "ibm_fez", job_ids: ["job-a"] };
-  const rows = backendRows({ ...demo, qaoa: { ...demo.qaoa, table: [...demo.qaoa.table, ibm] } });
+  const rows = backendRows({ ...demo, qaoa: { ...demo.qaoa, table: [...demo.qaoa.table.filter((r) => r.source !== "ibm"), ibm] } });
   const hw = rows.find((r) => r.backend === "IBM ibm_fez");
   assert.ok(hw);
   assert.equal(hw.chips[0][1], "real hardware");
