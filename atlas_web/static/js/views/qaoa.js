@@ -35,7 +35,7 @@ export async function mount(ctx) {
       const n = Math.max(256, rnd.raw.shots || 0, ...levels.map((r) => r.raw.shots || 0));
       let idx = levels.findIndex((r) => r.p === Number(ctx.query.get("p")));
       if (idx < 0) idx = levels.length - 1;
-      const sF = stat({ label: "feasible share", cell: null, tone: "hero accent" }), sO = stat({ label: "P(optimal set)", cell: null, tone: "accent" });
+      const sF = stat({ label: "feasible share", cell: null, tone: "accent" }), sO = stat({ label: "P(optimal set)", cell: null, tone: "accent" });
       const set = (el, label, cell, base) => {
         el.update(cell);
         el.querySelector(".label").firstChild.textContent = label;

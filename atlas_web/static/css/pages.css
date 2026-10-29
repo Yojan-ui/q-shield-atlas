@@ -71,6 +71,7 @@
 .pg-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-4);margin-bottom:var(--s-6)}
 .pg-stat{border:var(--rule) solid var(--hairline);border-radius:8px;padding:var(--s-4);display:grid;gap:var(--s-2);align-content:start}
 .pg-stat .stat{border:0;padding:0}
+.pg-stat .stat.hero,.stats .stat.hero{grid-column:auto}.pg-stat .stat.hero .value,.stats .stat.hero .value{font:500 clamp(22px,11cqi,var(--fs-40))/1 var(--font-mono);min-height:40px}
 .pg-mean{margin:0;font-size:var(--fs-16);color:var(--text-2);line-height:1.45}
 .pg-main{margin-bottom:var(--s-6)}
 .pg-h2{font-size:var(--fs-20);margin:0 0 var(--s-3)}
