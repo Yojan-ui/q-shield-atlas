@@ -71,3 +71,10 @@
 .mg-sessions { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s-2); }
 @media (prefers-reduced-motion: reduce) { .mg-fill { transition: none; } }
 @media (max-width: 760px) { .mg-lanes { grid-template-columns: 1fr; } .mg-lane { min-height: 0; } }
+/* quantum backend */
+.qb-badge { white-space: nowrap; }
+.qp { display: grid; gap: var(--s-2); padding: var(--s-4) 0; border-top: var(--rule) solid var(--hairline); border-bottom: var(--rule) solid var(--hairline); justify-items: start; }
+.qp p { margin: 0; }
+.qp-out { display: grid; gap: var(--s-1); }
+@media (max-width: 1720px) { .strip-actions .sound-toggle { display: none; } }
+@media (max-width: 1100px) { .qb-badge { display: none; } }

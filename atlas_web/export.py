@@ -58,6 +58,9 @@ def _data() -> dict:
         "/api/workspaces/demo/runs": {"runs": [], "active": None},
         "/api/workspaces/demo/bench": bench_payload(ws),
         "/api/workspaces/demo/reviews": {"items": review.listing(ws, r), "read_only": True, "can_decide": False},
+        "/api/quantum/status": {"backend": "Local simulator", "backend_id": "QpiAI-QSV-Local", "kind": "local simulator", "hardware": False,
+                                "fallback_reason": "static snapshot: live quantum runs need the server (python -m atlas_web)",
+                                "cloud": {"sdk_version": "0.3.0", "reachable": False, "error": "not checked in a static snapshot", "devices": [], "enabled": False}},
         "/api/workspaces/demo/estimate": {**estimate(r, None), "saved_threshold_weeks": None},
     }
     led = data["/api/workspaces/demo/ledger"]

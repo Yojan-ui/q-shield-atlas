@@ -1,10 +1,11 @@
 // Top strip: wordmark, workspace switcher, route rail (keys 1–6), run button, user menu.
 import { h } from "../dom.js";
 import { sound } from "../sound.js";
+import { backendBadge } from "./quantum.js";
 import { RAIL } from "../routes.js";
 import { href } from "../router.js";
 
-export function strip({ onSignOut, onWorkspace, kiosk }) {
+export function strip({ api, onSignOut, onWorkspace, kiosk }) {
   const wsSelect = h("select", { "aria-label": "workspace" });
   const badge = h("span", { class: "ws-badge" });
   const ws = h("label", { class: "ws-switch" }, h("span", { class: "ws-label", text: "Workspace" }), wsSelect, badge);
@@ -15,6 +16,7 @@ export function strip({ onSignOut, onWorkspace, kiosk }) {
   const el = h("header", { class: "strip" },
     h("a", { class: "wordmark", href: "/", "aria-label": "Q-Shield Atlas home" }, logo(), h("span", { text: "Q-Shield Atlas" })),
     ws, rail, h("div", { class: "strip-actions" }, snd), user);
+  let qbadge = null;  // quantum backend in use, shown once signed in (the status route needs a session)
   wsSelect.addEventListener("change", () => onWorkspace(wsSelect.value));
 
   el.update = ({ me, workspaces, wsId, routeName }) => {
@@ -28,6 +30,8 @@ export function strip({ onSignOut, onWorkspace, kiosk }) {
           : h("span", { class: `chip ${cur.ledger_verified ? "pass" : "fail"}`, title: "ledger verification", text: cur.ledger_verified ? "✔ ledger" : "✖ ledger" })].filter(Boolean) : []));
     }
     rail.hidden = !signedIn;
+    if (signedIn && api && !qbadge) el.querySelector(".strip-actions").prepend(qbadge = backendBadge(api));
+    if (qbadge) qbadge.hidden = !signedIn;
     rail.replaceChildren(...RAIL.map((r) => h("a", { href: href(r.path, { ws: wsId }), "aria-current": r.name === routeName ? "page" : null,
       "aria-keyshortcuts": String(r.rail), title: `${r.title} (key ${r.rail})` }, h("kbd", { text: String(r.rail) }),
       h("span", { class: "full", text: r.label }), h("span", { class: "short", text: r.short }))));

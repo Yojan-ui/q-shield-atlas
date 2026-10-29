@@ -7,6 +7,7 @@ import { emptyState } from "../components/states.js";
 import { num, QAOA_LABEL } from "../model.js";
 import { dataView, header, honesty, mountScene, notRun, section, stage, wsEyebrow } from "./common.js";
 import { buildQaoaCloud } from "../scenes/qaoa.js";
+import { quantumPanel } from "../components/quantum.js";
 
 const pct = (x) => `${(x * 100).toFixed(2)} %`;
 const bars = (rows) => h("div", { class: "qa-bars" }, rows.map(([name, m]) => h("div", { class: "qa-bar" }, h("span", { class: "eyebrow", text: name }),
@@ -75,5 +76,6 @@ export async function mount(ctx) {
     h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "QAOA cross-check",
       lede: "One week's wave selection as a QUBO, sampled by QAOA (p = 1…3) on a local statevector simulator and compared with the exact brute-force optimum and a uniform random baseline.",
       aside: h("div", { class: "qa-claim" }, h("p", { class: "eyebrow", text: "claim" }), h("p", { class: "qa-claim-text", text: QAOA_LABEL }), chip("recorded", "checked against brute force")) })),
+    ctx.wsInfo && !ctx.wsInfo.read_only || ctx.ws === "demo" ? quantumPanel(ctx) : null,
     h("div", { class: "span-12" }, stageEl, legend, picker), h("div", { class: "span-12" }, body), h("div", { class: "span-12" }, honesty())));
 }

@@ -397,6 +397,39 @@ def make_handler(app: App):
                 r = settings()["reference_endpoints"]
                 return self.send_json(200, {"label": r["label"], "verified": r["verified"],
                                             "endpoints": [{k: e[k] for k in ("id", "service", "host", "port", "expect", "operator")} for e in r["endpoints"]]})
+            if parts[:1] == ["quantum"]:  # QpiAI backend: status + one live QAOA run (cloud if enabled, else local simulator)
+                from . import quantum
+
+                self.need("viewer")
+                if method == "GET" and parts[1:] == ["status"]:
+                    return self.send_json(200, quantum.status())
+                if method == "POST" and parts[1:] == ["run"]:
+                    b = self.body_json()
+                    ws = self.workspace(str(b.get("ws", "demo")))
+                    f = ws.out / "schedule.json"
+                    if not f.exists() or not json.loads(f.read_text()).get("assets"):
+                        raise ApiError(409, "not_run", "this workspace has no migration plan to optimise yet")
+                    p = b.get("p", 1)
+                    if p not in (1, 2, 3):
+                        raise ApiError(422, "bad_p", "p must be 1, 2 or 3")
+                    box: dict = {}
+
+                    def work():
+                        try:
+                            box["ok"] = quantum.run(json.loads(f.read_text()), p)
+                        except Exception as exc:  # noqa: BLE001 - JSON error, never a traceback
+                            box["err"] = exc
+
+                    t = threading.Thread(target=work, daemon=True)
+                    t.start()
+                    t.join(120)
+                    if t.is_alive():
+                        raise ApiError(504, "timeout", "the quantum run took longer than 120 s")
+                    if "err" in box:
+                        e = box["err"]
+                        raise ApiError(409 if str(e).startswith("busy") else 502, "busy" if str(e).startswith("busy") else "quantum_failed", str(e)[:300])
+                    return self.send_json(200, box["ok"])
+                raise ApiError(404, "not_found", "quantum routes: GET status, POST run")
             if parts[:1] == ["users"]:
                 return self.users(method, parts[1:])
             if parts[:1] == ["workspaces"]:
