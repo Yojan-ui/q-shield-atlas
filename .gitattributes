@@ -1,0 +1,3 @@
+# Hash-pinned vendored files (MANIFEST.json SHA-256): byte-exact on every OS, never CRLF-converted.
+viz/vendor/** -text
+atlas_web/static/fonts/** -text

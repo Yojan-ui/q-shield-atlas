@@ -16,5 +16,16 @@
     "timeout_s": 600,
     "experiment_name": "Default Experiment"
   },
+  "ibm": {
+    "note": "Opt-in real hardware (python -m qaoa --ibm). Token only from $IBM_QUANTUM_TOKEN. Backend must be on the allowlist.",
+    "channel": "ibm_quantum_platform",
+    "backend": "ibm_fez",
+    "allowed_backends": ["ibm_fez"],
+    "max_jobs_per_run": 3,
+    "optimization_level": 3,
+    "seed_transpiler": 7,
+    "wait_s": 1200,
+    "max_estimated_qpu_s": 90
+  },
   "compare_sigma": 4.0
 }

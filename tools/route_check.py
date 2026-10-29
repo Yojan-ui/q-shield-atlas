@@ -282,7 +282,7 @@ def main(argv=None):
                     res = check_page(browser, ctx, base, role, path, size, jars[role], shots if keep else None)
                     results.append(res)
                     mark = "ok " if not res["problems"] else "ERR"
-                    print(f"{mark} {role:8} {size:8} {path:40} -> {res['route']:10} {res['load_s']:.2f}s"
+                    print(f"{mark} {role:8} {size:8} {path:40} -> {str(res['route']):10} {res['load_s'] if res['load_s'] is None else round(res['load_s'], 2)}s"
                           + ("" if not res["problems"] else "\n      " + "\n      ".join(res["problems"])), flush=True)
         flow_problems = flows(browser, base, jars["admin"])
         export_res = export_check(browser) if not args.only else []

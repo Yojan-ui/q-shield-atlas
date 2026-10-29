@@ -4,15 +4,20 @@ Entry: {index, type, payload_hash, payload_ref, prev_hash, ts, alg, backend, pub
 - Canonical bytes: json.dumps(sort_keys=True, separators=(",", ":"), ensure_ascii=False), UTF-8.
 - sig_mldsa signs the canonical bytes of the entry *without* sig_mldsa.
 - prev_hash = SHA-256 of the previous entry's canonical bytes *with* its signature; genesis = 64 zeros.
-- Appends hold an exclusive file lock (fcntl.flock) for read-last + write.
+- Appends hold an exclusive file lock (fcntl.flock; msvcrt.locking on Windows) for read-last + write.
 """
 
 import base64
-import fcntl
 import hashlib
 import json
 from contextlib import contextmanager
 from pathlib import Path
+
+try:
+    import fcntl
+except ImportError:  # Windows: no fcntl
+    fcntl = None
+    import msvcrt
 
 from contracts import validate
 from contracts.manifest import utc_now
@@ -46,6 +51,14 @@ def _locked(path: Path):
     lock = Path(str(path) + ".lock")
     lock.parent.mkdir(parents=True, exist_ok=True)
     with lock.open("w") as fh:
+        if fcntl is None:
+            msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)  # retries ~10 s, then raises OSError
+            try:
+                yield
+            finally:
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+            return
         fcntl.flock(fh, fcntl.LOCK_EX)
         try:
             yield

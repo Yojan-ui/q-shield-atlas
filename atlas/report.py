@@ -332,9 +332,21 @@ def sec_qaoa(r):
             rows.append(lead + [n(m[k], prov, 4) for k in ("feasible_fraction", "approximation_ratio", "energy_ratio", "p_optimal", "p_optimal_assets")])
         else:
             rows.append(lead + [f'<span class="missing">{e(row["status_text"])}</span>', "", "", "", ""])
+    hw = [row for row in q["table"] if row["status"] == "ok" and row.get("hardware")]
+    hw_html = ""
+    if hw:  # real QPU rows: the transpiled circuit actually sent, and what it cost
+        hrows = []
+        for row in hw:
+            x, prov = row["hardware"], f"run {short(q['run_id'])} · job {row['hardware']['job_id']}"
+            hrows.append([e(str(row["p"])), f'<span class="badge">Real hardware · IBM {e(x["backend"])}</span>', f"<code>{e(x['job_id'])}</code>",
+                          n(row["shots"], prov, 0), n(x["transpiled_depth"], prov, 0), n(x["two_qubit_gates"], prov, 0), n(x["qpu_seconds"], prov, 1)])
+        hw_html = f"""
+<h3>Real hardware</h3>
+{table(['p', 'backend', 'job ID', 'shots', 'transpiled depth', '2-qubit gates', 'QPU s'], hrows)}
+<p class="note">Same circuits (angles tuned on the simulator) sampled once per p on real hardware. Hardware noise lowers feasibility at this circuit depth; a measured cross-check, not an advantage claim.</p>"""
     return f"""<p class="label">{QAOA_LABEL}</p>
 <p>Exact optimum (brute force): objective {n(q['exact']['objective'], 'run ' + short(q['run_id']), 6)}, assets {e(', '.join(q['exact']['assets']))}</p>
-{table(['p', 'source', 'feasible', 'approx. ratio', 'energy ratio', 'P(opt)', 'P(opt set)'], rows)}
+{table(['p', 'source', 'feasible', 'approx. ratio', 'energy ratio', 'P(opt)', 'P(opt set)'], rows)}{hw_html}
 <p class="note">{e(q['label'])}</p>"""
 
 
