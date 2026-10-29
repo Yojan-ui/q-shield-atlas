@@ -155,3 +155,50 @@ def test_detect_and_move_without_webgl(server):
     assert d["nodes"] == len(inv["assets"]) + len(inv["not_vulnerable"])
     assert d["edges"] == sum(len(a.get("depends_on") or []) for a in inv["assets"])
     assert m["channel"] and m["lanes"] == 3  # the Move scene is SVG: it never needed WebGL
+
+
+# ---- optional "Run fresh handshake now": flag-gated (off by default), operators only, 127.0.0.1 lab only ----
+
+def test_fresh_handshake_refused_when_switched_off(server, monkeypatch):
+    import atlas_web.config as cfg
+    real = cfg.settings
+    monkeypatch.setattr(cfg, "settings", lambda: {**real(), "fresh_handshake": {"enabled": False}})
+    server.app.store.create_user("ops", PASSWORD, "operator")
+    c = Client(server.server_address[1])
+    c.request("POST", "/api/auth/login", {"username": "ops", "password": PASSWORD})
+    assert json.loads(c.request("GET", "/api/workspaces/demo/move", raw=True)[1])["fresh"]["enabled"] is False
+    r, body = c.request("POST", "/api/workspaces/demo/move/fresh", {}, raw=True)
+    assert r.status == 403 and json.loads(body)["error"]["code"] == "fresh_disabled"
+
+
+def test_fresh_handshake_when_enabled(server, monkeypatch, tmp_path):
+    import atlas_web.config as cfg
+
+    from .conftest import _lab_servers
+    real = cfg.settings
+    monkeypatch.setattr(cfg, "settings", lambda: {**real(), "fresh_handshake": {"enabled": True}})
+    server.app.store.create_user("ops", PASSWORD, "operator")
+    viewer = Client(server.server_address[1])
+    viewer.request("POST", "/api/auth/login", {"username": "vic", "password": PASSWORD})
+    assert viewer.request("POST", "/api/workspaces/demo/move/fresh", {}, raw=True)[0].status == 403  # operators only
+    c = Client(server.server_address[1])
+    c.request("POST", "/api/auth/login", {"username": "ops", "password": PASSWORD})
+    guarded = [REPO / "out" / "capture.json", REPO / "out" / "results.json", REPO / "out" / "ledger.jsonl"]
+    before = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in guarded}
+    runs_before = set((REPO / "runs").iterdir())
+    lab_before = {pid for pid, _ in _lab_servers()}
+    r, body = c.request("POST", "/api/workspaces/demo/move/fresh", {}, raw=True)
+    assert r.status == 200, body
+    f = json.loads(body)
+    assert f["fresh_run"] and f["run_id"] and "not signed" in f["note"]
+    every = f["sessions"] + f["refused_attempts"]
+    assert every and all(s["endpoint"].startswith("127.0.0.1:") for s in every)  # loopback lab only
+    assert all(s["transcript_verified"] and s["messages"] for s in every)
+    hy = next(s for s in f["sessions"] if s["service_id"] == "hybrid")
+    assert hy["negotiated_group"] == "X25519MLKEM768" and hy["messages"][0]["key_share"][0]["group"] == "X25519MLKEM768"
+    assert any(g["service_id"] == "hybrid" and g["result"] == "PASS" for g in f["gates"]["downgrade"])
+    from atlas_web.config import data_dir
+    assert (data_dir() / f["log"]).is_file()  # logged under the (git-ignored) data dir
+    assert {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in guarded} == before  # results, capture, ledger untouched
+    assert set((REPO / "runs").iterdir()) == runs_before
+    assert {pid for pid, _ in _lab_servers()} <= lab_before  # the fresh run stopped every lab s_server it started

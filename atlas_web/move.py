@@ -6,6 +6,11 @@ key_share entries (group and byte size). A transcript is used only when its SHA-
 capture.json, so every packet on screen traces to a hashed, recorded file. No hex, randoms or keys are returned.
 Bank endpoints (atlas-service.json with an "observed" block, written by tools/scan_banks.py) are returned as
 "observed": their one recorded handshake, never a migration.
+
+fresh_handshake(): the Move page's optional "Run fresh handshake now" (config/atlas_web.json fresh_handshake.enabled,
+off by default). It runs the existing capture (capture.capture_all: lab services on 127.0.0.1 only, one handshake per
+service and client, clean shutdown), evaluates the existing gates on it, and logs the run under the git-ignored data
+dir. It never touches results.json, out/, the workspace runs/ or the ledger, and never contacts another host.
 """
 
 import hashlib
@@ -80,7 +85,7 @@ def parse_transcript(text: str) -> list[dict]:
     return msgs
 
 
-def transcripts(run_dirs: list[Path], wanted: set[str]) -> dict:
+def transcripts(run_dirs: list[Path], wanted: set[str], prefix: str = "runs") -> dict:
     """sha256 -> {file, messages} for every transcript file whose hash is in `wanted`."""
     out = {}
     for d in run_dirs:
@@ -90,7 +95,7 @@ def transcripts(run_dirs: list[Path], wanted: set[str]) -> dict:
             text = f.read_text(errors="replace")
             h = hashlib.sha256(text.encode()).hexdigest()
             if h in wanted and h not in out:
-                out[h] = {"file": f"runs/{d.name}/{f.name}", "messages": parse_transcript(text)}
+                out[h] = {"file": f"{prefix}/{d.name}/{f.name}", "messages": parse_transcript(text)}
     return out
 
 
@@ -122,14 +127,53 @@ def move_payload(ws, results: dict | None) -> dict:
     sessions, refused = cap.get("sessions") or [], cap.get("refused_attempts") or []
     wanted = {s["transcript_sha256"] for s in sessions + refused if s.get("transcript_sha256")}
     tr = transcripts([ws.runs / cap["run_id"]], wanted)
-
-    def attach(s):
-        t = tr.get(s.get("transcript_sha256"))
-        return {**s, "transcript_file": t["file"] if t else None, "messages": t["messages"] if t else None,
-                "transcript_verified": bool(t)}
-
-    return {"available": True, "run_id": cap["run_id"], "ts": cap.get("generated_at"), "openssl_version": cap.get("openssl_version"),
+    attach = _attacher(tr)
+    return {"available": True, "fresh": fresh_status(), "run_id": cap["run_id"], "ts": cap.get("generated_at"), "openssl_version": cap.get("openssl_version"),
             "capture_sha256": hashlib.sha256(cap_path.read_bytes()).hexdigest(),
             "sessions": [attach(s) for s in sessions], "refused_attempts": [attach(s) for s in refused],
             "observed": observed,
             "note": "replay of recorded handshakes (openssl s_client -msg); message sizes are the recorded TLS lengths"}
+
+
+def _attacher(tr: dict):
+    def attach(s):
+        t = tr.get(s.get("transcript_sha256"))
+        return {**s, "transcript_file": t["file"] if t else None, "messages": t["messages"] if t else None,
+                "transcript_verified": bool(t)}
+    return attach
+
+
+def fresh_status() -> dict:
+    from .config import settings
+
+    cfg = settings().get("fresh_handshake") or {}
+    on = cfg.get("enabled") is True
+    return {"enabled": on, "reason": None if on else cfg.get("disabled_reason") or "off: set fresh_handshake.enabled in config/atlas_web.json"}
+
+
+def fresh_handshake(log_root: Path) -> dict:
+    """Run the lab capture now (127.0.0.1 only) and return it in the move_payload shape, plus its gate results."""
+    from capture.__main__ import capture_all
+    from capture.services import HOST, load_lab
+    from gates.pq_handshake import evaluate
+
+    assert HOST == "127.0.0.1"
+    lab = load_lab()
+    log_root.mkdir(parents=True, exist_ok=True)
+    cap = capture_all(lab, log_root)
+    for s in cap["sessions"] + cap["refused_attempts"]:
+        if not s["endpoint"].startswith(f"{HOST}:"):  # never report a handshake with anything but the loopback lab
+            raise RuntimeError(f"refusing non-loopback endpoint {s['endpoint']}")
+    gates = evaluate(cap, lab)
+    run_dir = log_root / cap["run_id"]
+    cap_bytes = json.dumps(cap, indent=1).encode()
+    manifest = {"run_id": cap["run_id"], "ts": cap["generated_at"], "kind": "fresh_handshake (Move page)", "capture_sha256": hashlib.sha256(cap_bytes).hexdigest(),
+                "openssl_version": cap["openssl_version"], "capture": cap, "gates": gates,
+                "note": "fresh lab handshake on 127.0.0.1; not part of results.json and not signed into the Proof Chain"}
+    (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    wanted = {s["transcript_sha256"] for s in cap["sessions"] + cap["refused_attempts"]}
+    attach = _attacher(transcripts([run_dir], wanted, prefix=log_root.name))
+    return {"available": True, "fresh_run": True, "run_id": cap["run_id"], "ts": cap["generated_at"], "openssl_version": cap["openssl_version"],
+            "capture_sha256": manifest["capture_sha256"], "sessions": [attach(s) for s in cap["sessions"]],
+            "refused_attempts": [attach(s) for s in cap["refused_attempts"]], "gates": gates,
+            "log": f"{log_root.name}/{cap['run_id']}/manifest.json", "note": manifest["note"]}

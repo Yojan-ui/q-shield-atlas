@@ -89,3 +89,4 @@
 .mv .mg-tile[hidden]{display:none}
 @media (max-width:1000px){.mv-tls{grid-template-columns:1fr}.mv-status{font-size:var(--fs-28)}}
 .mv .mg-tiles{max-height:640px;overflow-y:auto}
+.mv-fresh{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-3)}.mv-fresh .mv-note{flex:1 1 320px}

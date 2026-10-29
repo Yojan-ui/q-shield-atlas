@@ -7,6 +7,11 @@
     "qcloud_enabled": false,
     "qcloud_blocked_reason": "QCloud job creation was rejected: \"an active subscription is required to run jobs\" (2026-10-28). No QCloud job was created. Disabled until the account has a subscription."
   },
+  "fresh_handshake": {
+    "note": "Move page 'Run fresh handshake now' (operators): starts the lab TLS services on 127.0.0.1 via capture/, one handshake per service and client, then stops them. Never an external host. Logged under atlas_web/data/fresh_handshakes/ (git-ignored); not part of results.json, not signed. Enabled by the user on 2026-10-29.",
+    "enabled": true,
+    "disabled_reason": "off: an admin can enable fresh_handshake in config/atlas_web.json"
+  },
   "limits": {
     "upload_max_bytes": 209715200,
     "unzipped_max_bytes": 1073741824,

@@ -76,26 +76,42 @@ export async function mount(ctx) {
       const mv = move && move.available ? move : null, g = r.gates || {};
       const external = (move && move.observed) || {};
       const bankMode = Object.keys(external).length > 0;
-      const L = mv ? pickLanes(mv, g) : { before: null, after: null, downgrade: { state: "not_run", text: "not run" }, auth: [] };
-      const gateOf = (list, s) => s && (list || []).find((x) => x.service_id === s.service_id);
-      const offers = (s) => (s ? s.client_groups_offered.split(":").join(" · ") : "not run");
-      const recv = (s, tone) => s ? [["ch-k", "RECEIVER (server)"], ["ch-v", `lab service: ${s.service_id}`], [`ch-big ${tone}`, s.negotiated_group || "no handshake"],
-        ["ch-s", s.protocol || s.error || ""], ["ch-s", s.cipher || ""], ["ch-s", `cert ${authName(s) || "n/a"} · pq_auth ${(gateOf(g.pq_auth, s) || {}).result || "not run"}`]] : [["ch-k", "RECEIVER (server)"], ["ch-s", "not run"]];
-      const down = L.downgrade, dsess = down.session || null;
-      const lanes = [
-        { title: `Before: classical key exchange (${L.before ? L.before.negotiated_group : "not run"})`, caption: "Recorded traffic can be harvested now and decrypted later (HNDL-exposed)", tone: "exp",
-          session: L.before, sender: [["ch-k", "SENDER (client)"], ["ch-s", "offers"], ["ch-v", offers(L.before)], ["ch-s", "same client in both lanes"]], receiver: recv(L.before, "exp"),
-          prov: sessionProv(mv, L.before, "Before lane: recorded handshake"), end: L.before && { text: `Handshake done on ${L.before.negotiated_group}: HNDL-exposed`, tone: "exp" } },
-        { title: `After: hybrid ${L.after ? L.after.negotiated_group : "not run"}`, caption: "Quantum-resistant key exchange", tone: "ok",
-          session: L.after, sender: [["ch-k", "SENDER (client)"], ["ch-s", "offers"], ["ch-v", offers(L.after)], ["ch-s", "same client in both lanes"]], receiver: recv(L.after, "ok"),
-          prov: sessionProv(mv, L.after, "After lane: recorded handshake"), end: L.after && { text: `Handshake done on ${L.after.negotiated_group}`, tone: "ok" } },
-        { title: `Downgrade attempt: classical-only client to ${L.after ? L.after.service_id : "the hybrid service"}`, caption: down.state === "refused" ? "The server must refuse, not silently fall back to classical" : down.text, tone: "neutral",
-          session: dsess, sender: [["ch-k", "SENDER (client)"], ["ch-s", "offers only"], ["ch-v", offers(dsess)], ["ch-s", "no post-quantum group"]],
-          receiver: dsess ? [["ch-k", "RECEIVER (server)"], ["ch-v", `lab service: ${dsess.service_id}`], [`ch-big ${down.state === "refused" ? "ok" : "exp"}`, down.state === "refused" ? "refused" : "accepted"], ["ch-s", dsess.error || ""], ["ch-s", `downgrade gate ${(down.gate || {}).result || "not run"}`]] : [["ch-k", "RECEIVER (server)"], ["ch-s", down.text]],
-          prov: sessionProv(mv, dsess, "Downgrade attempt: recorded"), end: { text: down.text, tone: down.state === "refused" ? "ok" : down.state === "accepted" ? "exp" : "none" } },
-      ];
-      const ch = buildChannel(lanes, { runId: mv ? mv.run_id : "not yet run" });
-      const lists = lanes.map((l) => transcriptList(l.session, l.prov));
+      // the handshake scene for one capture (recorded, or a fresh lab run): lanes, packets, transcript lists, auth bars
+      const sceneOf = (mv, g, fresh) => {
+        const L = mv ? pickLanes(mv, g) : { before: null, after: null, downgrade: { state: "not_run", text: "not run" }, auth: [] };
+        const gateOf = (list, s) => s && (list || []).find((x) => x.service_id === s.service_id);
+        const offers = (s) => (s ? s.client_groups_offered.split(":").join(" · ") : "not run");
+        const recv = (s, tone) => s ? [["ch-k", "RECEIVER (server)"], ["ch-v", `lab service: ${s.service_id}`], [`ch-big ${tone}`, s.negotiated_group || "no handshake"],
+          ["ch-s", s.protocol || s.error || ""], ["ch-s", s.cipher || ""], ["ch-s", `cert ${authName(s) || "n/a"} · pq_auth ${(gateOf(g.pq_auth, s) || {}).result || "not run"}`]] : [["ch-k", "RECEIVER (server)"], ["ch-s", "not run"]];
+        const down = L.downgrade, dsess = down.session || null;
+        const lanes = [
+          { title: `Before: classical key exchange (${L.before ? L.before.negotiated_group : "not run"})`, caption: "Recorded traffic can be harvested now and decrypted later (HNDL-exposed)", tone: "exp",
+            session: L.before, sender: [["ch-k", "SENDER (client)"], ["ch-s", "offers"], ["ch-v", offers(L.before)], ["ch-s", "same client in both lanes"]], receiver: recv(L.before, "exp"),
+            prov: sessionProv(mv, L.before, fresh ? "Before lane: fresh lab handshake" : "Before lane: recorded handshake"), end: L.before && { text: `Handshake done on ${L.before.negotiated_group}: HNDL-exposed`, tone: "exp" } },
+          { title: `After: hybrid ${L.after ? L.after.negotiated_group : "not run"}`, caption: "Quantum-resistant key exchange", tone: "ok",
+            session: L.after, sender: [["ch-k", "SENDER (client)"], ["ch-s", "offers"], ["ch-v", offers(L.after)], ["ch-s", "same client in both lanes"]], receiver: recv(L.after, "ok"),
+            prov: sessionProv(mv, L.after, fresh ? "After lane: fresh lab handshake" : "After lane: recorded handshake"), end: L.after && { text: `Handshake done on ${L.after.negotiated_group}`, tone: "ok" } },
+          { title: `Downgrade attempt: classical-only client to ${L.after ? L.after.service_id : "the hybrid service"}`, caption: down.state === "refused" ? "The server must refuse, not silently fall back to classical" : down.text, tone: "neutral",
+            session: dsess, sender: [["ch-k", "SENDER (client)"], ["ch-s", "offers only"], ["ch-v", offers(dsess)], ["ch-s", "no post-quantum group"]],
+            receiver: dsess ? [["ch-k", "RECEIVER (server)"], ["ch-v", `lab service: ${dsess.service_id}`], [`ch-big ${down.state === "refused" ? "ok" : "exp"}`, down.state === "refused" ? "refused" : "accepted"], ["ch-s", dsess.error || ""], ["ch-s", `downgrade gate ${(down.gate || {}).result || "not run"}`]] : [["ch-k", "RECEIVER (server)"], ["ch-s", down.text]],
+            prov: sessionProv(mv, dsess, fresh ? "Downgrade attempt: fresh lab handshake" : "Downgrade attempt: recorded"), end: { text: down.text, tone: down.state === "refused" ? "ok" : down.state === "accepted" ? "exp" : "none" } },
+        ];
+        const ch = buildChannel(lanes, { runId: mv ? mv.run_id : "not yet run", title: fresh ? `Fresh lab handshake on 127.0.0.1, run ${mv.run_id} · not part of results.json, not signed` : null });
+        const lists = lanes.map((l) => transcriptList(l.session, l.prov));
+        // ---------- authentication (who the receiver is) ----------
+        const authRows = L.auth.map(({ session: s, gate }) => {
+          const pk = packetsOf(s), cert = pk.find((x) => x.type === "Certificate"), cv = pk.find((x) => x.type === "CertificateVerify");
+          const tot = (cert ? cert.bytes : 0) + (cv ? cv.bytes : 0), pass = gate && gate.result === "PASS";
+          return { s, gate, cert, cv, tot, pass };
+        });
+        const maxAuth = Math.max(1, ...authRows.map((x) => x.tot));
+        const authBox = authRows.length ? h("div", { class: "mv-auth" }, authRows.map(({ s, gate, cert, cv, tot, pass }) => h("div", { class: "mv-auth-row", tabindex: "0", "data-prov": sessionProv(mv, s, `${s.service_id}: server authentication`) },
+          h("p", { class: "mv-auth-h" }, h("span", { class: "mono", text: `${authName(s)}` }), ` · ${s.service_id} · `, chip(gate ? gate.result : "NOT_RUN", `pq_auth ${gate ? gate.result : "not run"}`)),
+          h("div", { class: "mv-auth-bar" }, h("span", { class: pass ? "ok" : "exp", style: { width: `${(tot / maxAuth) * 100}%` } })),
+          h("p", { class: "mv-note", text: `Certificate ${cert ? fmtBytes(cert.bytes) : "n/a"} + CertificateVerify ${cv ? fmtBytes(cv.bytes) : "n/a"} = ${fmtBytes(tot)}. ${gate ? gate.reason : "no pq_auth gate recorded"}` })))) : h("p", { class: "mv-note", text: "not run" });
+        return { L, lanes, ch, lists, authBox };
+      };
+      let S = sceneOf(mv, g, false);
       // ---------- plan: weeks and waves ----------
       const banks = bankMode ? [...new Set(r.assets.map(clusterOf))].sort() : [];
       let bank = bankMode && banks.includes(ctx.query.get("bank")) ? ctx.query.get("bank") : "";
@@ -173,9 +189,9 @@ export async function mount(ctx) {
         gatesBox.replaceChildren(gateTable(ws.wave));
       };
       // ---------- replay clock ----------
-      let t = reduced ? ch.length + HOLD : 0, running = false, advancing = false, raf = 0, prev = 0;
-      const cycle = ch.length + HOLD;
-      const paint = () => { ch.set(t); for (const l of lists) if (l && l.mark) l.mark(t); };
+      let t = reduced ? S.ch.length + HOLD : 0, running = false, advancing = false, raf = 0, prev = 0;
+      const cycle = () => S.ch.length + HOLD;
+      const paint = () => { S.ch.set(t); for (const l of S.lists) if (l && l.mark) l.mark(t); };
       const label = () => {
         playBtn.replaceChildren(icon(running ? "dash" : "play"), running ? "Pause" : "Play the plan");
         motionBtn.replaceChildren(icon(reduced ? "dash" : "spin"), reduced ? "Motion off" : "Motion on");
@@ -186,9 +202,9 @@ export async function mount(ctx) {
         if (!running || ctx.signal.aborted) return;
         const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
         t += dt * RATE * Number(speed.value);
-        if (t >= cycle) {
+        if (t >= cycle()) {
           t = 0;
-          if (advancing) { if (week >= last) { running = false; advancing = false; t = cycle - 0.01; label(); paint(); return; } setWeek(week + 1); ctx.announce(status.textContent); }
+          if (advancing) { if (week >= last) { running = false; advancing = false; t = cycle() - 0.01; label(); paint(); return; } setWeek(week + 1); ctx.announce(status.textContent); }
         }
         paint();
         raf = requestAnimationFrame(frame);
@@ -199,48 +215,63 @@ export async function mount(ctx) {
         if (running && advancing) return stop();
         if (week >= last) setWeek(0);
         t = 0;
-        if (reduced) { setWeek(Math.min(last, week + 1)); t = cycle - 0.01; paint(); return; }  // no motion: one week per press
+        if (reduced) { setWeek(Math.min(last, week + 1)); t = cycle() - 0.01; paint(); return; }  // no motion: one week per press
         start(true);
       }, { signal: ctx.signal });
       stepBtn.addEventListener("click", () => {
         stop();
         const k = Math.floor(t);
-        t = t >= ch.length ? 0.5 : Math.min(ch.length, k + (t - k < 0.5 ? 0.5 : 1.5));  // freeze each packet mid-channel
-        if (t > ch.length) t = ch.length + HOLD;
+        t = t >= S.ch.length ? 0.5 : Math.min(S.ch.length, k + (t - k < 0.5 ? 0.5 : 1.5));  // freeze each packet mid-channel
+        if (t > S.ch.length) t = S.ch.length + HOLD;
         paint();
       }, { signal: ctx.signal });
       range.addEventListener("input", () => { if (advancing) stop(); setWeek(Number(range.value)); }, { signal: ctx.signal });
       if (bankSel) bankSel.addEventListener("change", () => { bank = bankSel.value; ctx.setQuery({ bank: bank || null }); drawPlan(); }, { signal: ctx.signal });
       motionBtn.addEventListener("click", () => {
         reduced = !reduced;
-        if (reduced) { stop(); t = cycle - 0.01; paint(); } else start(false);
+        if (reduced) { stop(); t = cycle() - 0.01; paint(); } else start(false);
         label();
       }, { signal: ctx.signal });
       ctx.signal.addEventListener("abort", () => cancelAnimationFrame(raf), { once: true });
       label(); drawPlan(); paint();
       if (!reduced && mv) start(false);  // the handshake replay loops; weeks only advance on "Play the plan"
-      // ---------- authentication (who the receiver is) ----------
-      const authRows = L.auth.map(({ session: s, gate }) => {
-        const pk = packetsOf(s), cert = pk.find((x) => x.type === "Certificate"), cv = pk.find((x) => x.type === "CertificateVerify");
-        const tot = (cert ? cert.bytes : 0) + (cv ? cv.bytes : 0), pass = gate && gate.result === "PASS";
-        return { s, gate, cert, cv, tot, pass };
-      });
-      const maxAuth = Math.max(1, ...authRows.map((x) => x.tot));
-      const authBox = authRows.length ? h("div", { class: "mv-auth" }, authRows.map(({ s, gate, cert, cv, tot, pass }) => h("div", { class: "mv-auth-row", tabindex: "0", "data-prov": sessionProv(mv, s, `${s.service_id}: server authentication`) },
-        h("p", { class: "mv-auth-h" }, h("span", { class: "mono", text: `${authName(s)}` }), ` · ${s.service_id} · `, chip(gate ? gate.result : "NOT_RUN", `pq_auth ${gate ? gate.result : "not run"}`)),
-        h("div", { class: "mv-auth-bar" }, h("span", { class: pass ? "ok" : "exp", style: { width: `${(tot / maxAuth) * 100}%` } })),
-        h("p", { class: "mv-note", text: `Certificate ${cert ? fmtBytes(cert.bytes) : "n/a"} + CertificateVerify ${cv ? fmtBytes(cv.bytes) : "n/a"} = ${fmtBytes(tot)}. ${gate ? gate.reason : "no pq_auth gate recorded"}` })))) : h("p", { class: "mv-note", text: "not run" });
-      const tlist = (i, title) => h("div", { class: `mv-tl ${lanes[i].tone}` }, h("p", { class: "mv-tl-h", text: title }), lists[i] && lists[i].el ? lists[i].el : lists[i]);
+      const tlist = (i, title) => h("div", { class: `mv-tl ${S.lanes[i].tone}` }, h("p", { class: "mv-tl-h", text: title }), S.lists[i] && S.lists[i].el ? S.lists[i].el : S.lists[i]);
+      const tlists = () => [tlist(0, "Before: messages"), tlist(1, "After: messages"), tlist(2, "Downgrade attempt: messages")];
+      const stageBox = h("div", {}, S.ch.el), tlsBox = h("div", { class: "mv-tls" }, tlists()), authWrap = h("div", {}, S.authBox);
+      // optional "Run fresh handshake now" (config fresh_handshake.enabled, operators): lab services on 127.0.0.1 only
+      const fs = (move && move.fresh) || { enabled: false, reason: "not available" };
+      const canRun = fs.enabled && ctx.me && ctx.me.role !== "viewer";
+      const freshBtn = h("button", { class: "btn", type: "button", disabled: canRun ? null : true }, icon("spin"), "Run fresh handshake now");
+      const backBtn = h("button", { class: "btn quiet", type: "button", hidden: true }, icon("rewind"), "Back to the recorded run");
+      const freshNote = h("p", { class: "mv-note", "aria-live": "polite", text: !fs.enabled ? `Fresh handshake ${fs.reason}` : canRun ? "Starts the lab TLS services on 127.0.0.1, records one handshake per service, stops them. Never contacts another host." : "Fresh handshake: operators only." });
+      const swap = (mvX, gX, fresh) => {
+        S = sceneOf(mvX, gX, fresh);
+        stageBox.replaceChildren(S.ch.el); tlsBox.replaceChildren(...tlists()); authWrap.replaceChildren(S.authBox);
+        backBtn.hidden = !fresh; t = 0; paint();
+        if (!reduced) start(false); else { t = cycle() - 0.01; paint(); }
+      };
+      freshBtn.addEventListener("click", async () => {
+        freshBtn.disabled = true; freshNote.textContent = "Running the lab handshakes on 127.0.0.1…";
+        try {
+          const f = await ctx.api.post(`/api/workspaces/${ctx.ws}/move/fresh`, {}, { signal: ctx.signal, quiet: true });
+          swap(f, f.gates || {}, true);
+          freshNote.textContent = `Fresh lab run ${f.run_id} at ${f.ts}: ${f.sessions.length} handshakes, ${f.refused_attempts.length} refused. Logged in ${f.log}; not part of results.json, not signed.`;
+          ctx.announce(freshNote.textContent);
+        } catch (err) {
+          if (err.code !== "aborted") freshNote.textContent = `Fresh handshake failed: ${err.message}`;
+        } finally { freshBtn.disabled = !canRun; }
+      }, { signal: ctx.signal });
+      backBtn.addEventListener("click", () => { swap(mv, g, false); freshNote.textContent = "Showing the recorded run again."; }, { signal: ctx.signal });
       return h("div", { class: "mv" },
         h("div", { class: "mv-top" }, status, count, bar,
           h("ul", { class: "legend mv-legend", "aria-label": "Progress bar colours" }, [["pass", "green: verified in lab"], ["accent", "white: moved by the plan"], ["exposed", "red: still on old encryption"]].map(([c, x]) =>
             h("li", {}, h("span", { class: `lg-dot ${c}`, "aria-hidden": "true" }), x))),
           h("div", { class: "mv-controls" }, playBtn, stepBtn, h("label", { class: "mv-lab" }, "speed", speed),
             h("label", { class: "mv-lab week-scrub" }, "week", range, wk), bankSel ? h("label", { class: "mv-lab" }, "bank", bankSel) : null, motionBtn)),
-        h("section", { class: "ch-stage", "aria-label": "Replay of recorded handshakes" }, ch.el,
+        h("section", { class: "ch-stage", "aria-label": "Replay of recorded handshakes" }, h("div", { class: "mv-fresh" }, freshBtn, backBtn, freshNote), stageBox,
           h("p", { class: "mv-how", text: "How to read this: each block is one recorded TLS message, as wide as its real size. Same client, two servers: red uses classical X25519, green uses hybrid X25519MLKEM768 (its key share is the dark inner block). The bottom lane is a client that offers only classical groups." })),
-        h("div", { class: "mv-tls" }, tlist(0, "Before: recorded messages"), tlist(1, "After: recorded messages"), tlist(2, "Downgrade attempt: recorded messages")),
-        h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: "Who the receiver is: server authentication" }), authBox,
+        tlsBox,
+        h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: "Who the receiver is: server authentication" }), authWrap,
           h("p", { class: "mv-how", text: "How to read this: bar length is the recorded certificate plus signature size. Key exchange protects recorded traffic; the signature proves the server's identity and must be replaced before a quantum computer exists." })),
         h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: "This week's wave: gate results" }), mean, gatesBox),
         h("section", { class: "mv-sec" }, h("h2", { class: "mv-h2", text: bank ? `Systems: ${bank}` : "Systems" }),

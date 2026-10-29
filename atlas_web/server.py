@@ -87,6 +87,7 @@ class App:
         self.kiosk, self.demo = kiosk, demo
         self.tamper_lock = threading.Lock()
         self.tamper_last = 0.0
+        self.fresh_lock = threading.Lock()  # one fresh lab handshake at a time (lab services, ports)
         self.review_lock = threading.Lock()  # one signed review decision at a time
         self.cache: dict = {}
         self.cache_lock = threading.Lock()
@@ -525,6 +526,22 @@ def make_handler(app: App):
                     except (OSError, ValueError):
                         return {"available": False, "status_text": "not yet run"}
                 return self.send_json(200, app.cached(("inventory", ws.id), file_stamp(f), inv))
+            if name == "move" and method == "POST" and sub[1:] == ["fresh"]:  # optional: fresh lab handshake (127.0.0.1)
+                from .config import data_dir
+                from .move import fresh_handshake, fresh_status
+
+                self.need("operator")
+                st = fresh_status()
+                if not st["enabled"]:
+                    raise ApiError(403, "fresh_disabled", st["reason"])
+                if not app.fresh_lock.acquire(blocking=False):
+                    raise ApiError(429, "busy", "a fresh handshake is already running")
+                try:
+                    return self.send_json(200, fresh_handshake(data_dir() / "fresh_handshakes"))
+                except (RuntimeError, OSError, TimeoutError) as e:
+                    raise ApiError(500, "fresh_failed", f"fresh handshake failed: {e}"[:300]) from None
+                finally:
+                    app.fresh_lock.release()
             if name == "move" and method == "GET" and len(sub) == 1:  # recorded handshakes as message lists (Move page)
                 from .move import move_payload
 
