@@ -13,10 +13,12 @@ a QpiAI QCloud simulator (paid, guarded, opt-in); --ibm samples them on IBM Quan
 
 import argparse
 import json
+import time
 from pathlib import Path
 
 import numpy as np
 
+import qpiai_log
 import solvers
 from contracts.manifest import new_run_id, sha256_json, utc_now
 from schedule.platform_guard import DAILY_LIMIT, PlatformBudget
@@ -63,8 +65,15 @@ def run(schedule: dict, cfg: dict, run_root: Path, qcloud: bool = False, budget=
     comparisons, qcloud_status = [], {"requested": qcloud}
     sdk_status = {"requested": sdk_local}
     if sdk_local:  # free, in-process QpiAI SDK simulator: same final circuits, no network, no credits
-        for rec in qpiai_local.run(q, angle_sets, cfg, run_id, run_dir):
+        rnd_m = runs[-1]["metrics"]
+        log = [f"[QPIAI QSV] {qpiai_log.now()} {qpiai_log.origin()}"]
+        for a1 in angle_sets:
+            t1 = time.perf_counter()
+            rec = qpiai_local.run(q, [a1], cfg, run_id, run_dir)[0]
+            dt = time.perf_counter() - t1
             m = metrics.compute(q, rec["counts"], E, exact)
+            log += [f"[QPIAI QSV] QAOA wave selection: {q.n} qubits/variables, p={rec['p']}, device {rec['device']}, shots {rec['shots']} (qpiai-quantum {rec['sdk_version']})",
+                    f"[QPIAI QSV] Result: feasible share {m['feasible_fraction']:.4f}, P(optimal) {m['p_optimal_assets']:.4f} vs random {rnd_m['p_optimal_assets']:.4f}, {dt:.2f} s"]
             a = next(x for x in angle_sets if x["p"] == rec["p"])
             runs.append({"p": rec["p"], "source": "qpiai_local", "backend": rec["backend"], "shots": m["shots"],
                          "angles": {"gammas": a["gammas"], "betas": a["betas"]}, "energy_scale": a["energy_scale"],
@@ -74,6 +83,7 @@ def run(schedule: dict, cfg: dict, run_root: Path, qcloud: bool = False, budget=
             comparisons.append({"p": rec["p"], "against": "qpiai_local",
                                 **metrics.compare(local["metrics"], m, cfg["compare_sigma"], "QpiAI SDK local")})
         sdk_status.update(device=qpiai_local.BACKEND, sdk_version=runs[-1]["sdk_version"])
+        qpiai_log.emit(log)
     if qcloud:
         records = qcloud_run.run(q, angle_sets, cfg, budget, run_id, run_dir)
         qcloud_status.update(device=cfg["qcloud"]["device"], jobs=[{k: r.get(k) for k in ("p", "status", "job_id", "credits_used", "error")} for r in records])

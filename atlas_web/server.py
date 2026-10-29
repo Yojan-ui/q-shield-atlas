@@ -464,7 +464,7 @@ def make_handler(app: App):
 
                     def work():
                         try:
-                            box["ok"] = quantum.run(json.loads(f.read_text()), p)
+                            box["ok"] = quantum.run(json.loads(f.read_text()), p, ws=ws.id)
                         except Exception as exc:  # noqa: BLE001 - JSON error, never a traceback
                             box["err"] = exc
 

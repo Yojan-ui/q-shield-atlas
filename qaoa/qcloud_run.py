@@ -14,6 +14,8 @@ import json
 import os
 from pathlib import Path
 
+import qpiai_log
+
 from .circuit import build_circuit
 
 QPU_DEVICES = {"QpiAI-Indus-1"}
@@ -58,6 +60,8 @@ def run(q, angle_sets: list[dict], cfg: dict, budget, run_id: str, run_dir: Path
             rec = {"p": a["p"], "status": "failed", "error": failed}
             budget.record(run_id, stage=stage, error=failed)
             print(f"QCLOUD FAILED for {stage}: {failed}", flush=True)
+        qpiai_log.emit([f"[QCLOUD] {qpiai_log.now()} {qpiai_log.origin()}",
+                        f"[QCLOUD] Job submit ({stage}, device {qc['device']}): " + (f"job {rec['job_id']} {rec['job_status']}" if rec["status"] == "ok" else rec["error"])])
         (run_dir / f"qcloud_p{a['p']}.json").write_text(json.dumps(rec, indent=1))
         records.append(rec)
     return records

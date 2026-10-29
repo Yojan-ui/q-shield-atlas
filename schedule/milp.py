@@ -21,6 +21,7 @@ from dataclasses import asdict
 from importlib.metadata import version
 from pathlib import Path
 
+import qpiai_log
 from qpiai_opt.opt_modeller import Binary, Continuous, Model, quicksum
 from qpiai_opt.opt_solvers import Client, solve
 
@@ -192,6 +193,12 @@ def solve_schedule(
             "comparison": comparison,
         }
         runs.append(run)
+        qpiai_log.emit([f"[QPIAI OPT] {run['ts']} {qpiai_log.origin()}",
+                        f"[QPIAI OPT] Building migration MILP ({stage_name}): {len(problem.assets)} systems, {horizon} weeks, "
+                        f"capacity {problem.capacity_days_per_week:g} engineer-days/week, {sum(len(a.depends_on) for a in problem.assets)} dependencies",
+                        f"[QPIAI OPT] Solver: qpiai-opt {pkg_version} ({local.execution_mode}) ... Status: {str(local.status).upper()}, "
+                        f"objective {local.objective}, {local.solver_time_s * 1000:.0f} ms",
+                        *([f"[QPIAI OPT] Platform submit: {'job ' + str(result.job_id) if solver == SOLVER_PLATFORM else fallback_reason}"] if submit else [])])
         if d is not None:
             d.mkdir(parents=True, exist_ok=True)
             (d / "inputs.json").write_text(json.dumps(inputs, indent=1))

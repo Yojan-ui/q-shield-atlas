@@ -16,6 +16,8 @@ import time
 from importlib import metadata as md
 from pathlib import Path
 
+import qpiai_log
+
 from .config import PLATFORM_LOG, REPO, settings
 
 QAOA_CFG = REPO / "config" / "qaoa.json"
@@ -59,6 +61,10 @@ def cloud_status(timeout_s: float = 15.0) -> dict:
         else:
             out["devices"], out["error"] = res.get("devices", []), res.get("error")
             out["reachable"] = out["error"] is None
+        names = ", ".join(f"{d['name']} ({d['status']})" for d in out["devices"])
+        qpiai_log.emit([f"[QCLOUD] {qpiai_log.now()} Received status check from UI (GET /api/quantum/status)",
+                        f"[QCLOUD] SDK qpiai-quantum {out['sdk_version']}: login {'ok' if out['reachable'] else 'failed: ' + str(out['error'])}, "
+                        f"devices {len(out['devices'])}{': ' + names if names else ''}"])
     else:
         out["error"] = f"{AUTH_ENV} is not set"
     _status_cache.update(checked_at=now, value=out)
@@ -78,7 +84,7 @@ def status() -> dict:
             "fallback_reason": reason, "checked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(_status_cache.get("checked_at", time.time())))}
 
 
-def run(schedule: dict, p: int = 1, timeout_s: float = 90.0) -> dict:
+def run(schedule: dict, p: int = 1, timeout_s: float = 90.0, ws: str = "unknown") -> dict:
     """One live QAOA run of the link cutover selection on `schedule`: angles tuned on the numpy simulator, final
     circuit sampled on the chosen backend, scored against the exact optimum. Not signed (a live demo run)."""
     if not _lock.acquire(blocking=False):
@@ -111,7 +117,13 @@ def run(schedule: dict, p: int = 1, timeout_s: float = 90.0) -> dict:
             if rec is None:
                 if time.perf_counter() - t0 > timeout_s:
                     raise TimeoutError(f"timed out after {timeout_s:.0f} s")
+                t1 = time.perf_counter()
                 r = qpiai_local.run(q, angles, cfg, "web", Path(d))[0]
+                m1 = metrics.compute(q, r["counts"], E, exact)
+                rnd = metrics.compute(q, local_sim.uniform_samples(q.n, cfg["shots"], cfg["seed"] + 1000), E, exact)  # same baseline as python -m qaoa
+                qpiai_log.emit([f"[QPIAI QSV] {qpiai_log.now()} Received dispatch request from UI (workspace={ws}, Run QAOA now)",
+                                f"[QPIAI QSV] QAOA wave selection: {q.n} qubits/variables, p={p}, device {r['device']}, shots {r['shots']} (qpiai-quantum {r['sdk_version']})",
+                                f"[QPIAI QSV] Result: feasible share {m1['feasible_fraction']:.4f}, P(optimal) {m1['p_optimal_assets']:.4f} vs random {rnd['p_optimal_assets']:.4f}, {time.perf_counter() - t1:.2f} s"])
                 rec = {"counts": r["counts"], "job_id": None, "job_id_reason": r["job_id_reason"]}
                 backend = "Local simulator"
         m = metrics.compute(q, rec["counts"], E, exact)

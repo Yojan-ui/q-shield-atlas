@@ -16,6 +16,7 @@ import threading
 import time
 from pathlib import Path
 
+import qpiai_log
 from contracts.stages import STEPS as STAGE_STEPS
 
 from .auth import Store
@@ -345,7 +346,7 @@ class RunManager:
         return self.runs.get(run_id)
 
     def _execute(self, run: Run, ws: Workspace, steps: list, platform: bool, needs_keygen: bool) -> None:
-        env = step_env(platform)
+        env = {**step_env(platform), "QSHIELD_UI_WORKSPACE": ws.id, "QSHIELD_UI_RUN_ID": run.id}
         redact = redactor(env)
         timeout = limits()["step_timeout_s"]
         summary, status, tail = [], "PASS", []
@@ -394,6 +395,8 @@ class RunManager:
                 line = redact(raw.rstrip("\n"))[:2000]
                 lines.append(line)
                 run.emit("line", step=name, text=line)
+                if line.startswith(qpiai_log.TAGS) or line == qpiai_log.SEP:
+                    print(line, file=sys.stderr, flush=True)  # QpiAI usage lines also on the server console
             code = proc.wait()
         finally:
             timer.cancel()

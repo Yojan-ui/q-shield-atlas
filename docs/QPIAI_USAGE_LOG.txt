@@ -1,0 +1,167 @@
+========================================
+[QCLOUD] 2026-10-29T20:58:50Z Received status check from UI (GET /api/quantum/status)
+[QCLOUD] SDK qpiai-quantum 0.3.0: login ok, devices 6: QpiAI-QSV-Simulator (active), QpiAI-QDM-Simulator (active), QpiAI-QTN-Simulator (active), QpiAI-QSV-Lite (active), QpiAI-QDM-Lite (active), QpiAI-Indus-1 (maintenance)
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:53Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 37.753846153846155, 18 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:53Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 11.480769230769232, 17 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:54Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 21.753846153846155, 14 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:54Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 11.480769230769232, 17 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:55Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 53.753846153846155, 15 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:55Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 11.480769230769232, 17 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:56Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 30.203076923076924, 13 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:56Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 9.184615384615386, 16 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:56Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 45.30461538461538, 14 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:57Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 13.776923076923076, 17 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:57Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 37.753846153846155, 14 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:58Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 58 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 8.788461538461538, 17 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:58Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 58 systems, 29 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 37.753846153846155, 17 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:58:59Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 58 systems, 29 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 16.865384615384617, 19 ms
+========================================
+========================================
+[QPIAI QSV] 2026-10-29T20:59:14Z Received dispatch request from UI (workspace=real-banks, run_id=d2f6655fe47ff6ec)
+[QPIAI QSV] QAOA wave selection: 14 qubits/variables, p=1, device QpiAI-QSV-Local, shots 2048 (qpiai-quantum 0.3.0)
+[QPIAI QSV] Result: feasible share 0.7192, P(optimal) 0.0132 vs random 0.0015, 0.65 s
+[QPIAI QSV] QAOA wave selection: 14 qubits/variables, p=2, device QpiAI-QSV-Local, shots 2048 (qpiai-quantum 0.3.0)
+[QPIAI QSV] Result: feasible share 0.8003, P(optimal) 0.0234 vs random 0.0015, 0.02 s
+[QPIAI QSV] QAOA wave selection: 14 qubits/variables, p=3, device QpiAI-QSV-Local, shots 2048 (qpiai-quantum 0.3.0)
+[QPIAI QSV] Result: feasible share 0.7661, P(optimal) 0.0161 vs random 0.0015, 0.03 s
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:23Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.06923076923076923, 8 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:23Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.23076923076923078, 2 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:23Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.0, 5 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:24Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.23076923076923078, 8 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:24Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 1.6892307692307682, 4 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:24Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.23076923076923078, 2 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:24Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.05538461538461539, 4 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:24Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.18461538461538465, 2 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:25Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.08307692307692308, 3 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:25Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.2769230769230769, 2 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:25Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.051923076923076926, 2 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:25Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.17307692307692307, 2 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:25Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.expected): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.06923076923076923, 7 ms
+========================================
+========================================
+[QPIAI OPT] 2026-10-29T20:59:25Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI OPT] Building migration MILP (schedule.milp.expected.tiebreak): 3 systems, 26 weeks, capacity 10 engineer-days/week, 0 dependencies
+[QPIAI OPT] Solver: qpiai-opt 0.0.9 (local) ... Status: OPTIMAL, objective 0.23076923076923078, 2 ms
+========================================
+========================================
+[QPIAI QSV] 2026-10-29T20:59:31Z Received dispatch request from UI (workspace=online-boutique, run_id=db1ac019554db8f3)
+[QPIAI QSV] QAOA wave selection: 7 qubits/variables, p=1, device QpiAI-QSV-Local, shots 2048 (qpiai-quantum 0.3.0)
+[QPIAI QSV] Result: feasible share 0.9629, P(optimal) 0.1079 vs random 0.1294, 0.52 s
+[QPIAI QSV] QAOA wave selection: 7 qubits/variables, p=2, device QpiAI-QSV-Local, shots 2048 (qpiai-quantum 0.3.0)
+[QPIAI QSV] Result: feasible share 0.9546, P(optimal) 0.1016 vs random 0.1294, 0.01 s
+[QPIAI QSV] QAOA wave selection: 7 qubits/variables, p=3, device QpiAI-QSV-Local, shots 2048 (qpiai-quantum 0.3.0)
+[QPIAI QSV] Result: feasible share 0.9722, P(optimal) 0.0986 vs random 0.1294, 0.01 s
+========================================
+========================================
+[QPIAI QSV] 2026-10-29T20:59:39Z Received dispatch request from UI (workspace=online-boutique, Run QAOA now)
+[QPIAI QSV] QAOA wave selection: 7 qubits/variables, p=1, device QpiAI-QSV-Local, shots 2048 (qpiai-quantum 0.3.0)
+[QPIAI QSV] Result: feasible share 0.9629, P(optimal) 0.1079 vs random 0.1294, 0.50 s
+========================================

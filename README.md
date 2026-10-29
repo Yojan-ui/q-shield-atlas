@@ -76,7 +76,7 @@ flowchart TB
 - [Team](#team)
 - [License](#license)
 
-QpiAI / QCloud usage log (plain text): [docs/QPIAI_QCLOUD.txt](docs/QPIAI_QCLOUD.txt)
+QpiAI / QCloud usage log (plain text): [docs/QPIAI_QCLOUD.txt](docs/QPIAI_QCLOUD.txt) · recorded QpiAI call log from the web app: [docs/QPIAI_USAGE_LOG.txt](docs/QPIAI_USAGE_LOG.txt)
 
 More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/BACKEND.md](docs/BACKEND.md) ·
 [docs/API.md](docs/API.md) · [docs/QUANTUM.md](docs/QUANTUM.md) · [docs/REFERENCE.md](docs/REFERENCE.md) (module internals,
