@@ -98,6 +98,7 @@ The UI's step names are generated from that file (`python -m contracts.stages --
 conda env create -f environment.yml && conda activate pqc   # Python 3.12 + OpenSSL 3.6.5 (ML-KEM, ML-DSA)
 export QPIAI_OPT_API_KEY=...        # free key from https://opt.qpiai.tech/ (or put it in .env.sh, git-ignored)
 ./run_demo.sh                       # regenerate everything, then open the viz; --no-open to skip the browser
+                                    # also attaches the recorded IBM ibm_fez run (data/real_ibm_qaoa); --no-ibm skips it
 ./announce.sh --fast                # terminal launch screen from out/results.json
 ./report.sh                         # out/report.html: one offline file, signed into the ledger; opens it
 python -m atlas site                # showcase site "The Lattice" (site/), read-only, 127.0.0.1
@@ -573,7 +574,8 @@ from `out/results.json`, `runs/152aa6e0…/ibm_p*.json`, `runs/platform_jobs.log
 the QUBO was built from, the QUBO and exact optimum, angles per p, raw counts, job IDs, transpile stats and physical
 layout, QPU seconds, timestamps, metrics, package versions, and `manifest.json` with the SHA-256 of every file.
 
-**Reproducing the IBM rows on another machine (no IBM access needed)**
+**Reproducing the IBM rows on another machine (no IBM access needed)**: `./run_demo.sh` does this after its QAOA
+step (as `ibm_import`, inside the QAOA stage; `--no-ibm` skips it). By hand:
 ```bash
 git pull                                                        # brings data/real_ibm_qaoa/
 python -m qaoa --qpiai-local --schedule data/real_ibm_qaoa/schedule.json   # same problem, local rows

@@ -130,13 +130,13 @@ reproduction: README section "IBM Quantum hardware run (`ibm_fez`)".
     # Section 3: QAOA on QpiAI-QSV-Local (and the numpy simulator)
     python -m qaoa --qpiai-local
 
-    # Whole pipeline + signed ledger + results.json
+    # Whole pipeline + signed ledger + results.json (attaches the recorded ibm_fez rows; --no-ibm skips that)
     ./run_demo.sh
 
     # Section 4: QCloud (opt-in, consumes credits; blocked until the account has a subscription)
     ./run_demo.sh --qcloud                           # QpiAI-QSV-Simulator only
 
-    # Section 5: attach the recorded ibm_fez rows without IBM access (adds the IBM row to the web table)
+    # Section 5 by hand (run_demo.sh already does this): attach the recorded ibm_fez rows without IBM access
     python -m qaoa --qpiai-local --schedule data/real_ibm_qaoa/schedule.json
     python -m qaoa --ibm-import data/real_ibm_qaoa
 

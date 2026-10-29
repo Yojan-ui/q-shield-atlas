@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Q-Shield Atlas: regenerate everything (detect -> proof chain -> schedule -> capture -> gates -> qaoa -> seal ->
 # results.json) and open the viz. Local only by default: no QpiAI Opt or QCloud jobs are submitted
-# unless --platform / --qcloud are given (both go through the guarded commands).
+# unless --platform / --qcloud are given (both go through the guarded commands). If data/real_ibm_qaoa/ exists,
+# the recorded IBM ibm_fez run is attached after QAOA (no IBM access, no jobs; --no-ibm skips it).
 #
-#   ./run_demo.sh [--no-open] [--report-open] [--platform] [--qcloud] [--allow-more]
+#   ./run_demo.sh [--no-open] [--report-open] [--platform] [--qcloud] [--allow-more] [--no-ibm]
 #
 # Env: PYTHON (default: python), QSHIELD_OPENSSL (OpenSSL >= 3.5 binary), QPIAI_OPT_API_KEY,
 # QCLOUD_API_KEY (read from .env.sh if present and not already set). Bash 3.2 compatible.
@@ -16,6 +17,7 @@ REPORT_OPEN=()
 PLATFORM_ARGS=()
 QCLOUD_ARGS=()
 ALLOW_MORE=()
+IBM_DIR="data/real_ibm_qaoa"
 for arg in "$@"; do
   case "$arg" in
     --no-open) OPEN=0 ;;
@@ -23,6 +25,7 @@ for arg in "$@"; do
     --platform) PLATFORM_ARGS=(--platform) ;;
     --qcloud) QCLOUD_ARGS=(--qcloud) ;;
     --allow-more) ALLOW_MORE=(--allow-more) ;;
+    --no-ibm) IBM_DIR="" ;;
     -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg (see --help)" >&2; exit 2 ;;
   esac
@@ -138,6 +141,11 @@ step schedule        "$PY" -m schedule --inventory out/inventory.json ${PLATFORM
 step capture         "$PY" -m capture
 step gates           "$PY" -m gates
 step qaoa            "$PY" -m qaoa --qpiai-local ${QCLOUD_ARGS[@]+"${QCLOUD_ARGS[@]}"} ${ALLOW_MORE[@]+"${ALLOW_MORE[@]}"}
+if [ -n "$IBM_DIR" ] && [ -f "$IBM_DIR/manifest.json" ]; then
+  # part of the QAOA stage: attach the recorded ibm_fez rows (hashes and metrics re-checked; refuses if the
+  # week-1 problem differs from the packaged one; rerun with --no-ibm to skip)
+  step ibm_import    "$PY" -m qaoa --ibm-import "$IBM_DIR"
+fi
 step ledger_ingest   "$PY" -m ledger ingest
 step ledger_verify   "$PY" -m ledger verify
 step assemble        "$PY" -m contracts.assemble
