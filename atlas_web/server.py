@@ -516,6 +516,15 @@ def make_handler(app: App):
                     self._headers(304, TYPES[".json"], 0, [("ETag", etag)])
                     return
                 return self.send_body(200, body, TYPES[".json"], [("ETag", etag)])
+            if name == "inventory" and method == "GET" and len(sub) == 1:  # out/inventory.json (Detect graph), read-only
+                f = ws.out / "inventory.json"
+
+                def inv():
+                    try:
+                        return {"available": True, "inventory": json.loads(f.read_text()), "sha256": sha256_hex(f.read_bytes())}
+                    except (OSError, ValueError):
+                        return {"available": False, "status_text": "not yet run"}
+                return self.send_json(200, app.cached(("inventory", ws.id), file_stamp(f), inv))
             if name == "move" and method == "GET" and len(sub) == 1:  # recorded handshakes as message lists (Move page)
                 from .move import move_payload
 

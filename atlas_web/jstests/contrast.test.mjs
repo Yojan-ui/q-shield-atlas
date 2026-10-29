@@ -16,9 +16,9 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
 
 const base = parse(tok("base"));
 const bgs = { base, surface: over(parse(tok("surface")), base), "surface-solid": parse(tok("surface-solid")), "surface-raised": parse(tok("surface-raised")) };
-const washes = ["accent-wash", "exposure-wash", "pass-wash", "caution-wash"];
+const washes = ["accent-wash", "exposure-wash", "pass-wash", "caution-wash", "pqc-wash"];
 for (const w of washes) bgs[w] = over(parse(tok(w)), base);
-const TEXT = ["text", "text-2", "text-3", "accent", "exposure", "pass", "caution"];
+const TEXT = ["text", "text-2", "text-3", "accent", "exposure", "pass", "caution", "pqc"];
 
 test("every text token on every surface passes AA 4.5:1", () => {
   const fails = [];

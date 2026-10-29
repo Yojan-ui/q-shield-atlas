@@ -85,7 +85,7 @@ h3 { margin: 0; font-size: var(--fs-14); font-weight: var(--weight-semibold); }
 .fine { font-size: var(--fs-12); color: var(--text-2); margin: 0; }
 .section { border-top: var(--rule) solid var(--hairline); padding-top: var(--s-5); }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); margin-bottom: var(--s-4); }
-.label-assumption { display: inline-flex; gap: var(--s-1); align-items: center; font-size: var(--fs-11); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--caution); }
+
 .foot { margin-top: var(--s-8); padding-top: var(--s-4); border-top: var(--rule) solid var(--hairline); display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); color: var(--text-2); font-size: var(--fs-12); }
 
 /* ---------- stat block ---------- */
@@ -267,7 +267,7 @@ dialog.confirm .actions { display: flex; justify-content: flex-end; gap: var(--s
   .rail { position: fixed; inset: auto 0 0 0; height: var(--rail-h); justify-content: space-around; gap: 0; border-top: var(--rule) solid var(--hairline); background: var(--surface); backdrop-filter: blur(var(--blur)); -webkit-backdrop-filter: blur(var(--blur)); z-index: var(--z-strip); }
   .rail a { flex-direction: column; align-items: center; gap: 2px; padding: var(--s-2) var(--s-1); font-size: var(--fs-11); }
   .rail a[aria-current="page"]::after { top: -1px; bottom: auto; left: var(--s-2); right: var(--s-2); }
-  .strip-actions .run-label { display: none; }
+
   .page { padding: calc(var(--strip-h) + var(--s-5)) var(--page-pad) calc(var(--rail-h) + var(--s-6)); }
   .grid > * { grid-column: 1 / -1; }
   h1, .h1 { font-size: var(--fs-28); }

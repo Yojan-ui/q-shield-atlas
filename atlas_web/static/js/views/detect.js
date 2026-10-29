@@ -1,5 +1,5 @@
 // Detect: the codebase as a file city, inventory tables (also the no-WebGL fallback), operator intake.
-import { h } from "../dom.js";
+import { append, h, icon } from "../dom.js";
 import { readCookie } from "../api.js";
 import { stat, statSkeleton } from "../components/stat.js";
 import { chip } from "../components/chip.js";
@@ -7,7 +7,9 @@ import { table, tableSkeleton } from "../components/table.js";
 import { emptyState } from "../components/states.js";
 import { field, checkbox } from "../components/form.js";
 import { toast } from "../components/toast.js";
-import { buildCity } from "../scenes/detect.js";
+import { buildGraph, classicalSig, CLASSES, graphModel, layout, VULN } from "../scenes/graph.js";
+import { provAttr } from "../components/tooltip.js";
+import { prefersReducedMotion } from "../motion.js";
 import { num } from "../model.js";
 import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
 import { term } from "../glossary.js";
@@ -18,39 +20,80 @@ const out = () => h("p", { class: "fine dt-msg" }), btn = (t, cls = "btn") => h(
 const box = (label, id, input, hint = "") => h("div", { class: "field" }, h("label", { for: id, text: label }), input, h("div", { class: "hint", text: hint }));
 const watch = (ctx, keys, fn) => { const off = ctx.store.subscribe(({ ws, keys: k }) => { if (ws === ctx.ws && k.some((x) => keys.includes(x))) fn(); }); ctx.signal.addEventListener("abort", off, { once: true }); };
 
-function city(ctx) {
-  const tip = h("div", { class: "stage-tip", hidden: true }), note = h("p", { class: "fine stage-note" });
-  const legend = h("div", { class: "stage-legend", hidden: true }, [["exposure", "RSA / ECC / DH / DSA finding"], ["accent", "PQC finding"], ["hairline-strong", "dark: no findings"], ["caution", "pulsing: service drift"]]
-    .map(([c, t]) => h("span", {}, h("i", { class: "dt-key", style: { background: `var(--${c})` } }), t)));
-  const el = stage(ctx, { label: "The scanned codebase as a city: one column per file, findings glow at their line.", fallback: h("p", { class: "fine", text: "File city needs WebGL." }) });
-  el.append(note, legend, tip);
-  const draw = async () => {
-    const [scene, res] = await Promise.all(["scene", "results"].map((k) => ctx.store.get(ctx.ws, k, { signal: ctx.signal })));
-    const F = scene && scene.files, files = F && F.verified ? F.files || [] : [], asset = {};
-    note.textContent = !F ? "Scanned files: not yet run." : !F.verified ? F.status_text || "file listing not verified" : files.length ? "" : "No files scanned.";
-    legend.hidden = !files.length;
-    for (const a of (res && res.results && res.results.assets) || []) { asset[a.id] = a.id; for (const e of a.evidence || []) asset[e.file] ||= a.id; }
-    const of = (f) => asset[f.path] || (f.service && asset[f.service]) || null;
-    await mountScene(ctx, "detect", scene, ({ THREE, world, group }) => {
-      if (!files.length) return {};
-      const c = buildCity(THREE, group, files, world.uniforms);
-      return {
-        pickables: c.pickables,
-        hover(hit, e) {
-          const v = c.resolve(hit);
-          tip.hidden = !v; el.style.cursor = v && of(v.file) ? "pointer" : "";
-          if (!v) return;
-          const { file: f, finding: g } = v, id = of(f), b = el.getBoundingClientRect(), x = e.clientX - b.left;
-          tip.textContent = (g ? `${f.path}:${g.line} · ${g.rule} · ${g.family}` : `${f.path} · ${f.lines} lines · ${(f.findings || []).length} findings`) + (f.drift ? " · drift" : "") + (id ? ` · asset ${id}` : "");
-          Object.assign(tip.style, { left: `${x > b.width - 320 ? Math.max(0, x - 320) : x + 14}px`, top: `${e.clientY - b.top + 14}px` });
-        },
-        click(hit) { const v = c.resolve(hit), id = v && of(v.file); if (id) ctx.navigate(`/w/${ctx.ws}/asset/${encodeURIComponent(id)}`); },
-      };
-    });
+// ---- the hero: the inventory as a 3D dependency graph (scenes/graph.js); flat 2D SVG without WebGL or on request
+export function flatGraph(G, L, onPick) {
+  const P = L.pos, n = G.nodes.length, R = L.radius || 1, W = 1000, H = 560, sx = (x) => W * 0.34 + (x / R) * (W * 0.3), sy = (y) => H / 2 - (y / R) * (H / 2 - 30);  // left: the panel sits on the right
+  const maxRisk = Math.max(1e-9, ...G.nodes.map((x) => x.risk));
+  const svg = h("svg", { viewBox: `0 0 ${W} ${H}`, class: "gr-flat", role: "img", "aria-label": `Flat dependency graph: ${n} systems, ${G.edges.length} dependencies` });
+  for (const [a, b] of G.edges) svg.append(h("line", { ns: "svg", x1: sx(P[a * 3]), y1: sy(P[a * 3 + 1]), x2: sx(P[b * 3]), y2: sy(P[b * 3 + 1]), class: "gr-edge" }));
+  const order = G.nodes.map((x, i) => i).sort((a, b) => (G.nodes[a].cls === "exposed" ? 0 : 1) - (G.nodes[b].cls === "exposed" ? 0 : 1));  // red first, others on top
+  order.forEach((i) => {
+    const x = G.nodes[i], r = 9 + 14 * Math.sqrt(Math.max(0, x.risk) / maxRisk);
+    const g = h("g", { ns: "svg", class: `gr-node ${x.cls}`, tabindex: "0", role: "button", "data-id": x.id, "aria-label": `${x.name}: ${CLASSES[x.cls].label}` },
+      h("circle", { ns: "svg", cx: sx(P[i * 3]), cy: sy(P[i * 3 + 1]), r }),
+      x.drift ? h("circle", { ns: "svg", cx: sx(P[i * 3]), cy: sy(P[i * 3 + 1]), r: r + 6, class: "gr-drift" }) : null,
+      h("title", { ns: "svg", text: x.name }));
+    g.addEventListener("click", () => onPick(x));
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onPick(x); } });
+    svg.append(g);
+  });
+  return svg;
+}
+
+function graphHero(ctx, r, observed, inventory) {
+  const G = graphModel(r, observed, inventory), L = layout(G.nodes, G.edges), d = r.detect || {};
+  const count = (c) => G.nodes.filter((x) => x.cls === c).length;
+  const src = (note) => provAttr({ run_id: d.run_id || "n/a", solver: "detect: static scan + live probe", job_id: "none (local scan, no backend job)", ts: d.ts || "n/a", note });
+  const panel = h("aside", { class: "gr-panel", "aria-live": "polite" });
+  const empty = () => panel.replaceChildren(h("p", { class: "gr-p-k", text: "Select a system" }), h("p", { class: "mv-note", text: "Click or tap a node (or Tab to it in the flat view) to see what the scan found and where." }));
+  const show = (x) => {
+    if (!x) return empty();
+    panel.replaceChildren();
+    append(panel, [
+      h("p", { class: "gr-p-k", text: CLASSES[x.cls].label }),
+      h("h3", { class: "gr-p-name", text: x.name }),
+      h("p", { class: "mv-note", text: [x.kind, x.data_class, x.inPlan ? `risk weight ${x.risk} (assumption)` : "not in the migration plan"].filter(Boolean).join(" · ") }),
+      x.families.length ? h("p", {}, x.families.map((f) => chip(VULN.has(f) ? "HNDL-exposed" : f === "PQC" ? "hybrid" : "NOT_RUN", f))) : null,
+      x.cls === "pqc" && classicalSig(x.evidence).length ? h("p", { class: "mv-note", text: `Key exchange is already post-quantum; the certificate signature is still ${classicalSig(x.evidence).join(" / ")} (replace before a quantum computer exists; not an HNDL exposure).` }) : null,
+      x.drift ? h("div", { class: "gr-p-drift" }, h("p", { class: "gr-p-k", text: "Drift: static scan and live handshake disagree" }), x.drift.map((z) => h("p", { tabindex: "0", "data-prov": src(z.kind), text: z.detail }))) : null,
+      x.observed ? h("p", { class: "mv-note", tabindex: "0", "data-prov": src(x.observed.source), text: `observed once: ${x.observed.negotiated_group} · ${x.observed.tls_version} · cert ${x.observed.cert_key_algorithm}` }) : null,
+      h("p", { class: "gr-p-k", text: `Evidence (${x.evidence.length})` }),
+      h("ul", { class: "gr-ev" }, x.evidence.slice(0, 12).map((e) => h("li", { tabindex: "0", "data-prov": src(`${e.rule}: ${e.snippet || ""}`.slice(0, 160)) },
+        h("span", { class: "mono", text: `${e.file}:${e.line}` }), h("span", { class: "mv-note", text: ` ${e.family} · ${e.use} · ${e.rule}` })))),
+      x.evidence.length > 12 ? h("p", { class: "mv-note", text: `+ ${x.evidence.length - 12} more on the asset page` }) : null,
+      x.inPlan ? h("a", { class: "btn", href: `/w/${ctx.ws}/asset/${encodeURIComponent(x.id)}` }, "Open asset", icon("arrow")) : null]);
   };
-  const run = () => draw().catch((err) => { if (err.code !== "aborted") note.textContent = `File city unavailable: ${err.message}`; });
-  run(); watch(ctx, ["scene", "results"], run);
-  return el;
+  empty();
+  const labels = h("div", { class: "gr-labels", "aria-hidden": "true" });
+  let flat = null, layer = null, mode = ctx.query.get("view") === "2d" ? "2d" : "3d";
+  const pick = (x) => { show(x); if (layer && layer.select) layer.select(x ? x.id : null); if (flat) flat.querySelectorAll(".gr-node").forEach((g) => g.classList.toggle("on", !!x && g.dataset.id === x.id)); };
+  flat = flatGraph(G, L, pick);
+  const el = stage(ctx, { label: `Dependency graph of ${G.nodes.length} systems: ${count("exposed")} quantum-exposed, ${count("caution")} need a live probe, ${count("pqc")} post-quantum, ${count("safe")} not vulnerable.`, fallback: flat, tall: true });
+  el.classList.add("gr-stage");
+  el.append(labels);
+  const flatWrap = h("div", { class: "gr-flatwrap", hidden: true });
+  const resetBtn = h("button", { class: "btn", type: "button" }, icon("rewind"), "Reset view");
+  const modeBtn = h("button", { class: "btn", type: "button" });
+  const mount3d = () => mountScene(ctx, "detect", { available: true }, (env) => buildGraph(env, G, L, { reduced: prefersReducedMotion(), labelsEl: labels, stageEl: el, onSelect: show }))
+    .then((l) => { layer = l; if (!l) { mode = "2d"; apply(); } });
+  const apply = () => {
+    modeBtn.replaceChildren(icon(mode === "3d" ? "dash" : "lattice"), mode === "3d" ? "Flat 2D graph" : "3D graph");
+    resetBtn.hidden = mode !== "3d";
+    if (mode === "2d") {
+      if (layer) { ctx.world.mount("detect", null); layer = null; }
+      el.hidden = true; flatWrap.hidden = false; flatWrap.append(flat);
+    } else { el.hidden = false; flatWrap.hidden = true; if (!el.classList.contains("flat")) mount3d(); }
+  };
+  resetBtn.addEventListener("click", () => { if (layer) layer.reset(); pick(null); }, { signal: ctx.signal });
+  modeBtn.addEventListener("click", () => { mode = mode === "3d" ? "2d" : "3d"; ctx.setQuery({ view: mode === "2d" ? "2d" : null }); apply(); }, { signal: ctx.signal });
+  apply();
+  const legend = h("ul", { class: "legend gr-legend", "aria-label": "What the node colours mean" }, Object.entries(CLASSES).map(([k, c]) =>
+    h("li", {}, h("span", { class: `lg-dot ${c.css}`, "aria-hidden": "true" }), `${c.label} `, h("span", { class: "num", text: String(count(k)) }))),
+    h("li", {}, h("span", { class: "lg-ring", "aria-hidden": "true" }), "White ring: drift (static scan and live handshake disagree) ", h("span", { class: "num", text: String(G.nodes.filter((x) => x.drift).length) })));
+  return h("section", { class: "gr" }, legend,
+    h("div", { class: "gr-body" }, h("div", { class: "gr-view" }, el, flatWrap), panel),
+    h("div", { class: "gr-bar" }, h("p", { class: "mv-how", text: `How to read this: ${G.nodes.length} systems from the inventory, ${G.edges.length} declared dependencies (lines). Node size is the risk weight (an assumption). ${G.bank ? "Clusters are banks." : "Clusters are system kinds."} Drag to turn, ⌥-scroll to zoom.` }),
+      h("div", { class: "sg-row" }, resetBtn, modeBtn)));
 }
 
 function intake(ctx) {
@@ -160,21 +203,23 @@ function intake(ctx) {
 export async function mount(ctx) {
   const intakeEls = [].concat(intake(ctx));
   ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
-    pageHead(ctx, { route: "detect", title: "Detect", headline: "Where does this system still use encryption that a quantum computer could break?" }),
+    pageHead(ctx, { route: "detect", title: "Detect", headline: "Red nodes are systems a quantum computer could break. Lines show what depends on what." }),
     dataView(ctx, {
+      keys: ["results", "scene", "move", "inventory"],
       skeleton: () => h("div", { class: "grid" }, h("div", { class: "span-12" }, statSkeleton()), h("div", { class: "span-12" }, tableSkeleton(5))),
-      render: ({ model: m }) => {
+      render: ({ model: m, move, inventory }) => {
         const d = m && m.detect;
         if (!d || !d.available) return emptyState(notRun(ctx, "Detect"));
         ctx.announce(`${d.vulnerable.text} vulnerable findings in ${d.files.text} scanned files.`);
         const r = m.results;
         return h("div", {},
+          graphHero(ctx, r, (move && move.observed) || {}, inventory && inventory.available ? inventory.inventory : null),
           keyStats([
             { label: "vulnerable findings", cell: d.vulnerable, unit: "RSA / ECC / DH / DSA", tone: "exposure", mean: "Places in code, configuration or certificates that rely on quantum-breakable crypto." },
             { label: "files scanned", cell: d.files, unit: "code, configs, certificates", mean: "Everything in the source tree was read; nothing was run." },
             { label: "live connections probed", cell: num(d.probes.length, d.files.source), unit: "one TLS handshake each", mean: d.probes.length ? "Real handshakes show what a service actually negotiates." : "No live probe in this run." },
           ]),
-          main(h("div", {}, city(ctx), table({ caption: "Static findings", rows: d.findings, signal: ctx.signal, columns: [
+          main(h("div", {}, table({ caption: "Static findings", rows: d.findings, signal: ctx.signal, columns: [
             { label: "file:line", render: (f) => `${f.file}:${f.line}`, mono: true }, { label: "algorithm family", key: "family" }, { label: "used for", key: "use" },
             { label: "rule", key: "rule", mono: true, optional: true }, { label: "snippet", optional: true, render: (f) => h("span", { class: "mono fine", text: (f.snippet || "").slice(0, 80) }) }] })), { title: "Findings" }),
           d.probes.length ? main(table({ caption: "Live TLS probes", rows: d.probes, columns: [

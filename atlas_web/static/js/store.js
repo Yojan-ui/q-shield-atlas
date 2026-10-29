@@ -13,9 +13,10 @@ export const KEYS = {
   bench: (ws) => `/api/workspaces/${ws}/bench`,
   reviews: (ws) => `/api/workspaces/${ws}/reviews`,
   move: (ws) => `/api/workspaces/${ws}/move`,
+  inventory: (ws) => `/api/workspaces/${ws}/inventory`,
 };
 // which cached keys a file change invalidates
-export const INVALIDATES = { results: ["results", "scene", "calibration", "workspace", "reviews", "move"], ledger: ["ledger", "results", "scene", "bench", "reviews"] };
+export const INVALIDATES = { results: ["results", "scene", "calibration", "workspace", "reviews", "move", "inventory"], ledger: ["ledger", "results", "scene", "bench", "reviews"] };
 
 export function backoffMs(attempt) { return Math.min(30000, 1000 * 2 ** Math.max(0, attempt)); }
 

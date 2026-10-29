@@ -31,6 +31,8 @@
   --pass-wash: rgba(74, 222, 128, 0.10);
   --caution: #F5B84B;
   --caution-wash: rgba(245, 184, 75, 0.10);
+  --pqc: #5ED3F3;  /* cyan: hybrid / post-quantum already in use (Detect graph, legend) */
+  --pqc-wash: rgba(94, 211, 243, 0.10);
   --scrim: rgba(0, 0, 0, 0.78);
 
   /* type */

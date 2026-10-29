@@ -1,6 +1,5 @@
 /* QAOA route: claim, legend keys, 2D bars (no-WebGL fallback). */
-.qa-claim { border-top: var(--rule) solid var(--hairline-strong); padding-top: var(--s-4); }
-.qa-claim-text { margin: 0 0 var(--s-3); font-size: var(--fs-20); line-height: var(--lh-tight); letter-spacing: var(--track-tight); color: var(--text); font-weight: var(--weight-medium); }
+
 .qa-controls { margin-top: var(--s-4); }
 .qa-k::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: var(--s-2); border-radius: 50%; vertical-align: 0; }
 .qa-k.shell::before { background: var(--accent); }

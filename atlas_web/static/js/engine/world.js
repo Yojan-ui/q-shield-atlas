@@ -85,6 +85,7 @@ function init(w, THREE) {
   const orbit = { yaw: 0, pitch: 0, vy: 0, vp: 0, dolly: 1, drag: null }, shake = { t: 0 }, spring = { x: 0, v: 0, target: 0 };
   w.shake = () => { if (!w.reduced) shake.t = 200; };
   w.lift = (on) => { spring.target = on ? 1 : 0; };
+  w.resetOrbit = () => Object.assign(orbit, { yaw: 0, pitch: 0, vy: 0, vp: 0, dolly: 1 });
   w._go2 = (name, { direction = "forward" } = {}) => {
     const p = POSES[name] || POSES.void;
     Object.assign(orbit, { yaw: 0, pitch: 0, vy: 0, vp: 0, dolly: 1 });

@@ -39,7 +39,7 @@ export function stageFacts(r) {
 
 export function colorLegend() {
   return h("ul", { class: "legend", "aria-label": "What the colours mean" },
-    [["exposed", "Red: quantum-exposed (old RSA / ECC encryption)"], ["accent", "Cyan: post-quantum protected"], ["pass", "Green: passed a check"],
+    [["exposed", "Red: quantum-exposed (old RSA / ECC encryption)"], ["pqc", "Cyan: post-quantum protected"], ["pass", "Green: passed a check"],
      ["caution", "Amber: assumption or partly verified"], ["neutral", "Grey: not run, planned or not applicable"]].map(([c, t]) =>
       h("li", {}, h("span", { class: `lg-dot ${c}`, "aria-hidden": "true" }), t)));
 }
