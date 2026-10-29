@@ -7,6 +7,7 @@ import { dataView, honesty, mountScene, stage, viewCss } from "./common.js";
 import { FLOW } from "../flow.js";
 import { rollNumber } from "../motion.js";
 import { buildLattice } from "../engine/lattice.js";
+import { placeLabels } from "../scenes/labels.js";
 
 export async function mount(ctx) {
   await Promise.all([viewCss("landing"), viewCss("pillars")]);
@@ -33,7 +34,7 @@ export async function mount(ctx) {
     const pts = (scene.nodes || []).map((n) => n.pos);
     world.fit(group, pts, 0.85);  // camera auto-fit to the data, refit on resize
     // labels for the three systems with the highest risk weight (results.json assets)
-    const top = [], tmp = new THREE.Vector3();
+    const top = [], tmp = new THREE.Vector3(), placedL = [];
     resultsP.then((res) => {
       const byId = Object.fromEntries((scene.nodes || []).map((n) => [n.id, n]));
       const ranked = [...((res && res.results && res.results.assets) || [])].filter((x) => byId[x.id]).sort((x, y) => (y.risk_weight || 0) - (x.risk_weight || 0)).slice(0, 3);
@@ -49,9 +50,9 @@ export async function mount(ctx) {
         group.updateMatrixWorld();
         for (const t of top) {
           tmp.set(t.pos[0], t.pos[1] + 0.9, t.pos[2]).applyMatrix4(group.matrixWorld).project(world.camera);
-          t.e.hidden = tmp.z > 1;
-          t.e.style.transform = `translate(${((tmp.x + 1) / 2) * b.width}px, ${((1 - tmp.y) / 2) * b.height}px) translate(-50%, -100%)`;
+          t.off = tmp.z > 1; t.x = ((tmp.x + 1) / 2) * b.width; t.y = ((1 - tmp.y) / 2) * b.height;
         }
+        placeLabels(top, b.width, b.height, placedL);  // clamped inside the stage, never overlapping
       }
     }, dispose() { labels3d.replaceChildren(); if (base.dispose) base.dispose(); } };
   })).catch(reveal);

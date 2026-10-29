@@ -157,7 +157,7 @@ export function buildGraph({ THREE, world, group }, G, L, { reduced, labelsEl, s
   const top = topByRisk(nodes, Math.min(6, n));
   const pool = Array.from({ length: top.length + 2 }, () => { const e = document.createElement("span"); e.className = "gr-label"; e.hidden = true; labelsEl.append(e); return e; });
   let hovered = -1, selected = -1, spin = !reduced;
-  const v = new THREE.Vector3(), show = [...top, -1, -1], placed = [];
+  const v = new THREE.Vector3(), show = [...top, -1, -1], placed = [], panelEl = stageEl.parentElement && stageEl.closest(".gr-body") ? stageEl.closest(".gr-body").querySelector(".gr-panel") : null;
   const GL = pool.map((e) => ({ e, x: 0, y: 0, off: true, pin: false }));
   const ORDER = [GL[top.length], GL[top.length + 1], ...GL.slice(0, top.length)];  // hovered / selected placed first
   const short = (name) => name.replace(/\s*\([^)]*\)\s*$/, "");  // "host (bank, apex)" -> "host"; full name in the side panel
@@ -194,7 +194,8 @@ export function buildGraph({ THREE, world, group }, G, L, { reduced, labelsEl, s
         it.off = false; it.pin = i === selected || i === hovered; it.x = ((v.x + 1) / 2) * b.width; it.y = ((1 - v.y) / 2) * b.height;
         e.classList.toggle("on", it.pin);
       });
-      placeLabels(ORDER, b.width, b.height, placed);
+      const pr = panelEl && panelEl.getBoundingClientRect();  // the side panel overlays the stage: keep labels left of it
+      placeLabels(ORDER, pr && pr.width && pr.left > b.left + 40 ? Math.min(b.width, pr.left - b.left - 8) : b.width, b.height, placed);
     },
     dispose() { labelsEl.replaceChildren(); stageEl.style.cursor = ""; },
   };
