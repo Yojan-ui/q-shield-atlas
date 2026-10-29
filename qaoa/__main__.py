@@ -121,12 +121,17 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     cfg = json.loads(args.config.read_text())
+    schedule = json.loads(args.schedule.read_text())
+    if not schedule.get("assets"):  # nothing to migrate: there is no wave to select, so no QUBO is built
+        (args.out_dir / "qaoa.json").unlink(missing_ok=True)
+        print("QAOA: nothing to select (the schedule has no assets); qaoa section left empty")
+        return 0
     budget = None
     if args.qcloud:
         qcloud_run.check_device(cfg["qcloud"]["device"], cfg["qcloud"]["allowed_devices"])
         budget = PlatformBudget(args.platform_log or args.runs / "platform_jobs.log", allow_more=args.allow_more)
         budget.check(len(cfg["reps"]))
-    section = run(json.loads(args.schedule.read_text()), cfg, args.runs, args.qcloud, budget, sdk_local=args.qpiai_local)
+    section = run(schedule, cfg, args.runs, args.qcloud, budget, sdk_local=args.qpiai_local)
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "qaoa.json").write_text(json.dumps(section, indent=1))
 

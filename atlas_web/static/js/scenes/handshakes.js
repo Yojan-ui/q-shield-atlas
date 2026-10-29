@@ -22,9 +22,14 @@ gl_FragColor=vec4(.36,.88,.9,.07+.35*(1.-smoothstep(0.,.03,min(e.x,e.y)))+.08*st
 
 export function rowsOf(r) {
   const g = r.gates || {}, find = (list, id) => (list || []).find((x) => x.service_id === id) || null;
-  return ((r.handshake_evidence || {}).sessions || []).map((s) => ({ s, classical: s.kex_class === "classical",
-    kex: find(g.pq_handshake, s.service_id), auth: find(g.pq_auth, s.service_id), down: find(g.downgrade, s.service_id) }))
-    .sort((a, b) => b.classical - a.classical);
+  const lab = ((r.handshake_evidence || {}).sessions || []).map((s) => ({ s, classical: s.kex_class === "classical",
+    kex: find(g.pq_handshake, s.service_id), auth: find(g.pq_auth, s.service_id), down: find(g.downgrade, s.service_id) }));
+  // live probes (detect --probe / reference presets): one strand per endpoint that completed a handshake
+  const live = ((r.detect || {}).probes || []).filter((p) => p.live && p.live.handshake_ok).map((p) => ({ live: true, probe: p,
+    classical: !!p.live.kex_quantum_vulnerable, kex: null, auth: null, down: null,
+    s: { service_id: p.service, negotiated_group: p.live.group, kex_class: p.live.kex_quantum_vulnerable ? "classical" : "hybrid-pq",
+         auth_alg: p.live.cert_algorithm, transcript_sha256: p.live.transcript_sha256, endpoint: p.endpoint } }));
+  return [...lab, ...live].sort((a, b) => b.classical - a.classical);
 }
 
 export function buildHandshakes({ THREE, world, group }, rows, labels) {
@@ -74,9 +79,11 @@ export function buildHandshakes({ THREE, world, group }, rows, labels) {
       const cam = world.camera, el = labels.parentElement;
       if (!cam || !el) return;
       const fit = Math.tan((cam.fov * Math.PI) / 360) * 14 * cam.aspect * 0.92, side = fit > 11;
-      const s = side ? Math.min(1.25, fit / 11) : Math.min(1, fit / (X1 + 0.2));
-      group.scale.set(s, side ? s : Math.min(1, s * 1.7), s);
-      group.position.set(side ? 2.4 * s : 0, side ? 0.9 : 1.5, 0);
+      const half = Math.tan((cam.fov * Math.PI) / 360) * 14, need = (n * ROW) / 2 + 1.3;  // vertical fit: every strand + the legend
+      const sv = (half * 0.86) / need;
+      const s = Math.min(sv, side ? Math.min(1.25, fit / 11) : Math.min(1, fit / (X1 + 0.2)));
+      group.scale.set(s, side ? s : Math.min(1, s * 1.7, sv), s);
+      group.position.set(side ? 2.4 * s : 0, side ? 0.9 * Math.min(1, s) : 1.5 * Math.min(1, s), 0);
       labels.classList.toggle("side", side);
       group.updateMatrixWorld();
       const W = el.clientWidth, H = el.clientHeight;

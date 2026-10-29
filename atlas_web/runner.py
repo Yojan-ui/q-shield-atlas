@@ -102,9 +102,13 @@ def preflight(ws: Workspace | None = None) -> dict:
         "QPIAI_OPT_API_KEY is set (value never shown)" if env.get("QPIAI_OPT_API_KEY") else "QPIAI_OPT_API_KEY not set (local QpiAI Opt solves verify the key online)",
         "export QPIAI_OPT_API_KEY=... (free key at https://opt.qpiai.tech/) or put it in .env.sh (git-ignored)")
     if ws is not None:
-        n = len(list(ws.src.rglob("atlas-service.json"))) if ws.src.exists() else 0
+        mfs = list(ws.src.rglob("atlas-service.json")) if ws.src.exists() else []
+        n = len(mfs)
         add("manifests", n > 0, f"{n} service manifests (atlas-service.json) in the workspace source",
             "upload a .zip or clone a repository, then add atlas-service.json manifests in Detect")
+        pending = [m for m in mfs if '"suggested"' in m.read_text(errors="replace")]
+        add("manifests_confirmed", not pending, "every manifest confirmed by an operator" if not pending else
+            f"{len(pending)} manifests are suggestions, not facts", "review the suggested manifests in Detect and confirm them")
         try:
             json.loads(ws.assumptions.read_text())
             add("assumptions", True, "workspace assumptions.json readable", "")
@@ -134,6 +138,16 @@ def parse_probes(items: list, authorised: bool) -> list[str]:
     if out and not authorised:
         raise WorkspaceError("not_authorised", "confirm that you own or are authorised to test these endpoints", 422)
     return out
+
+
+def reference_presets(ids: list) -> list[dict]:
+    """Public reference endpoints from config/atlas_web.json (one standard TLS handshake each, no scanning).
+    Only ids listed there are accepted, so a preset can never carry a user-chosen host."""
+    known = {e["id"]: e for e in settings()["reference_endpoints"]["endpoints"]}
+    bad = [str(i) for i in ids if i not in known]
+    if bad:
+        raise WorkspaceError("bad_preset", f"unknown reference endpoint preset: {', '.join(bad)}")
+    return [known[i] for i in dict.fromkeys(ids)]
 
 
 def _is_ip(host: str) -> bool:
@@ -203,6 +217,25 @@ class Run:
             if len(self.events) <= after and self.status == "running":
                 self.cond.wait(timeout)
             return self.events[after:]
+
+
+def capacity_hint(tail: list[str]) -> dict | None:
+    """Designed explanations for known failures: an asset that exceeds one week of capacity (which and how to fix
+    it via assumptions), or the QpiAI Opt key check being rate-limited (retry later; nothing is wrong with the data)."""
+    for line in tail:
+        if "rate-limited this solve" in line:
+            return {"code": "opt_rate_limited", "title": "QpiAI Opt rate-limited the solve",
+                    "message": "Local QpiAI Opt solves verify the API key online, and the authentication service rate-limited this one "
+                               "(\"The authentication service rate-limited this solve; retry later\"). The data and the plan are not at fault.",
+                    "fix": "Wait a few minutes and run again. No platform job or credit was involved."}
+        m = re.search(r"(\S+) effort ([\d.]+) d exceeds weekly capacity ([\d.]+) d", line)
+        if m:
+            return {"code": "capacity_infeasible", "title": "Schedule cannot fit an asset into one week", "asset": m.group(1), "effort_days": float(m.group(2)), "capacity_days": float(m.group(3)),
+                    "message": f"Asset {m.group(1)} needs {m.group(2)} engineer-days but one week has capacity for {m.group(3)}; "
+                               "each asset must fit in one week.",
+                    "fix": "In Schedule → Assumptions, raise capacity_days_per_week or lower effort_days_by_kind for this asset's kind "
+                           "(both are assumptions), or split the service into smaller manifests in Detect."}
+    return None
 
 
 def kill_group(pgid: int) -> None:
@@ -322,11 +355,12 @@ class RunManager:
         finally:
             killed = kill_orphaned_lab_servers(run.started)
             run.status = status
-            run.emit("run_end", status=status, summary=summary, tail=tail, orphans_killed=killed,
+            hint = capacity_hint(tail) if status != "PASS" else None
+            run.emit("run_end", status=status, summary=summary, tail=tail, orphans_killed=killed, hint=hint,
                      duration_s=round(time.time() - run.started, 2))
             with self.store.db() as c:
                 c.execute("UPDATE runs SET finished=?, status=?, detail=? WHERE id=?",
-                          (time.time(), status, json.dumps({**run.detail, "summary": summary, "tail": tail}), run.id))
+                          (time.time(), status, json.dumps({**run.detail, "summary": summary, "tail": tail, "hint": hint}), run.id))
             with run.cond:
                 run.cond.notify_all()
             with self.lock:

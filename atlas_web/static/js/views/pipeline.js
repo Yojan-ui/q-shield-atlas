@@ -46,13 +46,15 @@ export async function mount(ctx) {
     } else {
       drawStations(stationsModel(runs));
       status.replaceChildren(last ? chip(["PASS", "running", "INTERRUPTED"].includes(last.status) ? last.status : "FAIL", `${last.kind} run ${last.id} · ${last.status}`) : chip("not yet run", "no run in this workspace yet"));
-      if (last && !["PASS", "running"].includes(last.status) && last.detail.tail) showTail(last.detail.tail);
+      if (last && !["PASS", "running"].includes(last.status) && last.detail.tail) showTail(last.detail.tail, last.detail.hint);
       if (runs.active) follow(runs.active);
     }
   };
 
-  const showTail = (lns) => {
-    tail.replaceChildren(h("p", { class: "eyebrow", style: { color: "var(--exposure)" }, text: "last 40 lines of the failed step" }),
+  const showTail = (lns, hint = null) => {
+    tail.replaceChildren(hint ? h("div", { class: "state error", role: "alert", style: { padding: "var(--s-4) 0" } },
+      h("h2", { text: hint.title }), h("p", { text: hint.message }), h("p", { text: hint.fix }),
+      hint.code === "capacity_infeasible" ? h("div", { class: "actions" }, h("a", { class: "btn primary", href: `/w/${ctx.ws}/schedule`, text: "Open assumptions" })) : null) : "",h("p", { class: "eyebrow", style: { color: "var(--exposure)" }, text: "last 40 lines of the failed step" }),
       h("pre", { class: "log", style: { height: "auto", maxHeight: "320px", padding: "var(--s-3)", margin: 0, whiteSpace: "pre-wrap" }, text: lns.join("\n") }));
   };
 
@@ -74,7 +76,7 @@ export async function mount(ctx) {
       es.close(); es = null;
       runBtn.disabled = !canRun;
       status.replaceChildren(chip(d.status, `run ${runId} · ${d.status} in ${d.duration_s} s`));
-      if (d.status !== "PASS") showTail(d.tail);
+      if (d.status !== "PASS") showTail(d.tail, d.hint);
       toast(d.status === "PASS" ? "Pipeline finished: PASS" : "Pipeline failed", { tone: d.status === "PASS" ? "success" : "error" });
       ctx.store.invalidate(ctx.ws, ["results", "scene", "ledger", "runs", "calibration"]);
     });

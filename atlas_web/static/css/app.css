@@ -296,3 +296,5 @@ dialog.confirm .actions { display: flex; justify-content: flex-end; gap: var(--s
 @media (max-width: 760px) { .stage { height: 46vh; } .debug-hud { bottom: calc(var(--rail-h) + var(--s-2)); } }
 .week-scrub { margin-top: var(--s-3); }
 .week-scrub input[type="range"] { flex: 1; max-width: 480px; accent-color: var(--accent); }
+.ws-badge { display: flex; gap: var(--s-1); }
+@media (max-width: 1600px) { .ws-badge { display: none; } } /* the dropdown options carry the same facts */

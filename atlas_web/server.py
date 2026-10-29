@@ -28,7 +28,8 @@ from . import calibration, intake
 from . import workspaces as wsmod
 from .auth import AuthError, Store, has_role
 from .config import REPO, STATIC, data_dir, limits
-from .runner import RunManager, parse_probes, pipeline_steps, preflight
+from .config import settings
+from .runner import RunManager, parse_probes, pipeline_steps, preflight, reference_presets
 from .workspaces import WorkspaceError
 
 VIZ_VENDOR = REPO / "viz" / "vendor"
@@ -137,6 +138,19 @@ def ledger_payload(ws) -> dict:
     except Exception as exc:  # noqa: BLE001 - e.g. no OpenSSL with ML-DSA: report it, don't invent a result
         out["live_verification"] = {"ok": None, "status_text": f"not verified: {type(exc).__name__}: {exc}"[:200], "recorded": False}
     return out
+
+
+def workspace_summary(app, ws) -> dict:
+    """Switcher metadata: type badge, last run, ledger verified, asset count (all read from recorded files)."""
+    src = (ws.settings.get("source") or {}).get("kind")
+    kind = "DEMO SNAPSHOT" if ws.read_only else "REAL REPO" if src == "git" else "CUSTOMER"
+    r = app.cached(("results", ws.id), file_stamp(ws.results), lambda: load_results(ws))
+    with app.store.db() as c:
+        row = c.execute("SELECT started, status FROM runs WHERE workspace=? ORDER BY started DESC LIMIT 1", (ws.id,)).fetchone()
+    v = (r or {}).get("ledger_verification")
+    return {**ws.public(), "type": kind, "last_run": {"ts": row["started"], "status": row["status"]} if row else None,
+            "generated_at": (r or {}).get("generated_at"), "assets": len(r["assets"]) if r else None,
+            "ledger_verified": None if not v else bool(v["ok"] and v["root"] == (r.get("ledger") or {}).get("root"))}
 
 
 def ledger_cli_flags(ws) -> list[str]:
@@ -362,6 +376,11 @@ def make_handler(app: App):
                 self.need("operator")
                 ws = wsmod.get(app.store, self.query["ws"]) if self.query.get("ws") else None
                 return self.send_json(200, preflight(ws))
+            if route == ("GET", "reference-endpoints"):
+                self.need("viewer")
+                r = settings()["reference_endpoints"]
+                return self.send_json(200, {"label": r["label"], "verified": r["verified"],
+                                            "endpoints": [{k: e[k] for k in ("id", "service", "host", "port", "expect", "operator")} for e in r["endpoints"]]})
             if parts[:1] == ["users"]:
                 return self.users(method, parts[1:])
             if parts[:1] == ["workspaces"]:
@@ -416,7 +435,7 @@ def make_handler(app: App):
             if not rest:
                 if method == "GET":
                     self.need("viewer")
-                    return self.send_json(200, {"workspaces": [w.public() for w in wsmod.list_all(app.store)],
+                    return self.send_json(200, {"workspaces": [workspace_summary(app, w) for w in wsmod.list_all(app.store)],
                                                 "templates": {k: v["label"] for k, v in wsmod.TEMPLATES.items()}})
                 if method == "POST":
                     u = self.need("operator")
@@ -437,7 +456,7 @@ def make_handler(app: App):
             if name == "scene" and method == "GET" and len(sub) == 1:
                 from .scene import scene_bytes
 
-                body, etag = app.cached(("scene", ws.id), file_stamp(ws.results), lambda: scene_bytes(ws.id, load_results(ws), ws.src))
+                body, etag = app.cached(("scene", ws.id), file_stamp(ws.results), lambda: scene_bytes(ws.id, load_results(ws), ws.src, ws.settings.get("source")))
                 if self.headers.get("If-None-Match") == etag:
                     self._headers(304, TYPES[".json"], 0, [("ETag", etag)])
                     return
@@ -473,6 +492,22 @@ def make_handler(app: App):
                 a = json.loads(ws.assumptions.read_text())
                 if method == "GET":
                     return self.send_json(200, intake.list_manifests(ws, a))
+                if method == "POST" and sub[1:] == ["suggest"]:
+                    self.need("operator")
+                    wsmod.require_writable(ws)
+                    return self.send_json(200, {**intake.suggest_manifests(ws, a), **intake.list_manifests(ws, a)})
+                if method == "POST" and sub[1:] == ["confirm"]:
+                    self.need("operator")
+                    wsmod.require_writable(ws)
+                    dirs = self.body_json().get("dirs")
+                    if dirs is not None and not (isinstance(dirs, list) and all(isinstance(x, str) for x in dirs)):
+                        raise ApiError(422, "bad_dirs", "dirs must be a list of directories or omitted for all")
+                    res = intake.confirm_manifests(ws, dirs, a)
+                    if res["confirmed"]:  # who accepted the suggestions, and when: the manifest files no longer carry the marker
+                        log = ws.settings.get("manifest_confirmations", [])
+                        log.append({"by": self.user()["username"], "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "dirs": res["confirmed"]})
+                        wsmod.update_settings(app.store, ws, manifest_confirmations=log[-20:])
+                    return self.send_json(200, {**res, **intake.list_manifests(ws, a)})
                 if method == "POST":
                     self.need("operator")
                     wsmod.require_writable(ws)
@@ -516,7 +551,8 @@ def make_handler(app: App):
                 u = self.need("operator")
                 wsmod.require_writable(ws)
                 self._no_active_run(ws)
-                res = intake.clone(ws, str(self.body_json().get("url", "")), limits()["clone_timeout_s"])
+                b = self.body_json()
+                res = intake.clone(ws, str(b.get("url", "")), limits()["clone_timeout_s"], b.get("commit") or None)
                 wsmod.update_settings(app.store, ws, source={"kind": "git", "ref": res["url"], "commit": res["commit"],
                                                              "by": u["username"], "ts": time.time()}, lab_probes=[])
                 return self.send_json(200, res)
@@ -533,7 +569,11 @@ def make_handler(app: App):
                     b = self.body_json()
                     platform, qcloud = bool(b.get("platform")), bool(b.get("qcloud"))
                     probes = parse_probes(b.get("probes") or [], bool(b.get("authorised")))
-                    detail = {"probes": probes, "platform": platform, "qcloud": qcloud}
+                    presets = reference_presets(b.get("presets") or [])
+                    detail = {"probes": probes, "presets": [p["id"] for p in presets], "platform": platform, "qcloud": qcloud}
+                    if presets:
+                        detail["preset_note"] = settings()["reference_endpoints"]["label"]
+                    probes = probes + [f"{p['service']}={p['host']}:{p['port']}" for p in presets]
                     if probes:
                         detail["authorisation"] = {"confirmed_by": u["username"], "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                                                    "statement": "I own or am authorised to test these endpoints"}
@@ -570,6 +610,9 @@ def make_handler(app: App):
                     raise ApiError(409, "qcloud_blocked", s["qcloud_blocked_reason"])
                 if not confirm:
                     raise ApiError(422, "confirm_required", "confirm that QpiAI credits may be consumed")
+            pending = [m for m in ws.src.rglob("atlas-service.json") if '"suggested"' in m.read_text(errors="replace")] if ws.src.exists() else []
+            if pending:  # suggestions are not facts: an operator confirms them before they drive a plan
+                raise ApiError(409, "manifests_unconfirmed", f"{len(pending)} service manifests are suggestions; review and confirm them in Detect first")
             steps = pipeline_steps(ws, probes, platform, qcloud, calibration_payload)
             return app.runs.start(ws, u["username"], steps, kind, detail, platform or qcloud,
                                   needs_keygen=not (ws.keys / "ledger_mldsa65.key").exists())

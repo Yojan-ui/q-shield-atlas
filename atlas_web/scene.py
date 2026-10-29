@@ -61,7 +61,36 @@ def scanned_files(src, detect: dict | None) -> dict:
             "status_text": None if ok else "the source tree changed since the last scan; re-run detect to see it"}
 
 
-def build_scene(ws_id: str, r: dict | None, src=None) -> dict:
+def review_notes(source: dict | None) -> list[dict]:
+    """Manual-review notes from docs/detect_real_repos.md for a workspace cloned from a pinned real repo:
+    reviewed findings (with verdict), known remaining gaps and fixed errors. Read from the doc, never invented."""
+    import re
+    from pathlib import Path
+
+    if not source or source.get("kind") != "git":
+        return []
+    repo = Path(__file__).resolve().parent.parent
+    pins = json.loads((repo / "detect" / "real_repos.json").read_text())["repos"]
+    pin = next((p for p in pins if p["url"].rstrip("/").removesuffix(".git") == str(source.get("ref", "")).rstrip("/").removesuffix(".git")), None)
+    if not pin:
+        return []
+    doc = (repo / "docs" / "detect_real_repos.md").read_text()
+    title = {"online-boutique": "Online Boutique", "opentelemetry-demo": "OpenTelemetry Demo"}.get(pin["name"], pin["name"])
+    notes, section = [], None
+    for line in doc.splitlines():
+        if line.startswith("## "):
+            section = "repo" if line[3:].startswith(title) else "gaps" if "remaining gaps" in line else "fixed" if "fixed" in line else None
+            continue
+        if section == "repo" and line.startswith("| `"):
+            cells = [c.strip() for c in line.strip("|").split("|")]
+            notes.append({"kind": "reviewed finding", "text": f"{cells[0]}: {cells[1]}", "paths": re.findall(r"`([^`]+)`", cells[0])})
+        elif section in ("gaps", "fixed") and line.startswith("- "):
+            notes.append({"kind": "known gap" if section == "gaps" else "fixed during review", "text": line[2:].replace("**", ""),
+                          "paths": re.findall(r"`([^`]*/[^`]*)`", line)})
+    return [{**n, "source": f"docs/detect_real_repos.md ({title} @ {pin['commit'][:12]})"} for n in notes]
+
+
+def build_scene(ws_id: str, r: dict | None, src=None, source: dict | None = None) -> dict:
     if not r:
         return {"workspace": ws_id, "available": False, "status_text": "not yet run"}
     pres = settings()["presentation"]
@@ -111,6 +140,10 @@ def build_scene(ws_id: str, r: dict | None, src=None) -> dict:
         "tower": tower,
         "waves": [{"week": w["week"], "assets": w["assets"], "status": w["status"]} for w in r.get("waves", [])],
         "files": scanned_files(src, r.get("detect")),
+        "review_notes": review_notes(source),
+        "probes": [{"service": p["service"], "endpoint": p["endpoint"], "group": p["live"].get("group"), "ok": p["live"].get("handshake_ok"),
+                    "cert": p["live"].get("cert_algorithm"), "classical": p["live"].get("kex_quantum_vulnerable"),
+                    "drift": [d["kind"] for d in p["drift"]]} for p in (r.get("detect") or {}).get("probes", [])],
         "lab_services": [{"service_id": s["service_id"], "group": s.get("negotiated_group"), "kex_class": s.get("kex_class"),
                           "auth_alg": s.get("auth_alg"), "label": s.get("label")} for s in he.get("sessions", [])],
         "ledger": {"entry_count": led.get("entry_count"), "root": led.get("root"),
@@ -122,6 +155,6 @@ def build_scene(ws_id: str, r: dict | None, src=None) -> dict:
     return scene
 
 
-def scene_bytes(ws_id: str, r: dict | None, src=None) -> tuple[bytes, str]:
-    body = json.dumps(build_scene(ws_id, r, src), separators=(",", ":")).encode()
+def scene_bytes(ws_id: str, r: dict | None, src=None, source: dict | None = None) -> tuple[bytes, str]:
+    body = json.dumps(build_scene(ws_id, r, src, source), separators=(",", ":")).encode()
     return body, '"' + hashlib.sha256(body).hexdigest()[:32] + '"'

@@ -133,6 +133,16 @@ python -m atlas_web export                       # static read-only snapshot in 
   "I own or am authorised to test these endpoints" confirmation that is stored with the run, an assumptions editor
   and calibration ("calibrated from your measurements": medians of recorded engineer-days, never applied
   automatically; applying re-plans and signs a `calibration.apply` entry with `python -m ledger append`).
+- **Real repositories:** `python tools/seed_real_workspaces.py --confirm` builds the REAL REPO workspaces from the
+  repos pinned in `detect/real_repos.json` (Online Boutique, OpenTelemetry Demo) through the same API: clone at the
+  pinned commit, "Suggest manifests" (kind from evidence, data class `internal_ops`, dependencies from compose
+  `depends_on` / k8s `<service>:<port>` references; every field marked "suggested — review" with its basis), operator
+  confirmation (runs are refused until then), then the full pipeline. An inventory with no RSA/ECC/DH gives an honest
+  empty plan ("nothing to migrate", no solver run) instead of an error. Asset pages show the manual-review notes from
+  `docs/detect_real_repos.md`.
+- **Public PQ reference endpoints:** a probe preset with `pq.cloudflareresearch.com:443` (hybrid X25519MLKEM768) and
+  `www.gnu.org:443` (refused an X25519MLKEM768-only offer when verified on 2026-10-29, so classical): one standard TLS
+  handshake each, no scanning; shown in drift, as live strands on Handshakes, and on asset pages.
 - **Roles:** viewer (read), operator (run, upload, calibrate), admin (users; paid QpiAI runs, which stay disabled in
   `config/atlas_web.json` until the account issues are fixed). scrypt passwords, hashed session tokens, CSRF
   double-submit, login rate limit.

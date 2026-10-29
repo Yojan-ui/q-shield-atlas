@@ -10,6 +10,9 @@
     "exposure", "baselines", "avoided", "solver_runs",
     "detect", "handshake_evidence", "gates", "qaoa", "ledger_root", "ledger", "ledger_verification"
   ],
+  "if": {"required": ["nothing_to_migrate"]},
+  "then": {"properties": {"assets": {"maxItems": 0}, "solver_runs": {"maxItems": 0}}},
+  "else": {"properties": {"solver_runs": {"minItems": 1}}},
   "properties": {
     "schema_version": {"const": "1.0"},
     "generated_at": {"type": "string", "format": "date-time"},
@@ -79,7 +82,8 @@
         "vs_greedy": {"$ref": "#/$defs/avoided_list"}
       }
     },
-    "solver_runs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/solver_run"}},
+    "solver_runs": {"type": "array", "items": {"$ref": "#/$defs/solver_run"}},
+    "nothing_to_migrate": {"const": true, "description": "detect found no quantum-vulnerable assets; the plan is empty and no solver ran"},
     "sensitivity": {"type": ["array", "null"]},
     "detect": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/detect"}]},
     "handshake_evidence": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/handshake_evidence"}]},

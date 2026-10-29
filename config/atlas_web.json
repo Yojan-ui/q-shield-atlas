@@ -58,5 +58,27 @@
     ],
     "layer_spacing": 4.0,
     "cell": 2.0
+  },
+  "reference_endpoints": {
+    "label": "public reference servers: one standard TLS handshake each, no scanning",
+    "verified": "2026-10-29 with OpenSSL 3.6.5: a client offering only X25519MLKEM768 was accepted by pq.cloudflareresearch.com and refused (handshake failure) by www.gnu.org; the standard probe then negotiated X25519MLKEM768 and X25519 respectively.",
+    "endpoints": [
+      {
+        "id": "cloudflare-pq",
+        "service": "ref-cloudflare-pq",
+        "host": "pq.cloudflareresearch.com",
+        "port": 443,
+        "expect": "hybrid X25519MLKEM768",
+        "operator": "Cloudflare Research (public PQ test server)"
+      },
+      {
+        "id": "gnu-classical",
+        "service": "ref-gnu-classical",
+        "host": "www.gnu.org",
+        "port": 443,
+        "expect": "classical (refuses an X25519MLKEM768-only offer)",
+        "operator": "GNU Project (public website)"
+      }
+    ]
   }
 }

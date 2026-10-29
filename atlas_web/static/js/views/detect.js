@@ -92,31 +92,42 @@ function intake(ctx) {
   const drawMan = (L) => {
     const svc = L.services || [], ids = svc.map((s) => s.manifest && s.manifest.id).filter(Boolean), ed = h("div", { class: "dt-form" }), opt = (a) => (a || []).map((v) => ({ value: v, label: v }));
     const edit = (s) => {
-      const m = (s && s.manifest) || {}, msg = out(), F = {
+      const m = (s && s.manifest) || {}, msg = out(), sug = m.suggested ? m.suggested.basis || {} : null, F = {
         dir: field({ label: "Directory", name: "dir", value: s ? s.dir : "", options: s ? [s.dir] : [{ value: "", label: "choose a directory" }, ...opt(L.candidate_dirs)] }),
         id: field({ label: "Service id", name: "id", value: m.id || "", hint: "a-z 0-9 -", required: true }),
         name: field({ label: "Name", name: "name", value: m.name || "", required: true }),
-        kind: field({ label: "Kind", name: "kind", value: m.kind || "", options: opt(L.kinds) }),
-        data_class: field({ label: "Data class", name: "data_class", value: m.data_class || "", options: opt(L.data_classes) }),
+        kind: field({ label: "Kind", name: "kind", value: m.kind || "", options: opt(L.kinds), hint: sug ? `suggested — review: ${sug.kind}` : "" }),
+        data_class: field({ label: "Data class", name: "data_class", value: m.data_class || "", options: opt(L.data_classes), hint: sug ? `suggested — review: ${sug.data_class}` : "" }),
       };
       const dep = h("select", { multiple: true, id: "dt-dep", size: 4 }, ids.filter((i) => i !== m.id).map((i) => h("option", { value: i, selected: (m.depends_on || []).includes(i) }, i)));
-      F.depends_on = box("Depends on", "dt-dep", dep, "services this one depends on");
-      F.depends_on.setError = (t) => { F.depends_on.classList.toggle("invalid", !!t); F.depends_on.lastChild.textContent = t || "services this one depends on"; };
-      ed.replaceChildren(h("h3", { text: s ? `Edit ${s.dir}/atlas-service.json` : "New atlas-service.json" }), form(msg, async () => {
+      const depHint = sug ? `suggested — review: ${(sug.depends_on || []).join("; ")}` : "services this one depends on";
+      F.depends_on = box("Depends on", "dt-dep", dep, depHint);
+      F.depends_on.setError = (t) => { F.depends_on.classList.toggle("invalid", !!t); F.depends_on.lastChild.textContent = t || depHint; };
+      ed.replaceChildren(h("h3", { text: s ? `Edit ${s.dir}/atlas-service.json` : "New atlas-service.json" }),
+        sug ? h("p", { class: "fine" }, chip("assumption", "suggested — review"), " Every field below is a suggestion, not a fact. Saving confirms it as your review.") : null, form(msg, async () => {
         Object.values(F).forEach((x) => x.setError(""));
         const manifest = { id: F.id.value(), name: F.name.value(), kind: F.kind.value(), data_class: F.data_class.value(), depends_on: [...dep.selectedOptions].map((o) => o.value) };
         await post("/manifests", { dir: F.dir.value(), manifest }).catch((err) => {
           err.onFields = () => { Object.entries(err.fields || {}).forEach(([k, v]) => F[k] && F[k].setError(v)); if (err.code === "bad_dir") F.dir.setError(err.message); };
           throw err;
         });
-        say(msg, "Saved.", false); changed("Manifest saved");
-      }, h("div", { class: "form-row" }, F.dir, F.id, F.name, F.kind, F.data_class), F.depends_on, h("div", { class: "sg-row" }, btn("Save manifest"), msg)));
+        say(msg, sug ? "Confirmed." : "Saved.", false); changed(sug ? "Manifest confirmed" : "Manifest saved");
+      }, h("div", { class: "form-row" }, F.dir, F.id, F.name, F.kind, F.data_class), F.depends_on, h("div", { class: "sg-row" }, btn(sug ? "Confirm manifest" : "Save manifest"), msg)));
     };
     const col = (label, k) => ({ label, render: (s) => [].concat((s.manifest || {})[k] || "").join(", ") });
+    const pending = svc.filter((s) => s.manifest && s.manifest.suggested).length, bulkMsg = out();
+    const bulk = (path, label) => h("button", { class: "btn", type: "button", onclick: async (e) => {
+      e.target.disabled = true;
+      try { const d = await post(path, {}); say(bulkMsg, path.endsWith("suggest") ? `${d.written.length} manifests suggested from ${d.service_dirs} service directories; review them before a run.` : `${d.confirmed.length} manifests confirmed.`, false); changed(label); }
+      catch (err) { if (err.code !== "aborted") say(bulkMsg, err.message); }
+      e.target.disabled = false;
+    } }, label);
     man.replaceChildren(h("p", { class: "fine", text: L.label || "" }),
+      h("div", { class: "sg-row" }, bulk("/manifests/suggest", "Suggest manifests"), pending ? bulk("/manifests/confirm", `Confirm all ${pending} suggestions`) : null, bulkMsg),
       svc.length ? table({ caption: "Service manifests", rows: svc, onRow: edit, signal: ctx.signal, columns: [{ label: "directory", key: "dir", mono: true },
-        { label: "id", render: (s) => (s.manifest ? s.manifest.id : chip("FAIL", s.error || "unreadable")) }, col("kind", "kind"), col("data class", "data_class"), col("depends on", "depends_on")] })
-        : h("p", { class: "fine", text: "No atlas-service.json in this source yet." }),
+        { label: "id", render: (s) => (s.manifest ? s.manifest.id : chip("FAIL", s.error || "unreadable")) }, col("kind", "kind"), col("data class", "data_class"), col("depends on", "depends_on"),
+        { label: "review", render: (s) => (s.manifest && s.manifest.suggested ? chip("assumption", "suggested — review") : chip("PASS", "confirmed")) }] })
+        : h("p", { class: "fine", text: "No atlas-service.json in this source yet. Suggest manifests from the service directories, then review them." }),
       h("button", { class: "btn quiet", type: "button", onclick: () => edit(null) }, "New service manifest"), ed);
   };
   const loadMan = () => ctx.store.get(ws, "manifests", { signal: ctx.signal }).then(drawMan, (err) => { if (err.code !== "aborted") man.replaceChildren(h("p", { class: "fine", text: `Manifests unavailable: ${err.message}` })); });
@@ -124,11 +135,22 @@ function intake(ctx) {
   // (d) authorised probes -> start a run, then watch it on the pipeline
   const ta = h("textarea", { id: "dt-probes", rows: 4, placeholder: "web-gw=example.com:443", spellcheck: "false" });
   const auth = checkbox({ label: "I own or am authorised to test these endpoints", name: "authorised" }), prMsg = out();
+  const presets = h("fieldset", { class: "dt-presets" }, h("legend", { class: "eyebrow", text: "Public PQ reference endpoints" }));
+  ctx.api.get("/api/reference-endpoints", { signal: ctx.signal, quiet: true }).then((R) => {
+    presets.append(h("p", { class: "fine", text: R.label }), ...R.endpoints.map((e) => {
+      const c = checkbox({ label: `${e.host}:${e.port} — ${e.operator}; expected ${e.expect}`, name: `preset-${e.id}` });
+      c.input.value = e.id;
+      return c;
+    }));
+  }, (err) => { if (err.code !== "aborted") presets.append(h("p", { class: "fine", text: "Reference endpoints unavailable." })); });
   const probe = form(prMsg, async () => {
-    if (!auth.input.checked) throw new Error("Confirm that you own or are authorised to test these endpoints.");
-    await post("/runs", { probes: ta.value.split("\n").map((s) => s.trim()).filter(Boolean), authorised: true });
+    const typed = ta.value.split("\n").map((s) => s.trim()).filter(Boolean);
+    const chosen = [...presets.querySelectorAll("input:checked")].map((i) => i.value);
+    if (typed.length && !auth.input.checked) throw new Error("Confirm that you own or are authorised to test the endpoints you typed.");
+    await post("/runs", { probes: typed, authorised: auth.input.checked, presets: chosen });
     ctx.navigate(`/w/${ws}/pipeline`);
-  }, box("Live probes, one SERVICE=HOST:PORT per line", "dt-probes", ta, "leave empty to rescan without probes"), auth, h("div", { class: "sg-row" }, btn("Start run", "btn primary"), prMsg));
+  }, presets, box("Your endpoints, one SERVICE=HOST:PORT per line", "dt-probes", ta, "leave empty to rescan without your own probes"),
+  auth, h("div", { class: "sg-row" }, btn("Start run", "btn primary"), prMsg));
   return [section("Source", h("div", { class: "form-row" }, upload, clone)), section("Service manifests", man), section("Authorised probes", probe)];
 }
 

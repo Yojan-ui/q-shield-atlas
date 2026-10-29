@@ -5,7 +5,8 @@ import { href } from "../router.js";
 
 export function strip({ onSignOut, onWorkspace, kiosk }) {
   const wsSelect = h("select", { "aria-label": "workspace" });
-  const ws = h("label", { class: "ws-switch" }, h("span", { class: "ws-label", text: "Workspace" }), wsSelect);
+  const badge = h("span", { class: "ws-badge" });
+  const ws = h("label", { class: "ws-switch" }, h("span", { class: "ws-label", text: "Workspace" }), wsSelect, badge);
   const rail = h("nav", { class: "rail", "aria-label": "Routes" });
   const user = h("div", { class: "user" });
   const el = h("header", { class: "strip" },
@@ -17,7 +18,11 @@ export function strip({ onSignOut, onWorkspace, kiosk }) {
     const signedIn = !!me;
     ws.hidden = !signedIn || !workspaces;
     if (signedIn && workspaces) {
-      wsSelect.replaceChildren(...workspaces.map((w) => h("option", { value: w.id, selected: w.id === wsId }, w.read_only ? `${w.name}` : w.name)));
+      wsSelect.replaceChildren(...workspaces.map((w) => h("option", { value: w.id, selected: w.id === wsId }, wsLine(w))));
+      const cur = workspaces.find((w) => w.id === wsId);
+      badge.replaceChildren(...(cur ? [h("span", { class: "chip neutral", text: cur.type || "" }),
+        cur.ledger_verified === null || cur.ledger_verified === undefined ? null
+          : h("span", { class: `chip ${cur.ledger_verified ? "pass" : "fail"}`, title: "ledger verification", text: cur.ledger_verified ? "✔ ledger" : "✖ ledger" })].filter(Boolean) : []));
     }
     rail.hidden = !signedIn;
     rail.replaceChildren(...RAIL.map((r) => h("a", { href: href(r.path, { ws: wsId }), "aria-current": r.name === routeName ? "page" : null,
@@ -47,4 +52,12 @@ export function installRailKeys(navigate, getWs, signal) {
     const ws = getWs();
     if (r && ws) { e.preventDefault(); navigate(href(r.path, { ws })); }
   }, { signal });
+}
+
+// One line per workspace in the switcher: type badge, assets, ledger verified, last run (all from the API).
+export function wsLine(w) {
+  const ago = (ts) => { const m = Math.round((Date.now() / 1000 - ts) / 60); return m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+  return [w.name, w.type, w.assets === null || w.assets === undefined ? "not yet run" : `${w.assets} assets`,
+    w.ledger_verified === null || w.ledger_verified === undefined ? null : w.ledger_verified ? "ledger ✔" : "ledger ✖",
+    w.last_run ? `run ${ago(w.last_run.ts)} (${w.last_run.status})` : w.generated_at ? `snapshot ${w.generated_at.slice(0, 10)}` : null].filter(Boolean).join(" · ");
 }

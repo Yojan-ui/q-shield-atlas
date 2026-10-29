@@ -30,7 +30,30 @@ def avoided(baseline: dict, optimized: dict) -> list[dict]:
     ]
 
 
+NO_ASSETS = "none: the inventory has no quantum-vulnerable assets, so there is nothing to schedule"
+
+
+def empty_section(problem) -> dict:
+    """A real result, not an error: detect found nothing to migrate. No solver runs (nothing was solved)."""
+    plan = lambda method: {  # noqa: E731
+        "method": method, "completion_week": {}, "waves": [], "expected_weighted": 0.0, "worst_case_weighted": 0.0,
+        "makespan_weeks": 0, "per_scenario": [{"scenario": s.name, "year": s.year, "exposure_years": 0.0, "weighted_exposure": 0.0}
+                                              for s in problem.scenarios],
+        "remaining_by_week": [{"scenario": s.name, "year": s.year, "points": [{"week": 0, "exposure_years": 0.0}]} for s in problem.scenarios],
+        "produced_by": {"solver": NO_ASSETS, "run_ids": [], "job_ids": []},
+    }
+    optimized = {**plan("qpiai-opt-milp-" + problem.objective), "objective": problem.objective}
+    baselines = {"fcfs": plan("fcfs"), "greedy": plan("greedy")}
+    return {"assumptions": {**problem.raw_assumptions, "sha256": sha256_json(problem.raw_assumptions)},
+            "scenarios": [{"name": s.name, "year": s.year, "weight": s.weight} for s in problem.scenarios],
+            "assets": [], "waves": [], "exposure": optimized, "baselines": baselines,
+            "avoided": {"vs_fcfs": avoided(baselines["fcfs"], optimized), "vs_greedy": avoided(baselines["greedy"], optimized)},
+            "solver_runs": [], "sensitivity": None, "nothing_to_migrate": True}
+
+
 def build_section(problem, client, run_dir, with_sensitivity=True, mode="local", budget=None) -> dict:
+    if not problem.assets:
+        return empty_section(problem)
     baselines = run_baselines(problem)
     optimized, runs = optimize(problem, client, horizon_for(problem, baselines), run_dir, mode=mode, budget=budget)
     weeks = optimized["completion_week"]

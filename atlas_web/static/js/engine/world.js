@@ -54,7 +54,7 @@ function init(w, THREE) {
   const root = new THREE.Group();
   scene.add(root);
   Object.assign(w, { scene, camera, root });
-  w.uniforms = { uTime: { value: 0 }, uWeek: { value: 1e6 }, uScenario: { value: 0 }, uPulse: { value: 0 } };
+  w.uniforms = { uTime: { value: 0 }, uWeek: { value: 1e6 }, uScenario: { value: 0 }, uPulse: { value: 0 }, uMorph: { value: 1 } };
 
   // ---- camera flights (spline, ease-in-out-cubic with soft settle; reverse arc on back) ----
   const cam = { pos: new THREE.Vector3(...POSES.void.pos), at: new THREE.Vector3(...POSES.void.at) };
@@ -114,7 +114,8 @@ function init(w, THREE) {
   addEventListener("click", (e) => { if (w.layer && w.layer.click) { const hit = pickAt(e); if (hit) w.layer.click(hit, e); } });
 
   // ---- loop: paused when hidden or when no stage is on screen ----
-  let last = performance.now(), frames = 0, acc = 0, worst = 0, slowFor = 0, running = false;
+  let last = performance.now(), frames = 0, acc = 0, worst = 0, running = false;
+  const win = { t: 0, n: 0 };
   const debugEl = new URLSearchParams(location.search).has("debug") ? Object.assign(document.createElement("div"), { className: "debug-hud" }) : null;
   if (debugEl) document.body.append(debugEl);
   function frame(now) {
@@ -127,10 +128,15 @@ function init(w, THREE) {
       if (debugEl) debugEl.textContent = `${w.stats.fps} fps · worst ${w.stats.worstFrameMs} ms · ${w.stats.drawCalls} draw calls · dpr ${dpr}`;
       frames = 0; acc = 0; worst = 0;
     }
-    // adaptive quality: sustained > 20 ms frames -> lower DPR
-    slowFor = dt > 20 ? slowFor + dt : 0;
-    if (slowFor > 2000 && dpr > 1) { dpr = Math.max(1, dpr - 0.5); renderer.setPixelRatio(dpr); slowFor = 0; }
+    // adaptive quality: if the AVERAGE frame time over a 2 s window exceeds 20 ms, lower the DPR (floor 0.75).
+    // (a consecutive-slow-frames test never fires when frames alternate 16.7 / 33 ms, which is the common case)
+    win.t += dt; win.n++;
+    if (win.t >= 2000) {
+      if (win.t / win.n > 20 && dpr > 0.75) { dpr = Math.max(0.75, dpr - 0.25); renderer.setPixelRatio(dpr); }
+      win.t = 0; win.n = 0;
+    }
     w.uniforms.uTime.value = now / 1000;
+    if (w.uniforms.uMorph.value < 1) w.uniforms.uMorph.value = w.reduced ? 1 : Math.min(1, w.uniforms.uMorph.value + dt / MOTION.flightMaxMs);
     if (flight) {
       const k = Math.min(1, (now - flight.t0) / flight.ms);
       const e = flightProgress(k);

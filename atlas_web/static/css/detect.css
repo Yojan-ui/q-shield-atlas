@@ -8,3 +8,5 @@ body[data-route=detect] .stage>.stage-note:empty{display:none}
 .field select[multiple]{height:auto;padding:var(--s-1)}
 .dt-form progress{width:160px;height:4px;accent-color:var(--accent)}
 .dt-form input[type=file]{font:var(--fs-12)/1.4 var(--font-mono);color:var(--text-2)}
+.dt-presets{border:var(--rule) solid var(--hairline);border-radius:var(--r-surface);padding:var(--s-3) var(--s-4);margin:0;display:grid;gap:var(--s-2)}
+.dt-presets legend{padding:0 var(--s-2);margin:0}

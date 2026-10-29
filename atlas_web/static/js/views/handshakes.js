@@ -17,9 +17,9 @@ const two = (a, b) => h("span", {}, a, b);
 const mono = (text) => h("span", { class: "mono", text });
 const refused = (d) => (d ? (d.result === "PASS" ? "refused" : "accepted") : null);
 
-const label = ({ s, classical, auth, down }) => h("div", { class: "hs-label" }, h("b", { class: "mono", text: s.service_id }), mono(` · ${s.negotiated_group}`),
+const label = ({ s, classical, auth, down, live }) => h("div", { class: "hs-label" }, h("b", { class: "mono", text: s.service_id }), mono(` · ${s.negotiated_group}`),
   sub(classical ? HNDL : s.negotiated_group === "X25519MLKEM768" ? "hybrid: X25519 + ML-KEM-768" : s.kex_class, classical ? "exp" : ""),
-  sub([auth && auth.result === "PASS" ? `${auth.auth_alg} server auth` : null, down ? `classical-only client ${refused(down)}` : null].filter(Boolean).join(" · ")));
+  sub(live ? `live endpoint ${s.endpoint} · cert ${s.auth_alg || NR}` : [auth && auth.result === "PASS" ? `${auth.auth_alg} server auth` : null, down ? `classical-only client ${refused(down)}` : null].filter(Boolean).join(" · ")));
 
 export async function mount(ctx) {
   const body = dataView(ctx, {
@@ -32,7 +32,7 @@ export async function mount(ctx) {
       const src = (run_id, solver, ts, note) => source(r, { run_id, solver, job_id_reason: "local lab run, no backend job", ts, note });
       const labels = h("div", { class: "hs-labels", "aria-hidden": "true" }, rows.map(label));
       const said = rows.map((x) => `${x.s.service_id}: ${x.s.negotiated_group}${x.classical ? `, ${HNDL}` : ""}`).join(". ");
-      const el = stage(ctx, { label: `TLS 1.3 sessions. ${said}`, fallback: h("span") });
+      const el = stage(ctx, { label: `TLS 1.3 sessions. ${said}`, fallback: h("span"), tall: rows.length > 3 });
       el.append(labels, h("div", { class: "stage-legend" }, [["exp", "single strand: classical key exchange"], ["acc", "braid: X25519 + ML-KEM-768 hybrid"],
         ["", "ring: ML-DSA server auth"], ["acc", "wall: classical-only client refused"]].map(([k, t]) => h("span", { class: `hs-k ${k}`, text: t }))));
       mountScene(ctx, "handshakes", r, (env) => buildHandshakes(env, rows, labels)).catch(() => {});
@@ -42,7 +42,15 @@ export async function mount(ctx) {
       const kv = (...pairs) => h("dl", { class: "kv hs-kv" }, pairs.map(([k, v]) => [h("dt", { text: k }), h("dd", {}, v)]));
       return h("div", { class: "grid" },
         h("div", { class: "span-12" }, el),
-        section("Lab services", table({ caption: "TLS 1.3 handshake sessions", rows, empty: NR, columns: [
+        section("Live endpoints", table({ caption: "Live TLS probes", rows: rows.filter((x) => x.live), empty: "no live probe in this run", columns: [
+          { label: "service", render: ({ s, probe }) => h("span", { class: "num", tabindex: "0", text: s.service_id,
+            "data-prov": provAttr(src(r.detect.run_id, `live probe, ${probe.live.openssl}`, probe.live.ts, `transcript ${s.transcript_sha256}`), s.service_id) }) },
+          { label: "endpoint", render: ({ s }) => mono(s.endpoint) },
+          { label: "key exchange", render: ({ s, classical }) => two(mono(s.negotiated_group), classical ? sub(HNDL, "exp") : sub("hybrid: X25519 + ML-KEM-768")) },
+          { label: "certificate", render: ({ s }) => mono(s.auth_alg || NR) },
+          { label: "drift", render: ({ probe }) => (probe.drift.length ? h("span", {}, probe.drift.map((d) => chip("NOT_RUN", d.kind))) : chip("PASS", "none")) },
+          { label: "transcript", optional: true, render: ({ s }) => tx(s.transcript_sha256) }] })),
+        section("Lab services", table({ caption: "TLS 1.3 handshake sessions", rows: rows.filter((x) => !x.live), empty: NR, columns: [
           { label: "service", render: ({ s }) => h("span", { class: "num", tabindex: "0", text: s.service_id,
             "data-prov": provAttr(src(he.run_id, he.openssl_version, he.ts, `transcript ${s.transcript_sha256}`), s.service_id) }) },
           { label: "key exchange", render: ({ s, classical }) => two(mono(s.negotiated_group), classical ? sub(HNDL, "exp") : null) },

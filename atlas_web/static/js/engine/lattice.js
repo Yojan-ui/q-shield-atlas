@@ -3,11 +3,14 @@
 //   passed the gates, ghost = not_verified_in_lab, caution = rolled_back); red beam height = that asset's
 //   exposure-years in the selected scenario (off once migrated); conduit pulse = dependency order (week);
 //   halo = PQ authentication (ML-DSA) on its stand-in. State lives in shader uniforms (uWeek, uScenario).
+// Last lattice shown (workspace + node positions), so switching workspace morphs instead of cutting.
+let memory = null;
+
 export const STATE = { classical: 0, hybrid: 1, ghost: 2, rolled_back: 3, rollback_failed: 3, clean: 4 };
 
 const CRYSTAL_VS = `
-attribute float aState; attribute float aWeek; attribute vec3 aExp; attribute float aSeed;
-uniform float uTime; uniform float uWeek;
+attribute float aState; attribute float aWeek; attribute vec3 aExp; attribute float aSeed; attribute vec3 aFrom;
+uniform float uTime; uniform float uWeek; uniform float uMorph;
 varying vec3 vColor; varying float vAlpha; varying vec3 vN;
 void main() {
   bool migrated = aState == 1.0 && aWeek > 0.0 && uWeek >= aWeek;
@@ -19,7 +22,10 @@ void main() {
   else if (aState == 2.0) { vColor = vec3(0.55, 0.6, 0.66); vAlpha = 0.28; s = 1.0; }
   else if (aState == 3.0) { vColor = vec3(0.96, 0.72, 0.29); }
   else if (aState == 4.0) { vColor = vec3(0.35, 0.42, 0.5); vAlpha = 0.7; s = 0.8; }
+  float m = smoothstep(0.0, 1.0, uMorph);
+  vColor = mix(vec3(0.35, 0.42, 0.5), vColor, m);  // workspace switch: colours tween in from neutral
   vec4 wp = modelMatrix * instanceMatrix * vec4(position * s, 1.0);
+  wp.xyz += (mat3(modelMatrix) * (aFrom - instanceMatrix[3].xyz)) * (1.0 - m);  // positions tween from the previous workspace
   vN = normalize(mat3(modelMatrix * instanceMatrix) * normal);
   gl_Position = projectionMatrix * viewMatrix * wp;
 }`;
@@ -30,15 +36,18 @@ void main() {
   gl_FragColor = vec4(vColor * l * 1.25, vAlpha);
 }`;
 const BEAM_VS = `
-attribute float aState; attribute float aWeek; attribute vec3 aExp;
-uniform float uWeek; uniform float uScenario; uniform float uBeamScale;
+attribute float aState; attribute float aWeek; attribute vec3 aExp; attribute vec3 aFrom;
+uniform float uWeek; uniform float uScenario; uniform float uBeamScale; uniform float uMorph;
 varying float vY; varying float vOn;
 void main() {
   bool migrated = aState == 1.0 && aWeek > 0.0 && uWeek >= aWeek;
   float e = uScenario < 0.5 ? aExp.x : (uScenario < 1.5 ? aExp.y : aExp.z);
   vOn = (migrated || aState == 4.0) ? 0.0 : 1.0;
-  vec3 p = position; p.y *= e * uBeamScale * vOn; vY = position.y;
-  gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(p, 1.0);
+  float m = smoothstep(0.0, 1.0, uMorph);
+  vec3 p = position; p.y *= e * uBeamScale * vOn * m; vY = position.y;
+  vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
+  wp.xyz += (mat3(modelMatrix) * (aFrom - instanceMatrix[3].xyz)) * (1.0 - m);
+  gl_Position = projectionMatrix * viewMatrix * wp;
 }`;
 const BEAM_FS = `
 varying float vY; varying float vOn;
@@ -59,7 +68,7 @@ export function buildLattice(THREE, group, scene, uniforms, { beamScale = 0.5, g
   const byId = {};
   nodes.forEach((n, i) => { byId[n.id] = { index: i, pos: n.pos, node: n }; });
   const n = Math.max(1, nodes.length);
-  const attrs = (count) => ({ state: new Float32Array(count), week: new Float32Array(count), exp: new Float32Array(count * 3), seed: new Float32Array(count) });
+  const attrs = (count) => ({ state: new Float32Array(count), week: new Float32Array(count), exp: new Float32Array(count * 3), seed: new Float32Array(count), from: new Float32Array(count * 3) });
   const a = attrs(n);
   const m = new THREE.Matrix4();
   const crystals = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.42, 0),
@@ -75,13 +84,19 @@ export function buildLattice(THREE, group, scene, uniforms, { beamScale = 0.5, g
     a.week[i] = node.week ?? 0;
     a.seed[i] = (i * 0.618) % 1;
     scen.slice(0, 3).forEach((s, k) => { a.exp[i * 3 + k] = node.exposure_years ? node.exposure_years[s] || 0 : 0; });
+    const prev = memory && memory.ws !== scene.workspace && memory.pos.length ? memory.pos[i % memory.pos.length] : node.pos;
+    a.from.set(prev, i * 3);
   });
+  const switching = !!(memory && memory.ws !== scene.workspace && memory.pos.length);
+  if (U.uMorph) U.uMorph.value = switching ? 0 : 1;
+  memory = { ws: scene.workspace, pos: nodes.map((x) => x.pos) };
   if (!nodes.length) { crystals.count = 0; beams.count = 0; }
   for (const mesh of [crystals, beams]) {
     mesh.geometry.setAttribute("aState", new THREE.InstancedBufferAttribute(a.state, 1));
     mesh.geometry.setAttribute("aWeek", new THREE.InstancedBufferAttribute(a.week, 1));
     mesh.geometry.setAttribute("aExp", new THREE.InstancedBufferAttribute(a.exp, 3));
     mesh.geometry.setAttribute("aSeed", new THREE.InstancedBufferAttribute(a.seed, 1));
+    mesh.geometry.setAttribute("aFrom", new THREE.InstancedBufferAttribute(a.from, 3));
     mesh.frustumCulled = false;
     group.add(mesh);
   }
