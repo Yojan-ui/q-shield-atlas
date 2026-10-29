@@ -176,7 +176,7 @@ async function boot() {
   try {
     const me = await api.get("/api/me", { quiet: true });
     app.me = me.user; app.kiosk = me.kiosk; app.demo = me.demo;
-    top.update({ me: app.me, workspaces: null, wsId: app.ws, routeName: "", readOnly: true });
+    top.update({ me: app.me, workspaces: null, wsId: null, routeName: "", readOnly: true });  // the route sets the workspace; no fetch of the default one
   } catch (err) {
     toast("Cannot reach the Atlas server", { tone: "error", detail: err instanceof ApiError ? err.code : "" });
   }

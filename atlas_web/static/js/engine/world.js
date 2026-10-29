@@ -25,11 +25,18 @@ export function createWorld(host) {
   };
   window.__atlasWorld = w;
   if (!hasWebGL() || new URLSearchParams(location.search).has("no3d")) { w.ready = Promise.resolve(w); return w; }
-  w.ready = (window.__atlasImport ? window.__atlasImport(THREE_URL) : import(THREE_URL)).then((THREE) => init(w, THREE)).catch((err) => { w.webgl = false; w.error = String(err); return w; });
+  // three.js (~690 KB) is fetched only when a page first opens a 3D stage or mounts a layer, never on 2D-only pages
+  let started = false, resolveReady;
+  w.ready = new Promise((r) => { resolveReady = r; });
+  const start = () => {
+    if (started) return;
+    started = true;
+    (window.__atlasImport ? window.__atlasImport(THREE_URL) : import(THREE_URL)).then((THREE) => init(w, THREE)).catch((err) => { w.webgl = false; w.error = String(err); return w; }).then(resolveReady);
+  };
   function go(name, opts) { w._go = [name, opts]; if (w._init) w._go2(name, opts); }
-  function mount(name, factory) { w._mount = [name, factory]; if (w._init) return w._mount2(name, factory); return null; }
+  function mount(name, factory) { w._mount = [name, factory]; if (factory) start(); if (w._init) return w._mount2(name, factory); return null; }
   function focus(v, d) { if (w._init) w._focus2(v, d); }
-  function frameStage(el) { w.stage = el || null; }
+  function frameStage(el) { w.stage = el || null; if (el) start(); }
   function onPick(fn) { w.pick = fn; }
   return w;
 }
@@ -45,7 +52,7 @@ function init(w, THREE) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0x05070a, 1);
   renderer.autoClear = false;
-  const maxDpr = matchMedia("(max-width: 760px)").matches ? 1.5 : 2;
+  const maxDpr = 1.5;  // sharp enough on retina, ~45% fewer pixels than DPR 2
   let dpr = Math.min(devicePixelRatio || 1, maxDpr);
   renderer.setPixelRatio(dpr);
   const scene = new THREE.Scene();
@@ -159,6 +166,7 @@ function init(w, THREE) {
   const win = { t: 0, n: 0 };
   const debugEl = new URLSearchParams(location.search).has("debug") ? Object.assign(document.createElement("div"), { className: "debug-hud" }) : null;
   if (debugEl) document.body.append(debugEl);
+  const UP = new THREE.Vector3(0, 1, 0);
   function frame(now) {
     running = false;
     if (document.hidden) return;
@@ -195,7 +203,7 @@ function init(w, THREE) {
     camera.position.copy(cam.pos);
     if (!w.reduced) {
       const deg = (MOTION.parallaxMaxDeg * Math.PI) / 180;
-      camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), -parallax[0] * deg);
+      camera.position.applyAxisAngle(UP, -parallax[0] * deg);
     }
     orbit.yaw += orbit.vy; orbit.pitch = Math.max(-0.5, Math.min(0.5, orbit.pitch + orbit.vp));
     const damp = orbit.drag ? 0.5 : 0.92; orbit.vy *= damp; orbit.vp *= damp;
@@ -209,13 +217,20 @@ function init(w, THREE) {
     const f = 180 * (spring.target - spring.x) - 22 * spring.v; spring.v += f * dt / 1000; spring.x += spring.v * dt / 1000;  // stiffness 180, damping 22
     w.uniforms.uLift.value = spring.x;
     camera.lookAt(cam.at);
-    if (w.layer && w.layer.update) w.layer.update(dt / 1000, now / 1000);
+    if (w.layer && w.layer.update && stageVisible()) w.layer.update(dt / 1000, now / 1000);  // no layer work while off-screen
     render();
     loop();
   }
+  function stageVisible() {
+    const el = w.stage && w.stage.isConnected ? w.stage : null;
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < innerHeight && r.width >= 2 && r.height >= 2;
+  }
+  let sizeW = 0, sizeH = 0;
   function render() {
     const W = innerWidth, H = innerHeight;
-    renderer.setSize(W, H, false);
+    if (W !== sizeW || H !== sizeH) { renderer.setSize(W, H, false); sizeW = W; sizeH = H; }  // resizing every frame reallocates the canvas
     renderer.setScissorTest(false);
     renderer.clear();
     const el = w.stage && w.stage.isConnected ? w.stage : null;

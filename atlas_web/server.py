@@ -6,6 +6,7 @@ every other non-API GET returns index.html so client routes deep-link and refres
 {"error": {"code", "message"}}, never a traceback.
 """
 
+import gzip
 import hashlib
 import hmac
 import json
@@ -61,6 +62,27 @@ def file_stamp(p: Path | None):
         return None
 
 
+# Static files: read, hashed and gzipped once per (mtime, size), not per request. ETag = SHA-256 of the bytes.
+_STATIC: dict = {}
+_STATIC_LOCK = threading.Lock()
+GZIP_TYPES = {".js", ".mjs", ".css", ".json", ".html", ".svg", ".txt", ".glsl"}
+
+
+def static_entry(f: Path) -> dict:
+    stamp = file_stamp(f)
+    with _STATIC_LOCK:
+        e = _STATIC.get(f)
+        if e and e["stamp"] == stamp:
+            return e
+    body = f.read_bytes()
+    e = {"stamp": stamp, "body": body, "sha256": sha256_hex(body),
+         "gz": gzip.compress(body, 6, mtime=0) if f.suffix in GZIP_TYPES and len(body) > 1024 else None}
+    e["etag"] = f'"{e["sha256"][:32]}"'
+    with _STATIC_LOCK:
+        _STATIC[f] = e
+    return e
+
+
 def vendored(name: str) -> Path | None:
     """three.js core from viz/vendor and addons from static/vendor/three-addons, served only if hashes match."""
     for base, prefix in ((VIZ_VENDOR, ""), (ADDONS, "three-addons/")):
@@ -72,7 +94,7 @@ def vendored(name: str) -> Path | None:
             continue
         files = json.loads(mf.read_text())["files"]
         f = base / rel
-        if rel in files and f.is_file() and sha256_hex(f.read_bytes()) == files[rel]:
+        if rel in files and f.is_file() and static_entry(f)["sha256"] == files[rel]:  # hash cached per mtime
             return f
     return None
 
@@ -240,7 +262,8 @@ def make_handler(app: App):
             self.send_header("Content-Type", ctype)
             if length is not None:
                 self.send_header("Content-Length", str(length))
-            self.send_header("Cache-Control", "no-store")
+            if not any(k == "Cache-Control" for k, _ in (extra or [])):
+                self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Frame-Options", "DENY")
             self.send_header("Referrer-Policy", "no-referrer")
@@ -255,8 +278,26 @@ def make_handler(app: App):
             if self.command != "HEAD":
                 self.wfile.write(body)
 
+        def gzip_ok(self) -> bool:
+            return "gzip" in (self.headers.get("Accept-Encoding") or "")
+
         def send_json(self, code, obj, extra=None):
-            self.send_body(code, json.dumps(obj, ensure_ascii=False).encode(), TYPES[".json"], extra)
+            body = json.dumps(obj, ensure_ascii=False).encode()
+            if len(body) > 2048 and self.gzip_ok():  # e.g. results.json is ~200 KB raw, ~25 KB gzipped
+                return self.send_body(code, gzip.compress(body, 5, mtime=0), TYPES[".json"], [*(extra or []), ("Content-Encoding", "gzip"), ("Vary", "Accept-Encoding")])
+            self.send_body(code, body, TYPES[".json"], extra)
+
+        def send_static(self, f: Path, ctype: str, immutable: bool = False):
+            """Cached bytes; ETag revalidation (304); gzip for text; versioned vendor files are immutable."""
+            e = static_entry(f)
+            cache = "public, max-age=31536000, immutable" if immutable else "no-cache"
+            hdr = [("ETag", e["etag"]), ("Cache-Control", cache), ("Vary", "Accept-Encoding")]
+            if self.headers.get("If-None-Match") == e["etag"]:
+                self._headers(304, ctype, None, hdr)
+                return
+            if e["gz"] is not None and self.gzip_ok():
+                return self.send_body(200, e["gz"], ctype, [*hdr, ("Content-Encoding", "gzip")])
+            return self.send_body(200, e["body"], ctype, hdr)
 
         def send_error_json(self, status, code, message, fields=None):
             err = {"code": code, "message": message}
@@ -361,16 +402,16 @@ def make_handler(app: App):
                 f = vendored("/".join(parts[1:]))
                 if not f:
                     return self.send_body(404, b"not found", TYPES[".txt"])
-                return self.send_body(200, f.read_bytes(), TYPES.get(f.suffix, "application/octet-stream"))
+                return self.send_static(f, TYPES.get(f.suffix, "application/octet-stream"), immutable=True)  # name carries the version
             if "/".join(parts) in ("viz/data.js", "viz/render2d.js"):  # the shared viz data layer and the 2D fallback
                 f = REPO / "viz" / parts[1]
-                return self.send_body(200, f.read_bytes(), TYPES[".js"])
+                return self.send_static(f, TYPES[".js"])
             if parts[:1] == ["assets"]:
                 f = (STATIC / "/".join(parts[1:])).resolve()
                 if not str(f).startswith(str(STATIC.resolve()) + "/") or not f.is_file() or f.suffix not in TYPES \
                         or "vendor" in f.relative_to(STATIC.resolve()).parts[:1]:
                     return self.send_body(404, b"not found", TYPES[".txt"])
-                return self.send_body(200, f.read_bytes(), TYPES[f.suffix])
+                return self.send_static(f, TYPES[f.suffix])
             if parts and "." in parts[-1]:  # looks like a file but is not an allowlisted asset
                 return self.send_body(404, b"not found", TYPES[".txt"])
             index = STATIC / "index.html"
