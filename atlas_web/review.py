@@ -23,6 +23,43 @@ def _sha(p: Path) -> str | None:
     return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
 
 
+def _ledger_entry(results: dict, run_id: str) -> int | None:
+    for e in ((results or {}).get("ledger") or {}).get("entries", []):
+        if run_id in e["payload_ref"] and e["type"] != ENTRY_TYPE:
+            return e["index"]
+    return None
+
+
+def _explain(results: dict, it: dict) -> dict:
+    """What / How / Why for one item, from recorded fields only."""
+    a = {x["id"]: x for x in results["assets"]}
+    sr = (results.get("solver_runs") or [{}])[0]
+    if it["kind"] == "plan":
+        av = (results.get("avoided") or {}).get("vs_fcfs", [])
+        return {"what": [f"Migrate {len(results['assets'])} systems in {len(results['waves'])} weekly waves ({results['exposure']['makespan_weeks']} weeks)."],
+                "how": [f"Solver: QpiAI Opt {sr.get('mode', 'local')} MILP, {sr.get('termination')}, {sr.get('guarantee', '').replace('_', ' ')}.",
+                        f"Capacity {results['assumptions']['capacity_days_per_week']} engineer-days per week (assumption)."],
+                "why": ["Minimises risk- and scenario-weighted exposure-years; never worse than first-come-first-served or greedy on the same data."]
+                       + [f"{x['scenario']}: {x['exposure_years_avoided']:.3f} exposure-years avoided vs first-come-first-served." for x in av]}
+    if it["kind"] == "wave":
+        w = next(x for x in results["waves"] if f":{x['week']}" == it["id"][it["id"].rindex(":"):])
+        labs = (w.get("evidence") or {}).get("lab_services", [])
+        how = [f"{x['lab_service']}: {x['from_mode']} → {x['to_mode']}; post-quantum handshake {((x.get('gates') or {}).get('pq_handshake') or {}).get('result', 'not run')}"
+               f" ({((x.get('gates') or {}).get('pq_handshake') or {}).get('negotiated_group') or 'no handshake'}); status {x.get('status', '?')}" for x in labs]
+        return {"what": [f"{a[i]['name']} ({i}): {a[i]['algorithm']}" for i in w["assets"] if i in a],
+                "how": how or ["No lab service is mapped to these systems: not verified in the lab."],
+                "why": [f"{i}: risk weight {a[i]['risk_weight']}, data shelf life {a[i]['shelf_life_years']} years, effort {a[i]['effort_days']} engineer-days"
+                        + (f"; after its dependencies {', '.join(a[i]['depends_on'])}" if a[i]["depends_on"] else "") for i in w["assets"] if i in a]
+                       + [f"The optimiser placed this wave in week {w['week']} to cut weighted exposure fastest within capacity."]}
+    if it["kind"] == "qaoa":
+        q = results["qaoa"]
+        return {"what": [f"Cross-check week {q['problem']['week']}'s selection ({q['problem']['n_variables']} variables) with QAOA."],
+                "how": [f"QAOA p = 1…3 on simulators ({(q.get('qpiai_local') or {}).get('device', 'numpy statevector')}); exact optimum by brute force."],
+                "why": ["Measures QAOA against a known right answer; no quantum advantage is claimed."]}
+    return {"what": [it["summary"]], "how": ["python -m bench: exact, MILP, random, QAOA, hybrid on the same instances."],
+            "why": ["Shows solution quality, runtime and problem size side by side."]}
+
+
 def items(ws, results: dict | None) -> list[dict]:
     if not results or not results.get("assets"):
         return []
@@ -52,6 +89,11 @@ def items(ws, results: dict | None) -> list[dict]:
         out.append({"id": f"bench:{b['run_id']}", "kind": "bench", "title": "Solver benchmark",
                     "summary": f"{len(b['instances'])} instances, {len(b['rows'])} rows", "run_id": b["run_id"],
                     "evidence_sha256": _sha(runs / b["run_id"] / "manifest.json")})
+    v = results.get("ledger_verification") or {}
+    for it in out:
+        it.update(_explain(results, it))
+        it["ledger_index"] = _ledger_entry(results, it["run_id"])
+        it["signature"] = ("verified" if v.get("ok") else "not verified") if it["ledger_index"] is not None else "not signed yet"
     return out
 
 

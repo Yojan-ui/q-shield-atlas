@@ -5,7 +5,9 @@ import { chip } from "../components/chip.js";
 import { table, tableSkeleton } from "../components/table.js";
 import { emptyState } from "../components/states.js";
 import { toast } from "../components/toast.js";
-import { dataView, header, honesty, notRun, section, wsEyebrow } from "./common.js";
+import { dataView, honesty, notRun } from "./common.js";
+import { bullets, detailsList, keyStats, main, nextStep, pageHead } from "../components/page.js";
+import { term } from "../glossary.js";
 
 const STATUS = { pending: ["pending", "awaiting review"], approved: ["PASS", "approved"], rejected: ["FAIL", "rejected"] };
 
@@ -31,6 +33,12 @@ function decisionForm(ctx, item, onDone) {
   return h("div", { class: "rv-form" }, reason, h("div", { class: "sg-row" }, ok, no));
 }
 
+const why3 = (i) => h("div", { class: "rv-www" }, [["What", i.what], ["How", i.how], ["Why", i.why]].map(([k, xs]) =>
+  h("div", {}, h("p", { class: "eyebrow", text: k }), h("ul", { class: "pg-list" }, (xs || []).map((t) => h("li", { text: t }))))));
+const proof = (ctx, i) => h("p", { class: "fine" }, i.ledger_index !== null && i.ledger_index !== undefined
+  ? [h("a", { href: `/w/${ctx.ws}/ledger`, text: `Proof Chain #${i.ledger_index}` }), " · ", chip(i.signature === "verified" ? "verified" : "NOT_RUN", `signature ${i.signature}`)]
+  : chip("NOT_RUN", "not signed yet"), h("span", { class: "mono", text: ` · run ${i.run_id.slice(0, 12)}` }));
+
 export async function mount(ctx) {
   const body = dataView(ctx, {
     keys: ["reviews"],
@@ -39,23 +47,36 @@ export async function mount(ctx) {
       if (!R.items.length) return emptyState(notRun(ctx, "Review"));
       const refresh = () => ctx.store.invalidate(ctx.ws, ["reviews", "ledger", "results"]);
       const pending = R.items.filter((i) => i.status === "pending"), done = R.items.filter((i) => i.status !== "pending");
-      const why = R.read_only ? "This is the read-only demo snapshot: decisions cannot be recorded here." : !R.can_decide ? "Viewers can see decisions; an operator or admin records them." : null;
-      return h("div", { class: "grid" },
-        h("p", { class: "span-12 fine", text: `${pending.length} awaiting review · ${done.length} decided.${why ? ` ${why}` : ""}` }),
-        section("Awaiting review", pending.length ? h("ul", { class: "rv-list" }, pending.map((i) => h("li", { class: "rv-item" },
-          h("div", {}, h("p", { class: "rv-title" }, chip("pending", "awaiting review"), ` ${i.title}`), h("p", { class: "fine", text: i.summary }),
-            h("p", { class: "fine mono", text: `run ${i.run_id.slice(0, 12)} · evidence ${i.evidence_sha256 ? i.evidence_sha256.slice(0, 16) + "…" : "missing"}` })),
-          R.can_decide ? decisionForm(ctx, i, refresh) : null))) : h("p", { class: "fine", text: "Nothing is waiting: every result of the latest run has a decision." })),
-        section("Decided", table({ caption: "Review decisions", rows: done, empty: "No decisions yet", columns: [
+      const n = (x) => ({ kind: "number", value: x, text: String(x), digits: 0, source: { run_id: "reviews", solver: "review decisions", ts: "" } });
+      const why = R.read_only ? "Read-only demo snapshot: decisions cannot be recorded here." : !R.can_decide ? "Viewers can see decisions; an operator or admin records them." : null;
+      const focus = ctx.query.get("item");
+      return h("div", {},
+        keyStats([
+          { label: "awaiting review", cell: n(pending.length), unit: "results", mean: why || "Each needs a person's approve or reject, with a reason." },
+          { label: "approved", cell: n(done.filter((i) => i.status === "approved").length), unit: "signed decisions", mean: "Approved steps can go ahead in the real migration plan." },
+          { label: "rejected", cell: n(done.filter((i) => i.status === "rejected").length), unit: "signed decisions", mean: "Rejected steps go back for rework; the reason is kept." }]),
+        main(pending.length ? h("ul", { class: "rv-list" }, pending.map((i) => h("li", { class: `rv-item${focus === i.id ? " hl" : ""}`, id: `item-${i.id.replace(/[^a-z0-9-]/gi, "-")}` },
+          h("div", {}, h("p", { class: "rv-title" }, chip("pending", "awaiting review"), ` ${i.title}`), h("p", { class: "fine", text: i.summary }), why3(i), proof(ctx, i)),
+          R.can_decide ? decisionForm(ctx, i, refresh) : null))) : h("p", { class: "fine", text: "Nothing is waiting: every result of the latest run has a decision." }), { title: "Awaiting review" }),
+        done.length ? main(table({ caption: "Review decisions", rows: done, columns: [
           { label: "item", render: (i) => h("span", {}, i.title, h("span", { class: "sub", text: i.summary })) },
           { label: "decision", render: (i) => chip(...STATUS[i.status]) },
           { label: "reason", render: (i) => i.decision.reason },
           { label: "by", render: (i) => i.decision.by, optional: true },
-          { label: "when", render: (i) => i.decision.ts, mono: true, optional: true },
-          { label: "Proof Chain", numeric: true, render: (i) => h("a", { href: `/w/${ctx.ws}/ledger`, text: `#${i.decision.ledger_index}` }) }] })));
+          { label: "when (UTC)", render: (i) => i.decision.ts, mono: true, optional: true },
+          { label: "decision record", numeric: true, render: (i) => h("a", { href: `/w/${ctx.ws}/ledger`, text: `#${i.decision.ledger_index}` }) }] }), { title: "Decided" }) : null,
+        detailsList([
+          { title: "How it works", summary: "Each decision is a small signed record bound to the exact evidence it judged.", body: bullets([
+            "The record holds the item, its run and the SHA-256 of that run's evidence, the decision, the reason, who and when.",
+            ["It is appended to the ", term("ledger", "Proof Chain"), " with ML-DSA-65, then the whole chain is verified again."]]) },
+          { title: "Why this method", summary: "Automation proposes; an accountable person decides.", body: bullets([
+            "Banks need a named approver and a reason for each change.", "A new run creates new items, so an old approval never covers new evidence."]) },
+          { title: "Evidence & sources", summary: `${R.items.length} items from the latest run`, body: bullets(R.items.map((i) => `${i.title}: run ${i.run_id}, evidence ${i.evidence_sha256 || "missing"}`)) },
+          { title: "Limits", summary: "Approval records intent; it does not change any real system.", body: bullets([
+            "The migration shown is a plan tested in a lab, not a change to production.", "One signing key per workspace; no second approver yet."]) }]),
+        nextStep(ctx, "review"));
     },
   });
-  ctx.root.append(h("div", { class: "grid" },
-    h("div", { class: "span-12" }, header({ eyebrow: wsEyebrow(ctx), title: "Review", lede: "Results of the latest run that need a person's decision. Approve or reject each one with a reason; the decision is signed into the Proof Chain with ML-DSA-65 and bound to the exact evidence it judged." })),
-    h("div", { class: "span-12" }, body), h("div", { class: "span-12" }, honesty())));
+  ctx.root.append(h("div", { class: "grid" }, h("div", { class: "span-12" },
+    pageHead(ctx, { route: "review", title: "Review", headline: "Which migration steps are approved, and why? Every decision is signed and kept." }), body, honesty())));
 }
