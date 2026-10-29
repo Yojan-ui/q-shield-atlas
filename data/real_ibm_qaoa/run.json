@@ -1,0 +1,22 @@
+{
+ "label": "REAL. IBM Quantum hardware run of the QAOA wave-selection cross-check. A measured cross-check against the exact optimum; no quantum advantage claimed.",
+ "run_id": "152aa6e0425749068e04a75dd332fc4a",
+ "executed_at": "2026-10-29T17:07:44Z",
+ "schedule_sha256": "27ae15dc630a7127a351e378c013cd3c582324658a8ae196c06a6347e803ce20",
+ "backend": "ibm_fez",
+ "job_ids": [
+  "dbhnpos2d77s739d3sv0",
+  "dbhnpp42d77s739d3svg",
+  "dbhnppene4hc73bd9480"
+ ],
+ "ledger_on_executing_machine": {
+  "qaoa_run_entry": {
+   "index": 3,
+   "payload_hash": "3d93f26b313bed114096f8b8797c34bbbf6ffe1581a6c7cd6a86d1fd8b822779",
+   "ts": "2026-10-29T17:08:56Z"
+  },
+  "root": "045855fafbfea92e00791a9f955e5def4e77c750cbe93bffc6b13b0cfd2d2afe",
+  "alg": "ML-DSA-65"
+ },
+ "import": "python -m qaoa --ibm-import data/real_ibm_qaoa"
+}

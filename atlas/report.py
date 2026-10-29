@@ -343,6 +343,7 @@ def sec_qaoa(r):
         hw_html = f"""
 <h3>Real hardware</h3>
 {table(['p', 'backend', 'job ID', 'shots', 'transpiled depth', '2-qubit gates', 'QPU s'], hrows)}
+{f'<p class="note">{e(hw[0]["hardware"]["provenance"])}</p>' if hw[0]["hardware"].get("provenance") else ""}
 <p class="note">Same circuits (angles tuned on the simulator) sampled once per p on real hardware. Hardware noise lowers feasibility at this circuit depth; a measured cross-check, not an advantage claim.</p>"""
     return f"""<p class="label">{QAOA_LABEL}</p>
 <p>Exact optimum (brute force): objective {n(q['exact']['objective'], 'run ' + short(q['run_id']), 6)}, assets {e(', '.join(q['exact']['assets']))}</p>

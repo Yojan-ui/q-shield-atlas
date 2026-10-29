@@ -1,0 +1,1610 @@
+{
+ "assumptions": {
+  "label": "ASSUMPTIONS - illustrative planning values, not measurements. Shelf lives, risk weights, efforts, capacity and CRQC scenario years are inputs to be replaced by the asset owner; see tests/test_sensitivity.py.",
+  "start_year": 2027.0,
+  "weeks_per_year": 52,
+  "capacity_days_per_week": 10,
+  "horizon_weeks": 26,
+  "objective": "expected",
+  "scenarios": [
+   {
+    "name": "Z2030",
+    "year": 2030,
+    "weight": 0.3
+   },
+   {
+    "name": "Z2032",
+    "year": 2032,
+    "weight": 0.4
+   },
+   {
+    "name": "Z2035",
+    "year": 2035,
+    "weight": 0.3
+   }
+  ],
+  "data_classes": {
+   "archive_backup": {
+    "shelf_life_years": 25,
+    "risk_weight": 9
+   },
+   "customer_pii": {
+    "shelf_life_years": 10,
+    "risk_weight": 8
+   },
+   "payments": {
+    "shelf_life_years": 7,
+    "risk_weight": 10
+   },
+   "regulatory_records": {
+    "shelf_life_years": 7,
+    "risk_weight": 6
+   },
+   "trade_secrets": {
+    "shelf_life_years": 5,
+    "risk_weight": 7
+   },
+   "internal_ops": {
+    "shelf_life_years": 3,
+    "risk_weight": 3
+   },
+   "auth_session": {
+    "shelf_life_years": 0.5,
+    "risk_weight": 5
+   },
+   "public_content": {
+    "shelf_life_years": 0.1,
+    "risk_weight": 1
+   }
+  },
+  "effort_days_by_kind": {
+   "root_ca": 8,
+   "hsm": 7,
+   "tls_gateway": 3,
+   "service_mtls": 4,
+   "database_tls": 5,
+   "vpn": 6,
+   "message_bus": 4,
+   "batch_sftp": 3,
+   "cdn_edge": 2
+  },
+  "sensitivity": {
+   "shelf_life_factors": [
+    0.8,
+    1.0,
+    1.2
+   ],
+   "risk_weight_factors": [
+    0.8,
+    1.0,
+    1.2
+   ],
+   "effort_factors": [
+    0.8,
+    1.0,
+    1.2
+   ]
+  },
+  "sha256": "ae00875803d15b74beb3322ff6cfee3a6fa50b56bf70a5ab08bd57df8aaa579f"
+ },
+ "scenarios": [
+  {
+   "name": "Z2030",
+   "year": 2030.0,
+   "weight": 0.3
+  },
+  {
+   "name": "Z2032",
+   "year": 2032.0,
+   "weight": 0.4
+  },
+  {
+   "name": "Z2035",
+   "year": 2035.0,
+   "weight": 0.3
+  }
+ ],
+ "assets": [
+  {
+   "id": "auth",
+   "name": "Auth / session service",
+   "kind": "service_mtls",
+   "data_class": "auth_session",
+   "algorithm": "ECC[kex,sig]",
+   "shelf_life_years": 0.5,
+   "effort_days": 4.0,
+   "risk_weight": 5.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "planned",
+   "planned_week": 7,
+   "evidence": [
+    {
+     "file": "services/auth/tokens.py",
+     "line": 4,
+     "family": "ECC",
+     "use": "both",
+     "rule": "py-ec-generate",
+     "snippet": "KEY = ec.generate_private_key(ec.SECP256R1())"
+    },
+    {
+     "file": "services/auth/tokens.py",
+     "line": 8,
+     "family": "ECC",
+     "use": "sig",
+     "rule": "jwt-es",
+     "snippet": "return jwt.encode(claims, KEY, algorithm=\"ES256\")"
+    }
+   ]
+  },
+  {
+   "id": "backup",
+   "name": "Encrypted backup vault",
+   "kind": "batch_sftp",
+   "data_class": "archive_backup",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 25.0,
+   "effort_days": 3.0,
+   "risk_weight": 9.0,
+   "depends_on": [],
+   "status": "planned",
+   "planned_week": 1,
+   "evidence": [
+    {
+     "file": "services/backup/rotate-keys.sh",
+     "line": 3,
+     "family": "RSA",
+     "use": "both",
+     "rule": "openssl-cli-rsa",
+     "snippet": "openssl genrsa -out /vault/wrap.key 3072"
+    }
+   ]
+  },
+  {
+   "id": "bus",
+   "name": "Internal message bus",
+   "kind": "message_bus",
+   "data_class": "trade_secrets",
+   "algorithm": "ECC[kex] RSA[sig]",
+   "shelf_life_years": 5.0,
+   "effort_days": 4.0,
+   "risk_weight": 7.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "planned",
+   "planned_week": 5,
+   "evidence": [
+    {
+     "file": "services/bus/server.properties",
+     "line": 2,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "tls-ciphers-ecdhe-rsa",
+     "snippet": "ssl.cipher.suites=ECDHE-RSA-AES128-GCM-SHA256"
+    },
+    {
+     "file": "services/bus/server.properties",
+     "line": 2,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "tls-ciphers-ecdhe",
+     "snippet": "ssl.cipher.suites=ECDHE-RSA-AES128-GCM-SHA256"
+    }
+   ]
+  },
+  {
+   "id": "cdn",
+   "name": "Marketing CDN edge",
+   "kind": "cdn_edge",
+   "data_class": "public_content",
+   "algorithm": "ECC[kex]",
+   "shelf_life_years": 0.1,
+   "effort_days": 2.0,
+   "risk_weight": 1.0,
+   "depends_on": [],
+   "status": "planned",
+   "planned_week": 2,
+   "evidence": [
+    {
+     "file": "services/cdn/edge.conf",
+     "line": 3,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "nginx-ecdh-curve",
+     "snippet": "ssl_ecdh_curve prime256v1;"
+    }
+   ]
+  },
+  {
+   "id": "crm",
+   "name": "CRM integration",
+   "kind": "service_mtls",
+   "data_class": "customer_pii",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 10.0,
+   "effort_days": 4.0,
+   "risk_weight": 8.0,
+   "depends_on": [
+    "bus"
+   ],
+   "status": "planned",
+   "planned_week": 5,
+   "evidence": [
+    {
+     "file": "services/crm/client.js",
+     "line": 4,
+     "family": "RSA",
+     "use": "both",
+     "rule": "node-keypair",
+     "snippet": "const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });"
+    },
+    {
+     "file": "services/crm/client.js",
+     "line": 5,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "jwt-rs",
+     "snippet": "const token = jwt.sign(claims, privateKey, { algorithm: 'RS256' });"
+    }
+   ]
+  },
+  {
+   "id": "hsm",
+   "name": "Payments HSM cluster",
+   "kind": "hsm",
+   "data_class": "payments",
+   "algorithm": "RSA[kex]",
+   "shelf_life_years": 7.0,
+   "effort_days": 7.0,
+   "risk_weight": 10.0,
+   "depends_on": [],
+   "status": "planned",
+   "planned_week": 1,
+   "evidence": [
+    {
+     "file": "services/hsm/hsm.properties",
+     "line": 2,
+     "family": "RSA",
+     "use": "kex",
+     "rule": "key-wrap-rsa",
+     "snippet": "key.wrap.mechanism=RSA_OAEP"
+    },
+    {
+     "file": "services/hsm/hsm.properties",
+     "line": 3,
+     "family": "RSA",
+     "use": "kex",
+     "rule": "key-wrap-rsa",
+     "snippet": "key.size=RSA-2048"
+    }
+   ]
+  },
+  {
+   "id": "kyc-db",
+   "name": "KYC document store",
+   "kind": "database_tls",
+   "data_class": "customer_pii",
+   "algorithm": "ECC[kex,sig]",
+   "shelf_life_years": 10.0,
+   "effort_days": 5.0,
+   "risk_weight": 8.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "planned",
+   "planned_week": 4,
+   "evidence": [
+    {
+     "file": "services/kyc-db/main.go",
+     "line": 11,
+     "family": "ECC",
+     "use": "sig",
+     "rule": "go-ecdsa",
+     "snippet": "_, _ = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)"
+    },
+    {
+     "file": "services/kyc-db/main.go",
+     "line": 11,
+     "family": "ECC",
+     "use": "both",
+     "rule": "go-elliptic",
+     "snippet": "_, _ = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)"
+    },
+    {
+     "file": "services/kyc-db/main.go",
+     "line": 12,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "go-tls-curves",
+     "snippet": "return &tls.Config{CurvePreferences: []tls.CurveID{tls.CurveP384}}"
+    }
+   ]
+  },
+  {
+   "id": "ledger-db",
+   "name": "Core ledger database link",
+   "kind": "database_tls",
+   "data_class": "payments",
+   "algorithm": "ECC[kex] RSA[sig]",
+   "shelf_life_years": 7.0,
+   "effort_days": 5.0,
+   "risk_weight": 10.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "planned",
+   "planned_week": 4,
+   "evidence": [
+    {
+     "file": "services/ledger-db/postgresql.conf",
+     "line": 2,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "tls-ciphers-ecdhe-rsa",
+     "snippet": "ssl_ciphers = 'ECDHE-RSA-AES256-GCM-SHA384'"
+    },
+    {
+     "file": "services/ledger-db/postgresql.conf",
+     "line": 2,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "tls-ciphers-ecdhe",
+     "snippet": "ssl_ciphers = 'ECDHE-RSA-AES256-GCM-SHA384'"
+    }
+   ]
+  },
+  {
+   "id": "ops-dash",
+   "name": "Ops dashboard",
+   "kind": "tls_gateway",
+   "data_class": "internal_ops",
+   "algorithm": "ECC[kex]",
+   "shelf_life_years": 3.0,
+   "effort_days": 3.0,
+   "risk_weight": 3.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "planned",
+   "planned_week": 6,
+   "evidence": [
+    {
+     "file": "services/ops-dash/nginx.conf",
+     "line": 3,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "nginx-ecdh-curve",
+     "snippet": "ssl_ecdh_curve X25519;"
+    }
+   ]
+  },
+  {
+   "id": "payments-api",
+   "name": "Payments API",
+   "kind": "service_mtls",
+   "data_class": "payments",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 7.0,
+   "effort_days": 4.0,
+   "risk_weight": 10.0,
+   "depends_on": [
+    "hsm",
+    "root-ca"
+   ],
+   "status": "planned",
+   "planned_week": 3,
+   "evidence": [
+    {
+     "file": "services/payments-api/src/Signer.java",
+     "line": 5,
+     "family": "RSA",
+     "use": "both",
+     "rule": "java-kpg",
+     "snippet": "KeyPairGenerator k = KeyPairGenerator.getInstance(\"RSA\");"
+    },
+    {
+     "file": "services/payments-api/src/Signer.java",
+     "line": 6,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "java-sig",
+     "snippet": "Signature s = Signature.getInstance(\"SHA256withRSA\");"
+    }
+   ]
+  },
+  {
+   "id": "risk-engine",
+   "name": "Risk model service",
+   "kind": "service_mtls",
+   "data_class": "trade_secrets",
+   "algorithm": "ECC[kex]",
+   "shelf_life_years": 5.0,
+   "effort_days": 4.0,
+   "risk_weight": 7.0,
+   "depends_on": [
+    "bus"
+   ],
+   "status": "planned",
+   "planned_week": 6,
+   "evidence": [
+    {
+     "file": "services/risk-engine/tls.go",
+     "line": 5,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "go-tls-curves",
+     "snippet": "var cfg = &tls.Config{CurvePreferences: []tls.CurveID{tls.CurveP256}}"
+    }
+   ]
+  },
+  {
+   "id": "root-ca",
+   "name": "Internal root CA",
+   "kind": "root_ca",
+   "data_class": "regulatory_records",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 7.0,
+   "effort_days": 8.0,
+   "risk_weight": 6.0,
+   "depends_on": [
+    "hsm"
+   ],
+   "status": "planned",
+   "planned_week": 2,
+   "evidence": [
+    {
+     "file": "services/root-ca/openssl.cnf",
+     "line": 2,
+     "family": "RSA",
+     "use": "both",
+     "rule": "openssl-default-bits",
+     "snippet": "default_bits = 4096"
+    },
+    {
+     "file": "services/root-ca/certs/root-ca.crt",
+     "line": 1,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "cert-public-key",
+     "snippet": "certificate subject=CN=MockBank Root CA"
+    }
+   ]
+  },
+  {
+   "id": "sftp-reg",
+   "name": "Regulator SFTP drop",
+   "kind": "batch_sftp",
+   "data_class": "regulatory_records",
+   "algorithm": "DH[kex] RSA[sig]",
+   "shelf_life_years": 7.0,
+   "effort_days": 3.0,
+   "risk_weight": 6.0,
+   "depends_on": [],
+   "status": "planned",
+   "planned_week": 6,
+   "evidence": [
+    {
+     "file": "services/sftp-reg/sshd_config",
+     "line": 1,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "ssh-hostkey-file",
+     "snippet": "HostKey /etc/ssh/ssh_host_rsa_key"
+    },
+    {
+     "file": "services/sftp-reg/sshd_config",
+     "line": 2,
+     "family": "DH",
+     "use": "kex",
+     "rule": "ssh-kex-dh",
+     "snippet": "KexAlgorithms diffie-hellman-group14-sha256"
+    }
+   ]
+  },
+  {
+   "id": "statements",
+   "name": "Statement archive export",
+   "kind": "batch_sftp",
+   "data_class": "archive_backup",
+   "algorithm": "RSA[kex,sig]",
+   "shelf_life_years": 25.0,
+   "effort_days": 3.0,
+   "risk_weight": 9.0,
+   "depends_on": [
+    "backup"
+   ],
+   "status": "planned",
+   "planned_week": 3,
+   "evidence": [
+    {
+     "file": "services/statements/export.sh",
+     "line": 2,
+     "family": "RSA",
+     "use": "both",
+     "rule": "pgp-rsa",
+     "snippet": "gpg --batch --default-new-key-algo rsa2048 --quick-generate-key statements@bank.test"
+    }
+   ]
+  },
+  {
+   "id": "vpn",
+   "name": "Branch site-to-site VPN",
+   "kind": "vpn",
+   "data_class": "internal_ops",
+   "algorithm": "ECC[kex]",
+   "shelf_life_years": 3.0,
+   "effort_days": 6.0,
+   "risk_weight": 3.0,
+   "depends_on": [],
+   "status": "planned",
+   "planned_week": 7,
+   "evidence": [
+    {
+     "file": "services/vpn/ipsec.conf",
+     "line": 2,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "ipsec-ecdh",
+     "snippet": "ike=aes256-sha256-ecp256"
+    }
+   ]
+  },
+  {
+   "id": "web-gw",
+   "name": "Public web TLS gateway",
+   "kind": "tls_gateway",
+   "data_class": "customer_pii",
+   "algorithm": "ECC[kex] RSA[sig]",
+   "shelf_life_years": 10.0,
+   "effort_days": 3.0,
+   "risk_weight": 8.0,
+   "depends_on": [
+    "root-ca"
+   ],
+   "status": "planned",
+   "planned_week": 3,
+   "evidence": [
+    {
+     "file": "services/web-gw/nginx.conf",
+     "line": 4,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "nginx-ecdh-curve",
+     "snippet": "ssl_ecdh_curve X25519MLKEM768:X25519;"
+    },
+    {
+     "file": "services/web-gw/nginx.conf",
+     "line": 4,
+     "family": "PQC",
+     "use": "kex",
+     "rule": "tls-groups-pqc",
+     "snippet": "ssl_ecdh_curve X25519MLKEM768:X25519;"
+    },
+    {
+     "file": "services/web-gw/nginx.conf",
+     "line": 5,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "tls-ciphers-ecdhe-rsa",
+     "snippet": "ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384;"
+    },
+    {
+     "file": "services/web-gw/nginx.conf",
+     "line": 5,
+     "family": "ECC",
+     "use": "kex",
+     "rule": "tls-ciphers-ecdhe",
+     "snippet": "ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384;"
+    },
+    {
+     "file": "services/web-gw/certs/web-gw.crt",
+     "line": 1,
+     "family": "RSA",
+     "use": "sig",
+     "rule": "cert-public-key",
+     "snippet": "certificate subject=CN=www.mockbank.test"
+    }
+   ]
+  }
+ ],
+ "waves": [
+  {
+   "week": 1,
+   "assets": [
+    "backup",
+    "hsm"
+   ],
+   "effort_days": 10.0,
+   "status": "planned"
+  },
+  {
+   "week": 2,
+   "assets": [
+    "cdn",
+    "root-ca"
+   ],
+   "effort_days": 10.0,
+   "status": "planned"
+  },
+  {
+   "week": 3,
+   "assets": [
+    "payments-api",
+    "statements",
+    "web-gw"
+   ],
+   "effort_days": 10.0,
+   "status": "planned"
+  },
+  {
+   "week": 4,
+   "assets": [
+    "kyc-db",
+    "ledger-db"
+   ],
+   "effort_days": 10.0,
+   "status": "planned"
+  },
+  {
+   "week": 5,
+   "assets": [
+    "bus",
+    "crm"
+   ],
+   "effort_days": 8.0,
+   "status": "planned"
+  },
+  {
+   "week": 6,
+   "assets": [
+    "ops-dash",
+    "risk-engine",
+    "sftp-reg"
+   ],
+   "effort_days": 10.0,
+   "status": "planned"
+  },
+  {
+   "week": 7,
+   "assets": [
+    "auth",
+    "vpn"
+   ],
+   "effort_days": 10.0,
+   "status": "planned"
+  }
+ ],
+ "exposure": {
+  "method": "qpiai-opt-milp-expected",
+  "completion_week": {
+   "auth": 7,
+   "backup": 1,
+   "bus": 5,
+   "cdn": 2,
+   "crm": 5,
+   "hsm": 1,
+   "kyc-db": 4,
+   "ledger-db": 4,
+   "ops-dash": 6,
+   "payments-api": 3,
+   "risk-engine": 6,
+   "root-ca": 2,
+   "sftp-reg": 6,
+   "statements": 3,
+   "vpn": 7,
+   "web-gw": 3
+  },
+  "waves": [
+   {
+    "week": 1,
+    "assets": [
+     "backup",
+     "hsm"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 2,
+    "assets": [
+     "cdn",
+     "root-ca"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 3,
+    "assets": [
+     "payments-api",
+     "statements",
+     "web-gw"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 4,
+    "assets": [
+     "kyc-db",
+     "ledger-db"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 5,
+    "assets": [
+     "bus",
+     "crm"
+    ],
+    "effort_days": 8.0,
+    "status": "planned"
+   },
+   {
+    "week": 6,
+    "assets": [
+     "ops-dash",
+     "risk-engine",
+     "sftp-reg"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   },
+   {
+    "week": 7,
+    "assets": [
+     "auth",
+     "vpn"
+    ],
+    "effort_days": 10.0,
+    "status": "planned"
+   }
+  ],
+  "per_scenario": [
+   {
+    "scenario": "Z2030",
+    "year": 2030.0,
+    "exposure_years": 90.07692307692308,
+    "weighted_exposure": 767.2307692307693
+   },
+   {
+    "scenario": "Z2032",
+    "year": 2032.0,
+    "exposure_years": 65.82692307692308,
+    "weighted_exposure": 570.4807692307693
+   },
+   {
+    "scenario": "Z2035",
+    "year": 2035.0,
+    "exposure_years": 40.30769230769231,
+    "weighted_exposure": 356.53846153846155
+   }
+  ],
+  "expected_weighted": 565.323076923077,
+  "worst_case_weighted": 767.2307692307693,
+  "makespan_weeks": 7,
+  "objective": "expected",
+  "produced_by": {
+   "solver": "qpiai-opt local",
+   "run_ids": [
+    "945786f8d13e416f8bde030f63099884",
+    "c422184b41e14ef5aedba226602f4a81"
+   ],
+   "job_ids": [
+    null,
+    null
+   ]
+  },
+  "remaining_by_week": [
+   {
+    "scenario": "Z2030",
+    "year": 2030.0,
+    "points": [
+     {
+      "week": 0,
+      "exposure_years": 90.07692307692308
+     },
+     {
+      "week": 1,
+      "exposure_years": 64.03846153846153
+     },
+     {
+      "week": 2,
+      "exposure_years": 60.0
+     },
+     {
+      "week": 3,
+      "exposure_years": 26.826923076923077
+     },
+     {
+      "week": 4,
+      "exposure_years": 15.673076923076923
+     },
+     {
+      "week": 5,
+      "exposure_years": 6.48076923076923
+     },
+     {
+      "week": 6,
+      "exposure_years": 0.13461538461538458
+     },
+     {
+      "week": 7,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 8,
+      "exposure_years": 0.0
+     }
+    ]
+   },
+   {
+    "scenario": "Z2032",
+    "year": 2032.0,
+    "points": [
+     {
+      "week": 0,
+      "exposure_years": 65.82692307692308
+     },
+     {
+      "week": 1,
+      "exposure_years": 43.78846153846153
+     },
+     {
+      "week": 2,
+      "exposure_years": 41.75
+     },
+     {
+      "week": 3,
+      "exposure_years": 14.576923076923077
+     },
+     {
+      "week": 4,
+      "exposure_years": 7.4230769230769225
+     },
+     {
+      "week": 5,
+      "exposure_years": 2.23076923076923
+     },
+     {
+      "week": 6,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 7,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 8,
+      "exposure_years": 0.0
+     }
+    ]
+   },
+   {
+    "scenario": "Z2035",
+    "year": 2035.0,
+    "points": [
+     {
+      "week": 0,
+      "exposure_years": 40.30769230769231
+     },
+     {
+      "week": 1,
+      "exposure_years": 23.28846153846154
+     },
+     {
+      "week": 2,
+      "exposure_years": 23.28846153846154
+     },
+     {
+      "week": 3,
+      "exposure_years": 4.173076923076923
+     },
+     {
+      "week": 4,
+      "exposure_years": 2.0961538461538467
+     },
+     {
+      "week": 5,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 6,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 7,
+      "exposure_years": 0.0
+     },
+     {
+      "week": 8,
+      "exposure_years": 0.0
+     }
+    ]
+   }
+  ]
+ },
+ "baselines": {
+  "fcfs": {
+   "method": "fcfs",
+   "completion_week": {
+    "backup": 1,
+    "cdn": 1,
+    "hsm": 2,
+    "root-ca": 3,
+    "auth": 4,
+    "bus": 4,
+    "crm": 5,
+    "kyc-db": 5,
+    "ledger-db": 6,
+    "ops-dash": 6,
+    "payments-api": 7,
+    "risk-engine": 7,
+    "sftp-reg": 1,
+    "statements": 2,
+    "vpn": 8,
+    "web-gw": 8
+   },
+   "waves": [
+    {
+     "week": 1,
+     "assets": [
+      "backup",
+      "cdn",
+      "sftp-reg"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 2,
+     "assets": [
+      "hsm",
+      "statements"
+     ],
+     "effort_days": 10.0,
+     "status": "planned"
+    },
+    {
+     "week": 3,
+     "assets": [
+      "root-ca"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 4,
+     "assets": [
+      "auth",
+      "bus"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 5,
+     "assets": [
+      "crm",
+      "kyc-db"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 6,
+     "assets": [
+      "ledger-db",
+      "ops-dash"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 7,
+     "assets": [
+      "payments-api",
+      "risk-engine"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 8,
+     "assets": [
+      "vpn",
+      "web-gw"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    }
+   ],
+   "per_scenario": [
+    {
+     "scenario": "Z2030",
+     "year": 2030.0,
+     "exposure_years": 90.25,
+     "weighted_exposure": 768.9230769230769
+    },
+    {
+     "scenario": "Z2032",
+     "year": 2032.0,
+     "exposure_years": 65.98076923076923,
+     "weighted_exposure": 572.1153846153846
+    },
+    {
+     "scenario": "Z2035",
+     "year": 2035.0,
+     "exposure_years": 40.40384615384616,
+     "weighted_exposure": 357.28846153846155
+    }
+   ],
+   "expected_weighted": 566.7096153846154,
+   "worst_case_weighted": 768.9230769230769,
+   "makespan_weeks": 8,
+   "produced_by": {
+    "solver": "python list scheduler (fcfs), scored by schedule.problem.evaluate",
+    "run_ids": [],
+    "job_ids": []
+   },
+   "remaining_by_week": [
+    {
+     "scenario": "Z2030",
+     "year": 2030.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 90.25
+      },
+      {
+       "week": 1,
+       "exposure_years": 64.21153846153847
+      },
+      {
+       "week": 2,
+       "exposure_years": 38.13461538461539
+      },
+      {
+       "week": 3,
+       "exposure_years": 34.07692307692308
+      },
+      {
+       "week": 4,
+       "exposure_years": 32.0
+      },
+      {
+       "week": 5,
+       "exposure_years": 17.807692307692307
+      },
+      {
+       "week": 6,
+       "exposure_years": 13.576923076923077
+      },
+      {
+       "week": 7,
+       "exposure_years": 7.307692307692307
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    },
+    {
+     "scenario": "Z2032",
+     "year": 2032.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 65.98076923076923
+      },
+      {
+       "week": 1,
+       "exposure_years": 43.94230769230769
+      },
+      {
+       "week": 2,
+       "exposure_years": 21.865384615384617
+      },
+      {
+       "week": 3,
+       "exposure_years": 19.807692307692307
+      },
+      {
+       "week": 4,
+       "exposure_years": 19.730769230769234
+      },
+      {
+       "week": 5,
+       "exposure_years": 9.538461538461538
+      },
+      {
+       "week": 6,
+       "exposure_years": 7.423076923076923
+      },
+      {
+       "week": 7,
+       "exposure_years": 5.153846153846153
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    },
+    {
+     "scenario": "Z2035",
+     "year": 2035.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 40.40384615384616
+      },
+      {
+       "week": 1,
+       "exposure_years": 23.384615384615387
+      },
+      {
+       "week": 2,
+       "exposure_years": 6.346153846153847
+      },
+      {
+       "week": 3,
+       "exposure_years": 6.346153846153847
+      },
+      {
+       "week": 4,
+       "exposure_years": 6.346153846153847
+      },
+      {
+       "week": 5,
+       "exposure_years": 2.1538461538461533
+      },
+      {
+       "week": 6,
+       "exposure_years": 2.1538461538461533
+      },
+      {
+       "week": 7,
+       "exposure_years": 2.1538461538461533
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    }
+   ]
+  },
+  "greedy": {
+   "method": "greedy",
+   "completion_week": {
+    "backup": 1,
+    "statements": 1,
+    "sftp-reg": 1,
+    "hsm": 2,
+    "root-ca": 3,
+    "web-gw": 4,
+    "payments-api": 4,
+    "ledger-db": 5,
+    "bus": 5,
+    "crm": 6,
+    "risk-engine": 6,
+    "kyc-db": 7,
+    "auth": 7,
+    "ops-dash": 4,
+    "cdn": 2,
+    "vpn": 8
+   },
+   "waves": [
+    {
+     "week": 1,
+     "assets": [
+      "backup",
+      "sftp-reg",
+      "statements"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 2,
+     "assets": [
+      "cdn",
+      "hsm"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 3,
+     "assets": [
+      "root-ca"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 4,
+     "assets": [
+      "ops-dash",
+      "payments-api",
+      "web-gw"
+     ],
+     "effort_days": 10.0,
+     "status": "planned"
+    },
+    {
+     "week": 5,
+     "assets": [
+      "bus",
+      "ledger-db"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 6,
+     "assets": [
+      "crm",
+      "risk-engine"
+     ],
+     "effort_days": 8.0,
+     "status": "planned"
+    },
+    {
+     "week": 7,
+     "assets": [
+      "auth",
+      "kyc-db"
+     ],
+     "effort_days": 9.0,
+     "status": "planned"
+    },
+    {
+     "week": 8,
+     "assets": [
+      "vpn"
+     ],
+     "effort_days": 6.0,
+     "status": "planned"
+    }
+   ],
+   "per_scenario": [
+    {
+     "scenario": "Z2030",
+     "year": 2030.0,
+     "exposure_years": 90.09615384615384,
+     "weighted_exposure": 767.7115384615385
+    },
+    {
+     "scenario": "Z2032",
+     "year": 2032.0,
+     "exposure_years": 65.86538461538461,
+     "weighted_exposure": 571.0192307692308
+    },
+    {
+     "scenario": "Z2035",
+     "year": 2035.0,
+     "exposure_years": 40.36538461538461,
+     "weighted_exposure": 356.96153846153845
+    }
+   ],
+   "expected_weighted": 565.8096153846154,
+   "worst_case_weighted": 767.7115384615385,
+   "makespan_weeks": 8,
+   "produced_by": {
+    "solver": "python list scheduler (greedy), scored by schedule.problem.evaluate",
+    "run_ids": [],
+    "job_ids": []
+   },
+   "remaining_by_week": [
+    {
+     "scenario": "Z2030",
+     "year": 2030.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 90.09615384615384
+      },
+      {
+       "week": 1,
+       "exposure_years": 42.03846153846153
+      },
+      {
+       "week": 2,
+       "exposure_years": 38.0
+      },
+      {
+       "week": 3,
+       "exposure_years": 33.94230769230769
+      },
+      {
+       "week": 4,
+       "exposure_years": 22.71153846153846
+      },
+      {
+       "week": 5,
+       "exposure_years": 16.51923076923077
+      },
+      {
+       "week": 6,
+       "exposure_years": 7.288461538461538
+      },
+      {
+       "week": 7,
+       "exposure_years": 0.15384615384615374
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    },
+    {
+     "scenario": "Z2032",
+     "year": 2032.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 65.86538461538461
+      },
+      {
+       "week": 1,
+       "exposure_years": 23.807692307692307
+      },
+      {
+       "week": 2,
+       "exposure_years": 21.769230769230766
+      },
+      {
+       "week": 3,
+       "exposure_years": 19.71153846153846
+      },
+      {
+       "week": 4,
+       "exposure_years": 12.557692307692307
+      },
+      {
+       "week": 5,
+       "exposure_years": 10.365384615384615
+      },
+      {
+       "week": 6,
+       "exposure_years": 5.134615384615385
+      },
+      {
+       "week": 7,
+       "exposure_years": 0.0
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    },
+    {
+     "scenario": "Z2035",
+     "year": 2035.0,
+     "points": [
+      {
+       "week": 0,
+       "exposure_years": 40.36538461538461
+      },
+      {
+       "week": 1,
+       "exposure_years": 6.326923076923077
+      },
+      {
+       "week": 2,
+       "exposure_years": 6.326923076923077
+      },
+      {
+       "week": 3,
+       "exposure_years": 6.326923076923077
+      },
+      {
+       "week": 4,
+       "exposure_years": 4.25
+      },
+      {
+       "week": 5,
+       "exposure_years": 4.25
+      },
+      {
+       "week": 6,
+       "exposure_years": 2.134615384615385
+      },
+      {
+       "week": 7,
+       "exposure_years": 0.0
+      },
+      {
+       "week": 8,
+       "exposure_years": 0.0
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "avoided": {
+  "vs_fcfs": [
+   {
+    "scenario": "Z2030",
+    "exposure_years_avoided": 0.1730769230769198,
+    "weighted_avoided": 1.6923076923076223
+   },
+   {
+    "scenario": "Z2032",
+    "exposure_years_avoided": 0.1538461538461462,
+    "weighted_avoided": 1.6346153846153584
+   },
+   {
+    "scenario": "Z2035",
+    "exposure_years_avoided": 0.0961538461538538,
+    "weighted_avoided": 0.75
+   }
+  ],
+  "vs_greedy": [
+   {
+    "scenario": "Z2030",
+    "exposure_years_avoided": 0.019230769230759392,
+    "weighted_avoided": 0.48076923076916955
+   },
+   {
+    "scenario": "Z2032",
+    "exposure_years_avoided": 0.038461538461532996,
+    "weighted_avoided": 0.5384615384615472
+   },
+   {
+    "scenario": "Z2035",
+    "exposure_years_avoided": 0.0576923076923066,
+    "weighted_avoided": 0.4230769230769056
+   }
+  ]
+ },
+ "solver_runs": [
+  {
+   "run_id": "945786f8d13e416f8bde030f63099884",
+   "ts": "2026-10-29T17:04:18Z",
+   "stage": "schedule.milp.expected.expected",
+   "solver": "qpiai-opt local",
+   "provider": "qpiai-opt",
+   "package_version": "0.0.9",
+   "mode": "local",
+   "device": null,
+   "job_id": null,
+   "problem_id": null,
+   "job_id_reason": "QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes",
+   "fallback_reason": null,
+   "status": "optimal",
+   "termination": "optimal",
+   "guarantee": "global_optimum",
+   "objective": 565.3230769230769,
+   "solver_time_s": 0.1594682,
+   "inputs_sha256": "7eef3f5623c48f3216ef8898601aa03582faa949771c907cb00738eac70aae48",
+   "output_sha256": "7d9d2e17e2db645d8e919d6e36df353dd4b59a108ff42397cfa8b07bbf5ccd38",
+   "local_output_sha256": "7d9d2e17e2db645d8e919d6e36df353dd4b59a108ff42397cfa8b07bbf5ccd38",
+   "comparison": null
+  },
+  {
+   "run_id": "c422184b41e14ef5aedba226602f4a81",
+   "ts": "2026-10-29T17:04:18Z",
+   "stage": "schedule.milp.expected.tiebreak",
+   "solver": "qpiai-opt local",
+   "provider": "qpiai-opt",
+   "package_version": "0.0.9",
+   "mode": "local",
+   "device": null,
+   "job_id": null,
+   "problem_id": null,
+   "job_id_reason": "QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable via run_id and input/output SHA-256 hashes",
+   "fallback_reason": null,
+   "status": "optimal",
+   "termination": "optimal",
+   "guarantee": "global_optimum",
+   "objective": 7.9423076923076925,
+   "solver_time_s": 0.1364374,
+   "inputs_sha256": "71289350db4df1bff865f2c1f4f69c7eb28d2b7f46b195bd7397321dd13f2049",
+   "output_sha256": "a0a3987aa7979a4def1067f5d5d562f1cd66450050d4f9027d5adecb07d2095d",
+   "local_output_sha256": "a0a3987aa7979a4def1067f5d5d562f1cd66450050d4f9027d5adecb07d2095d",
+   "comparison": null
+  }
+ ],
+ "sensitivity": [
+  {
+   "parameter": "shelf",
+   "factor": 0.8,
+   "optimized_expected": 381.14576923076925,
+   "fcfs_expected": 382.51500000000004,
+   "greedy_expected": 381.6496153846154,
+   "optimized_worst": 555.6807692307692,
+   "fcfs_worst": 557.3153846153847,
+   "greedy_worst": 556.2192307692308,
+   "run_ids": [
+    "2d122a666fcd458a80fc8a9bdf93454e",
+    "61dbbe245696472391d946a8ce19c162"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "shelf",
+   "factor": 1.2,
+   "optimized_expected": 761.1415384615385,
+   "fcfs_expected": 762.7934615384617,
+   "greedy_expected": 761.6626923076924,
+   "optimized_worst": 981.6307692307693,
+   "fcfs_worst": 983.323076923077,
+   "greedy_worst": 982.1115384615385,
+   "run_ids": [
+    "f974ff1d605b4d0eaee85f57351dfb88",
+    "4c2bd79214304e3f906bea5e546022de"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "risk",
+   "factor": 0.8,
+   "optimized_expected": 452.2584615384616,
+   "fcfs_expected": 453.3676923076923,
+   "greedy_expected": 452.64769230769235,
+   "optimized_worst": 613.7846153846154,
+   "fcfs_worst": 615.1384615384616,
+   "greedy_worst": 614.1692307692308,
+   "run_ids": [
+    "ee620e1d5fdb46c5b264055bbce2d123",
+    "d69beafee04f4e7da854f8fb31c3f0e2"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "risk",
+   "factor": 1.2,
+   "optimized_expected": 678.3876923076922,
+   "fcfs_expected": 680.0515384615385,
+   "greedy_expected": 678.9715384615384,
+   "optimized_worst": 920.676923076923,
+   "fcfs_worst": 922.7076923076922,
+   "greedy_worst": 921.2538461538461,
+   "run_ids": [
+    "2237b092ed7046398c20689d3a478b65",
+    "c5e5609a3c5c46f48d8429d1d9a93d97"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "effort",
+   "factor": 0.8,
+   "optimized_expected": 564.5788461538461,
+   "fcfs_expected": 565.8326923076924,
+   "greedy_expected": 565.1019230769231,
+   "optimized_worst": 766.3076923076924,
+   "fcfs_worst": 767.5384615384615,
+   "greedy_worst": 766.8653846153846,
+   "run_ids": [
+    "21c3b477ce574aefade5dfa22d5de504",
+    "b6df66008434476a91faa06d08568992"
+   ],
+   "produced_by": "qpiai-opt local"
+  },
+  {
+   "parameter": "effort",
+   "factor": 1.2,
+   "optimized_expected": 566.3038461538462,
+   "fcfs_expected": 567.7653846153846,
+   "greedy_expected": 567.4365384615385,
+   "optimized_worst": 768.8461538461538,
+   "fcfs_worst": 770.1346153846155,
+   "greedy_worst": 769.9038461538462,
+   "run_ids": [
+    "3d7e187e0bf9491a9254156217e91fc0",
+    "7def9964c4dc444eacff72b48d6d5e01"
+   ],
+   "produced_by": "qpiai-opt local"
+  }
+ ]
+}

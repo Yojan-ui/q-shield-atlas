@@ -1,0 +1,14 @@
+{
+ "python": "3.12.10",
+ "platform": "Windows 11",
+ "packages": {
+  "numpy": "2.5.4",
+  "scipy": "1.18.1",
+  "qiskit": "2.6.1",
+  "qiskit-ibm-runtime": "0.51.0",
+  "qpiai-quantum": "0.3.0",
+  "qpiai-opt": "0.0.9",
+  "truststore": "0.10.5"
+ },
+ "note": "environment of the machine that ran the IBM jobs, recorded at export"
+}

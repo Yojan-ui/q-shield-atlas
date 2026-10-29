@@ -1,0 +1,242 @@
+{
+ "ibm": {
+  "1": {
+   "shots": 2048,
+   "distinct_bitstrings": 1441,
+   "feasible_fraction": 0.06640625,
+   "best_feasible_objective": -0.3461538461538609,
+   "best_feasible_assets": [
+    "backup",
+    "statements"
+   ],
+   "approximation_ratio": 1.0,
+   "mean_energy": 328.97046743539516,
+   "mean_energy_se": 11.344742965304835,
+   "energy_ratio": 0.9469387280183414,
+   "p_optimal": 0.00048828125,
+   "p_optimal_assets": 0.0087890625
+  },
+  "2": {
+   "shots": 2048,
+   "distinct_bitstrings": 1606,
+   "feasible_fraction": 0.04443359375,
+   "best_feasible_objective": -0.3461538461538609,
+   "best_feasible_assets": [
+    "backup",
+    "statements"
+   ],
+   "approximation_ratio": 1.0,
+   "mean_energy": 553.3112811748778,
+   "mean_energy_se": 16.255167184472707,
+   "energy_ratio": 0.9107917249059777,
+   "p_optimal": 0.00048828125,
+   "p_optimal_assets": 0.00439453125
+  },
+  "3": {
+   "shots": 2048,
+   "distinct_bitstrings": 1902,
+   "feasible_fraction": 0.0146484375,
+   "best_feasible_objective": -0.3461538461538609,
+   "best_feasible_assets": [
+    "backup",
+    "statements"
+   ],
+   "approximation_ratio": 1.0,
+   "mean_energy": 916.9936166616542,
+   "mean_energy_se": 18.50092324581921,
+   "energy_ratio": 0.852193263513134,
+   "p_optimal": 0.0,
+   "p_optimal_assets": 0.0029296875
+  }
+ },
+ "local": {
+  "1": {
+   "shots": 2048,
+   "distinct_bitstrings": 1024,
+   "feasible_fraction": 0.09423828125,
+   "best_feasible_objective": -0.3461538461538609,
+   "best_feasible_assets": [
+    "backup",
+    "statements"
+   ],
+   "approximation_ratio": 1.0,
+   "mean_energy": 103.60450908954283,
+   "mean_energy_se": 4.609913621857623,
+   "energy_ratio": 0.983250907964378,
+   "p_optimal": 0.001953125,
+   "p_optimal_assets": 0.01318359375
+  },
+  "2": {
+   "shots": 2048,
+   "distinct_bitstrings": 772,
+   "feasible_fraction": 0.1826171875,
+   "best_feasible_objective": -0.3461538461538609,
+   "best_feasible_assets": [
+    "backup",
+    "statements"
+   ],
+   "approximation_ratio": 1.0,
+   "mean_energy": 69.18800706129778,
+   "mean_energy_se": 2.6320108104723734,
+   "energy_ratio": 0.9887962805838083,
+   "p_optimal": 0.0029296875,
+   "p_optimal_assets": 0.01416015625
+  },
+  "3": {
+   "shots": 2048,
+   "distinct_bitstrings": 773,
+   "feasible_fraction": 0.1865234375,
+   "best_feasible_objective": -0.3461538461538609,
+   "best_feasible_assets": [
+    "backup",
+    "statements"
+   ],
+   "approximation_ratio": 1.0,
+   "mean_energy": 66.00620774489153,
+   "mean_energy_se": 2.079713139877959,
+   "energy_ratio": 0.9893089492680124,
+   "p_optimal": 0.001953125,
+   "p_optimal_assets": 0.01416015625
+  }
+ },
+ "qpiai_local": {
+  "1": {
+   "shots": 2048,
+   "distinct_bitstrings": 1059,
+   "feasible_fraction": 0.12158203125,
+   "best_feasible_objective": -0.3461538461538609,
+   "best_feasible_assets": [
+    "backup",
+    "statements"
+   ],
+   "approximation_ratio": 1.0,
+   "mean_energy": 105.35763127253558,
+   "mean_energy_se": 4.625530446382135,
+   "energy_ratio": 0.9829684354532523,
+   "p_optimal": 0.001953125,
+   "p_optimal_assets": 0.01708984375
+  },
+  "2": {
+   "shots": 2048,
+   "distinct_bitstrings": 784,
+   "feasible_fraction": 0.1923828125,
+   "best_feasible_objective": -0.3461538461538609,
+   "best_feasible_assets": [
+    "backup",
+    "statements"
+   ],
+   "approximation_ratio": 1.0,
+   "mean_energy": 71.55877216045643,
+   "mean_energy_se": 2.8884434378271333,
+   "energy_ratio": 0.9884142901114128,
+   "p_optimal": 0.00048828125,
+   "p_optimal_assets": 0.01708984375
+  },
+  "3": {
+   "shots": 2048,
+   "distinct_bitstrings": 774,
+   "feasible_fraction": 0.15625,
+   "best_feasible_objective": -0.3461538461538609,
+   "best_feasible_assets": [
+    "backup",
+    "statements"
+   ],
+   "approximation_ratio": 1.0,
+   "mean_energy": 64.8948608398435,
+   "mean_energy_se": 2.378005274482869,
+   "energy_ratio": 0.9894880154814493,
+   "p_optimal": 0.00048828125,
+   "p_optimal_assets": 0.01611328125
+  }
+ },
+ "random": {
+  "shots": 2048,
+  "distinct_bitstrings": 1912,
+  "feasible_fraction": 0.00341796875,
+  "best_feasible_objective": -0.3461538461538609,
+  "best_feasible_assets": [
+   "backup",
+   "statements"
+  ],
+  "approximation_ratio": 1.0,
+  "mean_energy": 1173.061288686895,
+  "mean_energy_se": 19.679288413769036,
+  "energy_ratio": 0.8109342577023554,
+  "p_optimal": 0.0,
+  "p_optimal_assets": 0.0009765625
+ },
+ "comparisons": [
+  {
+   "p": 1,
+   "against": "qpiai_local",
+   "z_scores": {
+    "feasible_fraction": -2.8201525087000365,
+    "p_optimal_assets": -1.0237788876378269,
+    "mean_energy": -0.2684533201408742
+   },
+   "sigma_threshold": 4.0,
+   "differs": false,
+   "note": "numpy local and QpiAI SDK local sample statistics agree within the threshold"
+  },
+  {
+   "p": 2,
+   "against": "qpiai_local",
+   "z_scores": {
+    "feasible_fraction": -0.8006407690254357,
+    "p_optimal_assets": -0.7559289460184544,
+    "mean_energy": -0.6066813827493387
+   },
+   "sigma_threshold": 4.0,
+   "differs": false,
+   "note": "numpy local and QpiAI SDK local sample statistics agree within the threshold"
+  },
+  {
+   "p": 3,
+   "against": "qpiai_local",
+   "z_scores": {
+    "feasible_fraction": 2.5706750852401057,
+    "p_optimal_assets": -0.5118894438189134,
+    "mean_energy": 0.35178867438543826
+   },
+   "sigma_threshold": 4.0,
+   "differs": false,
+   "note": "numpy local and QpiAI SDK local sample statistics agree within the threshold"
+  },
+  {
+   "p": 1,
+   "against": "ibm",
+   "z_scores": {
+    "feasible_fraction": 3.2768689299907123,
+    "p_optimal_assets": 1.3490719265285378,
+    "mean_energy": -18.403845117920895
+   },
+   "sigma_threshold": 4.0,
+   "differs": true,
+   "note": "numpy local and IBM ibm_fez sample statistics differ beyond the threshold; both are reported, neither is preferred"
+  },
+  {
+   "p": 2,
+   "against": "ibm",
+   "z_scores": {
+    "feasible_fraction": 13.938845636944114,
+    "p_optimal_assets": 3.259583794592265,
+    "mean_energy": -29.39982856088853
+   },
+   "sigma_threshold": 4.0,
+   "differs": true,
+   "note": "numpy local and IBM ibm_fez sample statistics differ beyond the threshold; both are reported, neither is preferred"
+  },
+  {
+   "p": 3,
+   "against": "ibm",
+   "z_scores": {
+    "feasible_fraction": 18.285810665051308,
+    "p_optimal_assets": 3.904426871665894,
+    "mean_energy": -45.709133270593156
+   },
+   "sigma_threshold": 4.0,
+   "differs": true,
+   "note": "numpy local and IBM ibm_fez sample statistics differ beyond the threshold; both are reported, neither is preferred"
+  }
+ ]
+}

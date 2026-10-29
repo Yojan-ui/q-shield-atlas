@@ -45,14 +45,24 @@ key exchange. No traffic was decrypted.
 ## real_ibm_qaoa/ (REAL, IBM Quantum hardware)
 
 Written by `python tools/export_ibm_run.py` from a logged `python -m qaoa --ibm` run (`out/results.json`,
-`runs/<run_id>/ibm_p*.json`, `out/ledger.jsonl`); nothing is typed by hand. A measured cross-check against the
-exact optimum; no quantum advantage claimed. Checked by `tests/test_real_ibm_qaoa.py`.
+`out/schedule.json`, `config/qaoa.json`, `runs/<run_id>/ibm_p*.json`, `runs/platform_jobs.log`, `out/ledger.jsonl`);
+nothing is typed by hand. Imported on another machine, without IBM access, by `python -m qaoa --ibm-import
+data/real_ibm_qaoa`. A measured cross-check against the exact optimum; no quantum advantage claimed. Checked by
+`tests/test_real_ibm_qaoa.py` and `tests/test_qaoa_ibm_import.py`.
 
 | File | Contents |
 |---|---|
-| run_&lt;id8&gt;.json | problem, exact optimum, every `qaoa.table` row (local, qpiai_local, qcloud status, ibm, random), comparisons (z-scores), raw ibm_fez counts per p (qubit 0 rightmost), physical qubits, transpiler settings, ledger entry index and root |
-| run_&lt;id8&gt;_table.csv | the table rows, flat: metrics (`feasible_fraction`, `best_feasible_objective`, `approximation_ratio`, `energy_ratio`, `p_optimal`, `p_optimal_assets`) and for IBM rows `hw_job_id`, `hw_backend`, `hw_transpiled_depth`, `hw_two_qubit_gates`, `hw_qpu_seconds` |
-| run_&lt;id8&gt;.manifest.json | SHA-256 of every source file and of both outputs |
+| run.json | run_id, executed_at (UTC), schedule SHA-256, backend, job IDs, ledger entry on the executing machine |
+| schedule.json | byte copy of the `out/schedule.json` the QUBO was built from |
+| qaoa_config.json | byte copy of `config/qaoa.json` used for the run |
+| problem.json | candidates (assets, values, weights, capacity, dependencies, shrink log), the QUBO (offset, linear, quadratic terms) and the exact optimum |
+| angles.json | simulator-tuned gammas, betas and energy scale per p: the circuits that were sent to IBM |
+| jobs/ibm_p&lt;p&gt;.json | per job: IBM job ID, backend, shots, raw counts (qubit 0 rightmost), transpiled depth, 2-qubit gate count and names, op counts, physical-qubit layout, optimization level and seed, QPU seconds, submit / job-ID-logged timestamps |
+| metrics.json | metrics computed at run time for ibm, local, qpiai_local and random, and the comparisons (z-scores) |
+| qaoa_section.json | the full `out/qaoa.json` section of the run |
+| table.csv | `qaoa.table` rows, flat: metrics (`feasible_fraction`, `best_feasible_objective`, `approximation_ratio`, `energy_ratio`, `p_optimal`, `p_optimal_assets`) and for IBM rows `hw_job_id`, `hw_backend`, `hw_transpiled_depth`, `hw_two_qubit_gates`, `hw_qpu_seconds` |
+| versions.json | Python, OS and package versions of the executing machine |
+| manifest.json | SHA-256 of every file above |
 
 `hw_transpiled_depth` and `hw_two_qubit_gates` describe the circuit actually sent to the QPU (after transpiling to
 the backend's native gates); `hw_qpu_seconds` is IBM's reported usage for the job.

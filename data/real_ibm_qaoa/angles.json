@@ -1,0 +1,38 @@
+{
+ "1": {
+  "gammas": [
+   10.438308023966488
+  ],
+  "betas": [
+   2.5941910971845683
+  ],
+  "energy_scale": 6206.346153846125,
+  "optimizer": "scipy COBYLA, 5 seeded restarts (seed 7), maxiter 400"
+ },
+ "2": {
+  "gammas": [
+   4.643393791747412,
+   5.951735132870654
+  ],
+  "betas": [
+   0.6593775789714641,
+   2.262608570397543
+  ],
+  "energy_scale": 6206.346153846125,
+  "optimizer": "scipy COBYLA, 5 seeded restarts (seed 7), maxiter 400"
+ },
+ "3": {
+  "gammas": [
+   3.5308381523635375,
+   5.245081312266915,
+   -1.8868679784797802
+  ],
+  "betas": [
+   0.45839618082279276,
+   1.6018069332070801,
+   0.7413359112658414
+  ],
+  "energy_scale": 6206.346153846125,
+  "optimizer": "scipy COBYLA, 5 seeded restarts (seed 7), maxiter 400"
+ }
+}

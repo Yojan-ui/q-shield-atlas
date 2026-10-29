@@ -43,7 +43,7 @@ def ok_row(r):
             "shots": r["shots"], "job_ids": r["job_ids"], "metrics": r["metrics"]}
 
 
-HARDWARE_KEYS = ("qpu_seconds", "transpiled_depth", "two_qubit_gates", "two_qubit_gate_names", "physical_qubits")
+HARDWARE_KEYS = ("qpu_seconds", "transpiled_depth", "two_qubit_gates", "two_qubit_gate_names", "physical_qubits", "provenance")
 
 
 def ibm_rows(section: dict, p: int) -> list[dict]:
@@ -54,7 +54,7 @@ def ibm_rows(section: dict, p: int) -> list[dict]:
     run = next((r for r in section["runs"] if r["source"] == "ibm" and r["p"] == p), None)
     if run is not None:
         return [{**ok_row(run), "hardware": {"backend": run["backend"], "job_id": run["job_ids"][0],
-                                             **{k: run.get(k) for k in HARDWARE_KEYS}}}]
+                                             **{k: run.get(k) for k in HARDWARE_KEYS if k != "provenance" or run.get(k)}}}]
     backend = ibm.get("backend", "IBM Quantum")
     if job is None:
         return [{"p": p, "source": "ibm", "status": "skipped", "status_text": "skipped: no IBM job for this p",
