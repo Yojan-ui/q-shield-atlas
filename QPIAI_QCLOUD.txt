@@ -1,0 +1,50 @@
+Q-SHIELD ATLAS - QpiAI OPT, QSV-LOCAL AND QCLOUD
+Values copied from logged runs: out/results.json, runs/<run_id>/manifest.json, runs/platform_jobs.log.
+Full detail: docs/QUANTUM.md
+
+QPIAI OPT (scheduling MILP, local solve)
+  package         qpiai-opt 0.0.9, mode local
+  stage           schedule.milp.expected.expected
+  status          optimal (guarantee: global_optimum)
+  objective       565.3230769230769
+  solve time      0.1215455 s
+  run_id          641f5d49ae3e4a19b4e2500a0f1047e9
+  timestamp       2026-10-29T01:52:01Z
+  inputs SHA-256  7eef3f5623c48f3216ef8898601aa03582faa949771c907cb00738eac70aae48
+  output SHA-256  abef806293d13c0c3e50c265d901b132bff0e86e4b668c7efcbca7c060d59e77
+  job_id          null
+  reason          QpiAI Opt local solve (mode='local') issues no platform job ID; run is traceable
+                  via run_id and input/output SHA-256 hashes
+
+QPIAI QSV-LOCAL (QAOA wave selection, qpiai-quantum 0.3.0 in-process simulator)
+  run_id          f8bf1b797021460d96be5efbb1a84acb
+  timestamp       2026-10-29T01:52:20Z
+  problem         week 1: 10 systems + 4 slack bits = 14 QUBO variables, 2048 shots per p
+  exact optimum   -0.3461538461538609 (migrate backup and statements; brute force over 2^10 subsets)
+  p   feasible share   P(optimal set)
+  1   0.134765625      0.013671875
+  2   0.201171875      0.0185546875
+  3   0.17578125       0.01708984375
+  random baseline: feasible share 0.00341796875, P(optimal set) 0.0009765625
+  job_id          null ("local SDK simulation issues no job ID")
+
+QPIAI QCLOUD
+  login           works (QpiAIQuantumAuth.login; device list readable)
+  submission      2026-10-28T15:29:50Z, run a7985b93f3a5490aaa3636c969dcc1c3, device QpiAI-QSV-Simulator
+  recorded error  Bad Request (400) when submitting job.
+                  Server response: {'error': 'Failed to create job: an active subscription is required to run jobs'}
+  result          no QCloud job was created, so no QCloud job ID exists.
+                  QCloud runs stay disabled (config/atlas_web.json qcloud_enabled: false).
+                  QpiAI-Indus-1 (QPU) is refused by code in every mode.
+
+HONESTY
+  No quantum advantage claimed. QAOA is a measured cross-check against the exact optimum, which
+  brute force finds; at this size MILP and brute force are exact and faster.
+
+HOW TO REPRODUCE
+  conda activate pqc && source .env.sh
+  export QSHIELD_FORBID_PLATFORM=1
+  python -m schedule --inventory out/inventory.json     # QpiAI Opt MILP (local)
+  python -m qaoa --qpiai-local                          # QAOA on QpiAI QSV-Local
+  ./run_demo.sh --no-open                               # whole pipeline, signed ledger, results.json
+  ./run_demo.sh --qcloud                                # QCloud (opt-in; blocked until the account has a subscription)
